@@ -49,7 +49,10 @@ export default [
 	},
 	{
 		files: ['**/*.svelte', '**/*.svelte.ts'],
-		languageOptions: { parserOptions: { parser: tseslint.parser } },
+		languageOptions: { parserOptions: { parser: tseslint.parser } }
+	},
+	{
+		files: ['src/**/*'],
 		rules: {
 			// Les liens internes portent déjà leur chemin final : pas de base configurée (une instance par domaine).
 			'svelte/no-navigation-without-resolve': 'off'

@@ -1,0 +1,160 @@
+/* Fichier généré par scripts/generer-jetons.ts. Ne pas modifier à la main. */
+
+:root {
+	--typo-display-famille: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+	--typo-display-taille: 32px;
+	--typo-display-graisse: 600;
+	--typo-display-interligne: 1.15;
+	--typo-display-chasse: -0.01em;
+	--typo-title-famille: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+	--typo-title-taille: 24px;
+	--typo-title-graisse: 600;
+	--typo-title-interligne: 1.25;
+	--typo-heading-famille: 'Source Sans 3 Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--typo-heading-taille: 20px;
+	--typo-heading-graisse: 600;
+	--typo-heading-interligne: 1.3;
+	--typo-body-famille: 'Source Sans 3 Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--typo-body-taille: 16px;
+	--typo-body-graisse: 400;
+	--typo-body-interligne: 1.5;
+	--typo-body-strong-famille: 'Source Sans 3 Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--typo-body-strong-taille: 16px;
+	--typo-body-strong-graisse: 600;
+	--typo-body-strong-interligne: 1.5;
+	--typo-label-famille: 'Source Sans 3 Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--typo-label-taille: 14px;
+	--typo-label-graisse: 600;
+	--typo-label-interligne: 1.35;
+	--typo-caption-famille: 'Source Sans 3 Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--typo-caption-taille: 14px;
+	--typo-caption-graisse: 400;
+	--typo-caption-interligne: 1.4;
+	--typo-amount-famille: 'Source Sans 3 Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--typo-amount-taille: 16px;
+	--typo-amount-graisse: 500;
+	--typo-amount-interligne: 1.5;
+	--typo-amount-lg-famille: 'Source Sans 3 Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--typo-amount-lg-taille: 28px;
+	--typo-amount-lg-graisse: 600;
+	--typo-amount-lg-interligne: 1.2;
+	--typo-amount-xl-famille: 'Source Sans 3 Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--typo-amount-xl-taille: 40px;
+	--typo-amount-xl-graisse: 600;
+	--typo-amount-xl-interligne: 1.1;
+	--typo-key-famille: ui-monospace, SFMono-Regular, Menlo, monospace;
+	--typo-key-taille: 13px;
+	--typo-key-graisse: 500;
+	--typo-key-interligne: 1.2;
+	--rayon-sm: 6px;
+	--rayon-md: 10px;
+	--rayon-lg: 14px;
+	--rayon-xl: 20px;
+	--rayon-full: 9999px;
+	--espace-1: 4px;
+	--espace-2: 8px;
+	--espace-3: 12px;
+	--espace-4: 16px;
+	--espace-5: 24px;
+	--espace-6: 32px;
+	--espace-7: 48px;
+	--espace-8: 64px;
+	--espace-page-desktop: 32px;
+	--espace-page-tablet: 24px;
+	--espace-page-mobile: 16px;
+	--espace-row: 44px;
+	--espace-row-double: 60px;
+	--espace-touch: 48px;
+	--espace-touch-large: 56px;
+	--espace-sidebar: 248px;
+	--espace-rail: 72px;
+	--espace-drawer: 560px;
+	--espace-content-max: 1200px;
+	--espace-reading-max: 720px;
+	--mouvement-etat: 120ms;
+	--mouvement-panneau: 200ms;
+}
+
+:root {
+	color-scheme: light;
+	--surface-base: #FBF8F3;
+	--surface-raised: #FFFFFF;
+	--surface-sunken: #F3EEE5;
+	--surface-highlight: #FFF0B3;
+	--ink: #25222C;
+	--ink-muted: #5D5766;
+	--ink-disabled: #A09AA6;
+	--border: #E6DED1;
+	--border-strong: #8A8275;
+	--primary: #4A3AA0;
+	--primary-hover: #3A2C86;
+	--primary-soft: #ECE8FA;
+	--on-primary: #FFFFFF;
+	--success: #1E6B49;
+	--success-soft: #DFF1E6;
+	--warning: #865000;
+	--warning-soft: #FBEBCB;
+	--danger: #A62B2B;
+	--danger-soft: #FBE3E0;
+	--on-danger: #FFFFFF;
+	--elevation-flottant: 0 2px 8px rgba(60, 45, 30, .10);
+	--elevation-superpose: 0 12px 32px rgba(60, 45, 30, .18);
+	--elevation-voile: rgba(37, 34, 44, .35);
+}
+
+:root[data-theme='sombre'] {
+	color-scheme: dark;
+	--surface-base: #17151D;
+	--surface-raised: #211E29;
+	--surface-sunken: #110F16;
+	--surface-highlight: #40371A;
+	--ink: #F2EFEA;
+	--ink-muted: #B5AFBE;
+	--ink-disabled: #6E6878;
+	--border: #34303E;
+	--border-strong: #847E90;
+	--primary: #B9AEFF;
+	--primary-hover: #CFC7FF;
+	--primary-soft: #2D2856;
+	--on-primary: #1B1540;
+	--success: #7BD6A6;
+	--success-soft: #17382A;
+	--warning: #F2BE6B;
+	--warning-soft: #3E2E10;
+	--danger: #FF9F97;
+	--danger-soft: #47201F;
+	--on-danger: #2B0E0D;
+	--elevation-flottant: 0 2px 8px rgba(0, 0, 0, .45);
+	--elevation-superpose: 0 12px 32px rgba(0, 0, 0, .6);
+	--elevation-voile: rgba(0, 0, 0, .6);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-theme='systeme'] {
+		color-scheme: dark;
+		--surface-base: #17151D;
+		--surface-raised: #211E29;
+		--surface-sunken: #110F16;
+		--surface-highlight: #40371A;
+		--ink: #F2EFEA;
+		--ink-muted: #B5AFBE;
+		--ink-disabled: #6E6878;
+		--border: #34303E;
+		--border-strong: #847E90;
+		--primary: #B9AEFF;
+		--primary-hover: #CFC7FF;
+		--primary-soft: #2D2856;
+		--on-primary: #1B1540;
+		--success: #7BD6A6;
+		--success-soft: #17382A;
+		--warning: #F2BE6B;
+		--warning-soft: #3E2E10;
+		--danger: #FF9F97;
+		--danger-soft: #47201F;
+		--on-danger: #2B0E0D;
+		--elevation-flottant: 0 2px 8px rgba(0, 0, 0, .45);
+		--elevation-superpose: 0 12px 32px rgba(0, 0, 0, .6);
+		--elevation-voile: rgba(0, 0, 0, .6);
+	}
+}
+

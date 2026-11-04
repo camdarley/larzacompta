@@ -1,0 +1,105 @@
+<script lang="ts">
+	import { page } from '$app/state';
+
+	type Onglet = { libelle: string; href: string; compteur?: number };
+	type Props = { nom: string; onglets: readonly Onglet[]; vertical?: boolean };
+
+	let { nom, onglets, vertical = false }: Props = $props();
+	let liste = $state<HTMLElement | null>(null);
+
+	const actif = (o: Onglet) => page.url.pathname === o.href;
+
+	/** Chaque onglet a son URL ; les flèches parcourent la liste (EXPERIENCE.md). */
+	function surTouche(e: KeyboardEvent) {
+		const suivant = e.key === 'ArrowRight' || (vertical && e.key === 'ArrowDown');
+		const precedent = e.key === 'ArrowLeft' || (vertical && e.key === 'ArrowUp');
+		if (!suivant && !precedent) return;
+		const liens = [...(liste?.querySelectorAll('a') ?? [])];
+		const i = liens.indexOf(document.activeElement as HTMLAnchorElement);
+		if (i < 0) return;
+		e.preventDefault();
+		const n = liens.length;
+		liens[(i + (suivant ? 1 : -1) + n) % n]?.focus();
+	}
+</script>
+
+<nav class="onglets" class:vertical aria-label={nom} bind:this={liste}>
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<ul onkeydown={surTouche}>
+		{#each onglets as o (o.href)}
+			<li>
+				<a
+					class="t-label"
+					href={o.href}
+					aria-current={actif(o) ? 'page' : undefined}
+					data-sveltekit-preload-data="hover"
+				>
+					{o.libelle}{#if o.compteur !== undefined}
+						({o.compteur}){/if}
+				</a>
+			</li>
+		{/each}
+	</ul>
+</nav>
+
+<style>
+	ul {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--espace-1) var(--espace-4);
+		border-bottom: 1px solid var(--border);
+	}
+
+	a {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--espace-row);
+		padding: 0 var(--espace-1);
+		border-bottom: 2px solid transparent;
+		color: var(--ink-muted);
+		text-decoration: none;
+	}
+
+	a:hover {
+		color: var(--primary);
+	}
+
+	a[aria-current='page'] {
+		color: var(--primary);
+		border-bottom-color: var(--primary);
+	}
+
+	@media (max-width: 639.98px) {
+		ul {
+			gap: 0 var(--espace-3);
+		}
+
+		a {
+			min-height: var(--espace-touch);
+		}
+	}
+
+	/* Colonne de sections à gauche sur ordinateur. */
+	@media (min-width: 1024px) {
+		.vertical ul {
+			flex-direction: column;
+			gap: var(--espace-1);
+			border-bottom: 0;
+		}
+
+		.vertical a {
+			display: flex;
+			padding: 0 var(--espace-3);
+			border-bottom: 0;
+			border-radius: var(--rayon-md);
+		}
+
+		.vertical a:hover {
+			background: var(--surface-sunken);
+		}
+
+		.vertical a[aria-current='page'] {
+			background: var(--primary-soft);
+		}
+	}
+</style>
