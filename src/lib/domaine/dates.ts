@@ -78,6 +78,11 @@ export function nomDuMois(mois: number): string {
 	return MOIS[mois - 1] ?? '';
 }
 
+/** Pour une liste de choix : « Septembre ». */
+export function capitaliser(texte: string): string {
+	return texte.charAt(0).toLocaleUpperCase('fr') + texte.slice(1);
+}
+
 /** `12/03/2026 à 18:05`, heure de Paris. */
 export function formaterHorodatage(instant: Instant): string {
 	const heure = new Intl.DateTimeFormat('fr-FR', {

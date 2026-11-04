@@ -160,7 +160,7 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 				resume:
 					type === 'reinitialisation'
 						? `a réinitialisé le mot de passe de ${nomAffiche}.`
-						: `a activé l'Accès de ${nomAffiche}.`
+						: `a activé l’Accès de ${nomAffiche}.`
 			});
 			return succes({ ...session, acces, type });
 		}
@@ -245,7 +245,7 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 				evenement: 'acces.cree',
 				entiteType: 'acces',
 				entiteId: id,
-				resume: `a créé l'Accès de ${e.nomAffiche}.`,
+				resume: `a créé l’Accès de ${e.nomAffiche}.`,
 				apres: { identifiant: e.identifiant, nomAffiche: e.nomAffiche, role: e.role }
 			});
 			return succes({ id, jeton });
@@ -267,7 +267,7 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 				evenement: 'acces.revoque',
 				entiteType: 'acces',
 				entiteId: id,
-				resume: `a révoqué l'Accès de ${a.nomAffiche}.`
+				resume: `a révoqué l’Accès de ${a.nomAffiche}.`
 			});
 			return succes(true);
 		}

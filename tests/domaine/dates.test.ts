@@ -2,12 +2,14 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
 	ajouterJours,
+	capitaliser,
 	dateValide,
 	formaterDateCourte,
 	formaterDateLongue,
 	formaterHorodatage,
 	instantVersDate,
-	lireDate
+	lireDate,
+	nomDuMois
 } from '#lib/domaine/dates.ts';
 
 describe('instantVersDate', () => {
@@ -36,6 +38,12 @@ describe('formats', () => {
 		expect(formaterDateCourte('2026-03-12')).toBe('12/03/2026');
 		expect(formaterDateLongue('2026-09-01')).toBe('1er septembre 2026');
 		expect(formaterDateLongue('2026-08-31')).toBe('31 août 2026');
+	});
+
+	it('nomme et capitalise un mois', () => {
+		expect(nomDuMois(9)).toBe('septembre');
+		expect(nomDuMois(13)).toBe('');
+		expect(capitaliser(nomDuMois(8))).toBe('Août');
 	});
 
 	it('horodate en heure de Paris', () => {

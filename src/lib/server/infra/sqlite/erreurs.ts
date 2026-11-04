@@ -27,5 +27,6 @@ export function traduireErreurSqlite(erreur: unknown): ErreurMetier | null {
 		const colonne = /UNIQUE constraint failed: (.+)$/.exec(erreur.message)?.[1];
 		return { code: 'deja_utilise', details: colonne ? { colonne } : undefined };
 	}
+	if (erreur.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') return { code: 'element_utilise' };
 	return null;
 }

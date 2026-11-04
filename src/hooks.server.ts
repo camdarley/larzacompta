@@ -1,5 +1,6 @@
 import { json, redirect } from '@sveltejs/kit';
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
+import { THEMES, type Theme } from '#lib/domaine/acces.ts';
 import { deciderRoute } from '#lib/domaine/droits.ts';
 import { message } from '#lib/messages.ts';
 import { ROUTES } from '#lib/routes.ts';
@@ -76,7 +77,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		redirect(303, `/connexion?suite=${encodeURIComponent(url.pathname + url.search)}`);
 	}
 
-	const theme = cookies.get(COOKIE_THEME) ?? 'systeme';
+	const demande = cookies.get(COOKIE_THEME) as Theme | undefined;
+	// Liste fermée : ce cookie finit dans le HTML.
+	const theme = demande && THEMES.includes(demande) ? demande : 'systeme';
 	const reponse = await resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('%ape.theme%', theme)
 	});

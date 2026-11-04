@@ -58,7 +58,7 @@ export function ecartsFrontieres(fichiers: FichierSource[]): Ecart[] {
 		// Seul composition.ts instancie les adaptateurs (AD-1).
 		if (chemin !== 'src/lib/server/composition.ts' && !chemin.includes('/infra/')) {
 			for (const i of imports) {
-				if (i.startsWith('#lib/server/infra/') && !chemin.startsWith('src/cli/')) {
+				if (i.startsWith('#lib/server/infra/')) {
 					noter(`instancie un adaptateur hors de composition.ts : ${i}`);
 				}
 			}

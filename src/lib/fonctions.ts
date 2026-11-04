@@ -159,6 +159,31 @@ function visibles(entrees: Entree[], role: Role, livrees: ReadonlySet<Fonction>)
 
 export type Navigation = { groupes: GroupeNavigation[]; bas: Entree[] };
 
+/** Entrées de `barre-mobile`, dans l'ordre d'EXPERIENCE.md. « Plus » mène au reste. */
+const MOBILE_TRESORIER: Entree[] = [
+	AU_QUOTIDIEN[0] as Entree,
+	AU_QUOTIDIEN[1] as Entree,
+	AU_QUOTIDIEN[3] as Entree,
+	{
+		fonction: 'pieces',
+		libelle: 'Photo',
+		href: '/pieces/photo',
+		droit: 'saisir',
+		icone: 'pieces'
+	}
+];
+
+const MOBILE_LECTEUR: Entree[] = [
+	AU_QUOTIDIEN[0] as Entree,
+	RESULTATS[0] as Entree,
+	RESULTATS[1] as Entree,
+	SUIVI[1] as Entree
+];
+
+export function entreesMobile(role: Role, livrees = LIVREES): Entree[] {
+	return visibles(role === 'tresorier' ? MOBILE_TRESORIER : MOBILE_LECTEUR, role, livrees);
+}
+
 export function navigation(role: Role, livrees = LIVREES): Navigation {
 	const groupes = [
 		{ titre: 'Au quotidien', entrees: visibles(AU_QUOTIDIEN, role, livrees) },
