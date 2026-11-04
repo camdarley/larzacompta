@@ -63,3 +63,11 @@ Décisions prises sans arbitrage de Camille, faute de réponse dans les document
 | Sujet | Décision                                                                        | Motif                                                                                                        |
 | ----- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | Suivi | Droit `consulter_suivi` : Caisses, Chèques, Créances et Dettes en lecture seule | Consigne de Camille, en plus du §2.2 du PRD. La table de navigation d'EXPERIENCE.md s'en écarte sur ce point |
+
+## Journal vide
+
+| Sujet              | Décision                                                                                                                                          | Motif                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| État prévu         | « Rien pour l'instant » reste en place, sans filtres, et se vérifie sur une seconde instance de test dont la base est préparée avant le démarrage | Une vraie instance note l'émission du lien initial dès son premier démarrage : cet état n'apparaît pas en usage normal, mais l'UX le prévoit |
+| Triggers           | Ils restent actifs pendant ce test : la base est simplement prise avant toute écriture au Journal                                                 | Vérifier l'état vide ne doit pas affaiblir l'immuabilité                                                                                     |
+| Captures de thèmes | Le script de captures émule le thème du système au lieu de poser le cookie `ape_theme`                                                            | La préférence « Système » du compte l'emporte sur le cookie à l'hydratation : les captures « sombre » précédentes restaient en thème clair   |

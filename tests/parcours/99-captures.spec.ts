@@ -14,7 +14,11 @@ const FORMATS = [
 	{ nom: 'tablette', largeur: 820, hauteur: 900 },
 	{ nom: 'telephone', largeur: 390, hauteur: 780 }
 ];
-const THEMES = ['clair', 'sombre'];
+// La préférence « Système » du compte l'emporte sur le cookie à l'hydratation : on émule le système.
+const THEMES = [
+	['clair', 'light'],
+	['sombre', 'dark']
+] as const;
 
 const ECRANS: [string, string][] = [
 	['tableau', '/'],
@@ -52,15 +56,12 @@ test.describe('captures', () => {
 	test.skip(!dossier, 'CAPTURES non défini');
 	test.setTimeout(240_000);
 
-	test('écrans', async ({ page, context, browser }) => {
+	test('écrans', async ({ page, browser }) => {
 		mkdirSync(dossier as string, { recursive: true });
 		await connecter(page);
-		const cookies = await context.cookies();
 		for (const format of FORMATS) {
-			for (const theme of THEMES) {
-				await context.addCookies([
-					{ ...cookies[0], name: 'ape_theme', value: theme, httpOnly: false }
-				] as never);
+			for (const [theme, colorScheme] of THEMES) {
+				await page.emulateMedia({ colorScheme });
 				await page.setViewportSize({ width: format.largeur, height: format.hauteur });
 				for (const [nom, chemin] of ECRANS) {
 					await page.goto(chemin);
@@ -83,6 +84,7 @@ test.describe('captures', () => {
 		await invite.close();
 
 		// Lien à usage unique et dialogue de révocation, avec leurs vrais contenus.
+		await page.emulateMedia({ colorScheme: 'light' });
 		await page.setViewportSize({ width: 1280, height: 800 });
 		await page.goto('/reglages/acces?acces=nouveau');
 		await page.getByLabel('Identifiant').fill(`capture${Date.now()}`);

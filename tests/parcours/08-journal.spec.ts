@@ -77,8 +77,8 @@ test('aucun écran ne permet de modifier, et le téléphone montre des rangées 
 	await axeSansViolation(page);
 });
 
-test('un Journal vide affiche l’état prévu', async ({ page }) => {
-	// Filtre impossible à vider : le vrai cas se vérifie sur une base neuve au test d'application.
+// Le vrai Journal vide a sa propre instance : voir 09-journal-vide.spec.ts.
+test('une personne absente du Journal dit de retirer des critères', async ({ page }) => {
 	await page.goto('/journal?personne=Personne-absente');
 	await expect(page.getByRole('heading', { name: 'Rien ne correspond' })).toBeVisible();
 });
