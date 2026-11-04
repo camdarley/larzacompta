@@ -39,7 +39,12 @@ export default [
 	{
 		languageOptions: { globals: { ...globals.browser, ...globals.node } },
 		rules: {
-			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+			// La typographie française emploie des espaces insécables dans les textes et commentaires.
+			'no-irregular-whitespace': [
+				'error',
+				{ skipStrings: true, skipComments: true, skipTemplates: true, skipRegExps: true }
+			]
 		}
 	},
 	{
@@ -59,7 +64,7 @@ export default [
 				{
 					patterns: [
 						{
-							group: ['*', '!./*', '!../*', '!#lib/domaine/*'],
+							regex: '^(?!\\.{1,2}/|#lib/domaine/)',
 							message: 'Le domaine ne dépend que de lui-même (AD-1).'
 						}
 					]
