@@ -1,0 +1,10 @@
+_bmad/
+_bmad-output/
+.claude/
+.private/
+build/
+.svelte-kit/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+src/lib/ui/jetons.css
+LICENSE
