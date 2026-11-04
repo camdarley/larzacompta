@@ -1,0 +1,30 @@
+# Données et documents de travail privés
+_bmad-output/
+.private/
+*.ofx
+*.xlsx
+*.qif
+
+# Dépendances et builds
+node_modules/
+build/
+.svelte-kit/
+dist/
+
+# Base locale et secrets
+*.db
+*.db-*
+data/
+.env
+.env.*
+!.env.example
+
+# Divers
+.DS_Store
+coverage/
+test-results/
+playwright-report/
+
+# Outillage local
+.claude/
+_bmad/
