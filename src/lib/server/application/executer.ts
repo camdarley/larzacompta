@@ -6,7 +6,15 @@ import type { AccesConnecte } from '#lib/domaine/acces.ts';
 import { instantVersDate, type DateCivile, type Instant } from '#lib/domaine/dates.ts';
 import { peut, type Droit } from '#lib/domaine/droits.ts';
 import { echec, type Resultat } from '#lib/domaine/resultat.ts';
-import type { Depots, Hacheur, Horloge, Jetons, Journaliseur, Transaction } from './ports.ts';
+import type {
+	Depots,
+	Exporteurs,
+	Hacheur,
+	Horloge,
+	Jetons,
+	Journaliseur,
+	Transaction
+} from './ports.ts';
 
 export type Ctx = {
 	acces: AccesConnecte | null;
@@ -21,6 +29,7 @@ export type Socle = {
 	hacheur: Hacheur;
 	jetons: Jetons;
 	journaliseur: Journaliseur;
+	exporteurs: Exporteurs;
 };
 
 export type NoteJournal = {

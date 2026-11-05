@@ -78,6 +78,13 @@ const MESSAGES = {
 	ancre_invalide: 'Le solde de départ d’un Compte se pose au début d’un Exercice ouvert.',
 
 	// Saisie et parcours d'Accès, absents du tableau d'EXPERIENCE.md, même ton.
+	forme_invalide:
+		'Cette Opération n’est pas complète. Vérifiez ses montants et ses Comptes, puis réessayez.',
+	ventilation_excedent: 'Il y a {montant} de trop. Retirez-les d’une Ligne ou corrigez le montant.',
+	compte_inactif: 'Ce Compte est désactivé. Choisissez-en un autre.',
+	operation_annulee: 'Cette Opération est annulée : elle ne se modifie plus.',
+	liaison_invalide:
+		'Ces Opérations ne peuvent pas être reliées : elles le sont déjà, ou l’une d’elles est annulée.',
 	saisie_invalide: 'Vérifiez les champs signalés.',
 	champ_requis: 'Ce champ est à remplir.',
 	montant_invalide: 'Ce montant n’est pas lisible. Écrivez par exemple 1 000,50 ou 220+180.',

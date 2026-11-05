@@ -1,8 +1,11 @@
 /** Passage du Resultat métier à la réponse HTTP, au même endroit pour toutes les routes. */
-import { error, fail, type ActionFailure } from '@sveltejs/kit';
+import { error, fail, json, type ActionFailure } from '@sveltejs/kit';
+import type { z } from 'zod';
 import type { AccesConnecte } from '#lib/domaine/acces.ts';
 import type { ErreurMetier, Resultat } from '#lib/domaine/resultat.ts';
+import { echec } from '#lib/domaine/resultat.ts';
 import { message, messageErreur, type CodeMessage } from '#lib/messages.ts';
+import { valider } from '#lib/schemas/valider.ts';
 
 export type VueErreur = {
 	code: string;
@@ -27,6 +30,28 @@ function statut(code: string) {
 	if (code === 'acces_refuse') return 403;
 	if (code === 'modification_concurrente') return 409;
 	return 400;
+}
+
+/** Endpoint JSON : la forme d'erreur est toujours `{ code, details }` (AD-19). */
+export function reponseJson<T>(r: Resultat<T>): Response {
+	if (r.ok) return json(r.valeur);
+	return json(
+		{ code: r.erreur.code, details: r.erreur.details ?? {} },
+		{ status: statut(r.erreur.code) }
+	);
+}
+
+export async function lireJson<S extends z.ZodType>(
+	schema: S,
+	request: Request
+): Promise<Resultat<z.output<S>>> {
+	let brut: unknown;
+	try {
+		brut = await request.json();
+	} catch {
+		return echec('saisie_invalide', { champs: {} });
+	}
+	return valider(schema, brut);
 }
 
 export type EchecFormulaire = { erreur: VueErreur; saisie: Record<string, unknown> };

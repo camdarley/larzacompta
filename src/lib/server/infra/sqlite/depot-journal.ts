@@ -52,6 +52,18 @@ export function creerDepotJournal(base: Base): DepotJournal {
 		.prepare('SELECT DISTINCT entite_type FROM journal_modification ORDER BY entite_type')
 		.pluck();
 
+	const parEntite = base.prepare(`
+		SELECT id, horodatage, acces_id, acces_nom, evenement, entite_type, entite_id, resume
+		FROM journal_modification WHERE entite_type = ? AND entite_id = ?
+		ORDER BY horodatage DESC, id DESC
+	`);
+	const entiteDeCle = base
+		.prepare(
+			`SELECT entite_id FROM journal_modification
+			 WHERE json_extract(apres_json, '$.cle') = ? ORDER BY id DESC LIMIT 1`
+		)
+		.pluck();
+
 	return {
 		ajouter: (e) => void ajouter.run(e),
 		lister(filtres, page) {
@@ -67,6 +79,9 @@ export function creerDepotJournal(base: Base): DepotJournal {
 			};
 		},
 		personnes: () => personnes.all() as string[],
-		types: () => types.all() as string[]
+		types: () => types.all() as string[],
+		parEntite: (entiteType, entiteId) =>
+			(parEntite.all(entiteType, entiteId) as LigneBrute[]).map(versEntree),
+		entiteDeCle: (cle) => (entiteDeCle.get(cle) as number | undefined) ?? null
 	};
 }

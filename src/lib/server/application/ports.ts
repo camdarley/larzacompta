@@ -3,6 +3,8 @@ import type { AccesConnecte, Preferences, Tentative } from '#lib/domaine/acces.t
 import type { DateCivile, Instant } from '#lib/domaine/dates.ts';
 import type { Role } from '#lib/domaine/droits.ts';
 import type { Exercice, NouvelExercice } from '#lib/domaine/exercices.ts';
+import type { GrandJournal, LiaisonJ, OperationJ, TypeLiaison } from '#lib/domaine/journal.ts';
+import type { BrouillonValide } from '#lib/domaine/operations/validation.ts';
 import type { Centimes } from '#lib/domaine/montant.ts';
 import type {
 	Action,
@@ -122,6 +124,10 @@ export type DepotJournal = {
 	): { entrees: EntreeJournal[]; total: number };
 	personnes(): string[];
 	types(): string[];
+	/** Historique d'un élément, du plus récent au plus ancien. */
+	parEntite(entiteType: string, entiteId: number): EntreeJournal[];
+	/** Élément déjà écrit sous cette clé de saisie : un renvoi ne l'écrit pas deux fois. */
+	entiteDeCle(cle: string): number | null;
 };
 
 export type DepotParametrage = {
@@ -172,11 +178,37 @@ export type DepotExercices = {
 	creer(e: NouvelExercice): number;
 };
 
+export type NouvelleOperation = BrouillonValide & { creeLe: Instant; creePar: number };
+
+/** Seul chemin vers `operation`, `cote`, `ligne` et `liaison` (AD-7). */
+export type DepotOperations = {
+	/** Sans cache, entier à chaque demande (AD-4). Inclut les Opérations annulées, à part. */
+	journal(): GrandJournal;
+	parId(id: number): OperationJ | null;
+	liaisons(): LiaisonJ[];
+	creer(o: NouvelleOperation): number;
+	/** Refuse par `false` si `version` a changé depuis la lecture (O10). */
+	modifier(id: number, versionLue: number, o: BrouillonValide): boolean;
+	annuler(id: number, le: Instant, par: number): void;
+	creerLiaison(l: { type: TypeLiaison; libelle: string }): number;
+	definirLiaison(operationId: number, liaisonId: number | null): void;
+	deplacerLiaison(depuis: number, vers: number): void;
+	/** Détache ses Opérations, puis retire la liaison. */
+	retirerLiaison(id: number): void;
+	operationsDeLiaison(id: number): number[];
+};
+
+export type Exporteurs = {
+	/** CSV : UTF-8 avec BOM, séparateur `;`. Reçoit un modèle déjà calculé (AD-18). */
+	csv(entetes: readonly string[], lignes: readonly (readonly string[])[]): string;
+};
+
 export type Depots = {
 	acces: DepotAcces;
 	journal: DepotJournal;
 	parametrage: DepotParametrage;
 	exercices: DepotExercices;
+	operations: DepotOperations;
 };
 
 export type Journaliseur = {

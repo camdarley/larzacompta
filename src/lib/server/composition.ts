@@ -12,15 +12,18 @@ import {
 } from './application/executer.ts';
 import { creerExercices } from './application/exercices/index.ts';
 import { creerJournal } from './application/journal/index.ts';
+import { creerOperations } from './application/operations/index.ts';
 import { creerParametrage } from './application/parametrage/index.ts';
 import type { Hacheur, Horloge, Journaliseur } from './application/ports.ts';
 import { creerJetons } from './infra/auth/jetons.ts';
 import { creerHacheur } from './infra/auth/mot-de-passe.ts';
+import { genererCsv } from './infra/documents/csv.ts';
 import { creerJournaliseur } from './infra/logs.ts';
 import { ouvrirBase, type Base } from './infra/sqlite/connexion.ts';
 import { creerDepotAcces } from './infra/sqlite/depot-acces.ts';
 import { creerDepotExercices } from './infra/sqlite/depot-exercices.ts';
 import { creerDepotJournal } from './infra/sqlite/depot-journal.ts';
+import { creerDepotOperations } from './infra/sqlite/depot-operations.ts';
 import { creerDepotParametrage } from './infra/sqlite/depot-parametrage.ts';
 import { appliquerMigrations, chargerMigrations } from './infra/sqlite/migrateur.ts';
 import { creerTransaction } from './infra/sqlite/transaction.ts';
@@ -34,18 +37,22 @@ export type OptionsComposition = {
 
 export function composer(options: OptionsComposition) {
 	const horloge: Horloge = options.horloge ?? { maintenant: () => new Date().toISOString() };
+	const parametrage = creerDepotParametrage(options.base);
+	const exercices = creerDepotExercices(options.base);
 	const socle: Socle = {
 		depots: {
 			acces: creerDepotAcces(options.base),
 			journal: creerDepotJournal(options.base),
-			parametrage: creerDepotParametrage(options.base),
-			exercices: creerDepotExercices(options.base)
+			parametrage,
+			exercices,
+			operations: creerDepotOperations(options.base, parametrage, exercices)
 		},
 		transaction: creerTransaction(options.base),
 		horloge,
 		hacheur: options.hacheur ?? creerHacheur(),
 		jetons: creerJetons(),
-		journaliseur: options.journaliseur ?? creerJournaliseur(() => horloge.maintenant())
+		journaliseur: options.journaliseur ?? creerJournaliseur(() => horloge.maintenant()),
+		exporteurs: { csv: genererCsv }
 	};
 	const executer = creerExecuteur(socle);
 	const lire = creerLecteur();
@@ -58,7 +65,8 @@ export function composer(options: OptionsComposition) {
 		acces: creerAcces(socle, executer, lire),
 		journal: creerJournal(socle, lire),
 		parametrage: creerParametrage(socle, executer, lire),
-		exercices: creerExercices(socle, executer, lire)
+		exercices: creerExercices(socle, executer, lire),
+		operations: creerOperations(socle, executer, lire)
 	};
 }
 

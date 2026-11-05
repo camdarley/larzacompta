@@ -181,6 +181,20 @@ export function formaterSaisie(c: Centimes): string {
 	return `${negatif ? MOINS : ''}${grouperMilliers(euros, FINE_INSECABLE)},${cents}`;
 }
 
+/** Terme court d'une addition : `220`, `220,50`. */
+export function formaterTerme(c: Centimes): string {
+	const { euros, cents, negatif } = decomposer(c);
+	const corps = grouperMilliers(euros, FINE_INSECABLE);
+	const texte = cents === '00' ? corps : `${corps},${cents}`;
+	return negatif ? `${MOINS}${INSECABLE}${texte}` : texte;
+}
+
+/** Format d'export : `1234,56`, sans espace ni symbole, ce qu'Excel français relit comme un nombre. */
+export function formaterCsv(c: Centimes): string {
+	const { euros, cents, negatif } = decomposer(c);
+	return `${negatif ? '-' : ''}${euros},${cents}`;
+}
+
 /** Lecture accessible : « moins 1 234 euros 56 ». */
 export function lectureMontant(c: Centimes): string {
 	const { euros, cents, negatif } = decomposer(c);
