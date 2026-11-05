@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { CircleCheck, Landmark, Paperclip, TriangleAlert } from '@lucide/svelte';
+	import { CircleCheck, Landmark, Paperclip, ReceiptText, TriangleAlert } from '@lucide/svelte';
 	import { formaterHorodatage } from '#lib/domaine/dates.ts';
 	import { centimes, formaterMontant, sommeCentimes } from '#lib/domaine/montant.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
@@ -94,6 +94,14 @@
 					compteur={data.pieces}
 					icone={Paperclip}
 					href="/pieces{q}"
+				/>
+			</li>
+			<li>
+				<TuileAFaire
+					libelle="Chèques reçus à remettre"
+					compteur={data.cheques}
+					icone={ReceiptText}
+					href="/cheques?etat=en_attente"
 				/>
 			</li>
 		</ul>

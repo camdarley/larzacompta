@@ -8,6 +8,7 @@ import { resteARepartir, type PartLigne } from '#lib/domaine/operations/ventilat
 import type { SommeASolder } from '#lib/domaine/creances/index.ts';
 import type { ModePaiement, OperationJ } from '#lib/domaine/journal.ts';
 import type { PieceDeposee } from '#lib/domaine/pieces/index.ts';
+import type { ModeleSumup } from '#lib/domaine/releve/cheques.ts';
 
 export type Choix = Intention | 'interne' | 'remboursement' | 'somme' | 'compensee';
 
@@ -96,6 +97,8 @@ export class Saisie {
 	/** Pièces déposées pendant la saisie : elles partent avec l'Opération. */
 	pieces = $state<PieceDeposee[]>([]);
 	sansPiece = $state(false);
+	/** Versement SumUp : tant que le brut n'est pas touché, il suit les frais. */
+	brutSuitFrais = $state(false);
 
 	/** Créances et Dettes que l'Opération solde, avec la part de chacune. */
 	sommes = $state<PartEtat[]>([]);
@@ -172,6 +175,38 @@ export class Saisie {
 
 	retirerSomme(id: number) {
 		this.sommes = this.sommes.filter((p) => p.somme.id !== id);
+	}
+
+	/** Versement SumUp : le montant reçu est le net, une Ligne de brut et une Ligne de frais. */
+	preparerSumup(m: ModeleSumup, natureFrais: number | null) {
+		this.choix = 'recette';
+		this.modePaiement = 'sumup';
+		this.sansPiece = true;
+		this.libelle = 'Versement SumUp';
+		this.brutSuitFrais = true;
+		this.lignes = [
+			ligneVide({
+				montant: this.total === null ? '' : texteDe(this.total),
+				auto: false,
+				natureId: m.natureBrutId,
+				actionId: m.actionBrutId
+			}),
+			ligneVide({
+				auto: false,
+				contraire: true,
+				natureId: m.natureFraisId ?? natureFrais,
+				actionId: m.actionFraisId
+			})
+		];
+	}
+
+	/** Sans détail SumUp, seuls les frais se saisissent : le brut égale net + frais (OQ-5). */
+	surFrais() {
+		const [brut, frais] = this.lignes;
+		if (!this.brutSuitFrais || brut === undefined || frais === undefined) return;
+		brut.montant = texteDe(
+			centimes(positif(this.total ?? centimes(0)) + positif(lire(frais.montant) ?? centimes(0)))
+		);
 	}
 
 	ajouterLigne(montant: Centimes = centimes(0)): LigneEtat {

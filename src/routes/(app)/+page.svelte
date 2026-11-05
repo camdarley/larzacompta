@@ -8,6 +8,8 @@
 		Landmark,
 		Lock,
 		Paperclip,
+		ReceiptText,
+		SearchAlert,
 		Sprout,
 		TriangleAlert,
 		History,
@@ -42,19 +44,31 @@
 			href: '/operations?anciennes=1'
 		},
 		comptages: { libelle: 'Caisses à compter', icone: Wallet, href: '/caisses' },
-		sessions: { libelle: 'Sessions de caisse non clôturées', icone: Coins, href: '/caisses' }
+		sessions: { libelle: 'Sessions de caisse non clôturées', icone: Coins, href: '/caisses' },
+		cheques: {
+			libelle: 'Chèques reçus à remettre',
+			icone: ReceiptText,
+			href: '/cheques?etat=en_attente'
+		},
+		cheques_absents: {
+			libelle: 'Chèques vus en banque, absents du registre',
+			icone: SearchAlert,
+			href: '/cheques/emis'
+		}
 	} as const satisfies Record<TacheControle, unknown>;
 
 	/** Une liste que le rôle n'atteint pas garde son compteur, sans lien (EXPERIENCE.md). */
 	const hrefTuile = (id: TacheControle) => {
 		if (id === 'lignes' && !data.pointage) return null;
 		if ((id === 'comptages' || id === 'sessions') && !data.caisses) return null;
+		if ((id === 'cheques' || id === 'cheques_absents') && !data.cheques) return null;
 		return TUILES[id].href;
 	};
 
-	/** Toute la carte mène au Pointage ou au détail de caisse, si le rôle y a accès. */
+	/** Toute la carte mène au Pointage, au détail de caisse ou aux Chèques, si le rôle y a accès. */
 	function hrefCarte(c: { compte: { id: number; type: string } }) {
 		if (c.compte.type === 'caisse') return data.caisses ? lien(`/caisses/${c.compte.id}`) : null;
+		if (c.compte.type === 'cheques_a_remettre') return data.cheques ? lien('/cheques') : null;
 		return data.pointage ? lien(`/pointage/${c.compte.id}`) : null;
 	}
 

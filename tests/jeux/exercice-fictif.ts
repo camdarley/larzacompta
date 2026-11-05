@@ -197,25 +197,48 @@ export const JEU_COMPLET = {
 	soldeReleve: c(2337_00),
 	dateReleve: '2026-11-02',
 	/** Frais lu sur le relevé et pas encore saisi : c'est l'Écart que le Tableau de contrôle montre. */
-	ecartReleve: c(-3_50)
+	ecartReleve: c(-3_50),
+	/** La pile des Agrumes, reçue en janvier. Le dernier chèque attend encore sa Remise. */
+	cheques: [
+		{ emetteur: 'Famille Abricot', banque: 'Banque des Prés', montant: c(30_00) },
+		{ emetteur: 'Famille Bergamote', banque: 'Banque des Prés', montant: c(45_00) },
+		{ emetteur: 'Famille Cédrat', banque: 'Crédit du Vallon', montant: c(22_50) },
+		{ emetteur: 'Famille Datte', banque: 'Crédit du Vallon', montant: c(60_00) },
+		{ emetteur: 'Famille Églantine', banque: 'Banque des Prés', montant: c(80_00) }
+	],
+	numeroChequeEmis: '5000101',
+	numeroFormuleAnnulee: '5000102',
+	/** N° fictif lu au relevé, absent du registre : le Tableau de contrôle le signale. */
+	numeroChequeAbsent: '5000999',
+	sumup: { brut: c(200_00), frais: c(10_00), net: c(190_00) }
 };
 
 export const ATTENDUS_COMPLET = {
-	/** −359,50 de base, −150,00 tardif, +60,00 de dépôt d'espèces, +400,00 de Créance, +2 000,00 de subvention. */
-	soldeBanqueFin: c(1950_50),
-	soldeLivretFin: c(9_200_00),
-	/** 80,00 de départ, −60,00 déposés, +120,00 de buvette, −30,00 payés en espèces sur la recette. */
-	soldeCaisseFin: c(110_00),
-	/** 620,50 + 120,00 de buvette en espèces + 2 000,00 de subvention. */
-	recettes: c(2740_50),
-	/** 1 980,00 + 30,00 de fournitures payées en espèces. */
-	depenses: c(2010_00),
-	resultat: c(730_50),
+	/**
+	 * −359,50 de base, −150,00 tardif, +60,00 de dépôt d'espèces, +400,00 de Créance, +2 000,00 de
+	 * subvention, +157,50 de Remise, −45,00 de chèque rejeté, −75,00 de chèque émis, +190,00 de SumUp.
+	 */
+	soldeBanqueFin: c(2178_00),
+	/** 9 200,00 + 120,00 de Remise + 20,00 d'espèces déposées. */
+	soldeLivretFin: c(9340_00),
+	/** 80,00 de départ, −60,00 et −20,00 déposés, +120,00 de buvette, −30,00 payés en espèces. */
+	soldeCaisseFin: c(90_00),
+	/** Le chèque de la Famille Églantine attend sa Remise. */
+	chequesARemettre: c(80_00),
+	/**
+	 * 620,50 + 120,00 de buvette en espèces + 2 000,00 de subvention
+	 * + 357,50 de chèques − 45,00 de rejet + 200,00 de brut SumUp.
+	 */
+	recettes: c(3253_00),
+	/** 1 980,00 + 30,00 de fournitures en espèces + 75,00 de chèque émis + 10,00 de frais SumUp. */
+	depenses: c(2095_00),
+	resultat: c(1158_00),
 	/** +400,00 de Créance de 2025-2026 encaissée, −150,00 de facture tardive de 2025-2026. */
 	resultatAnterieurs: c(250_00),
-	/** Résultat + rattachements : 11 260,50 − 10 280,00. */
-	variation: c(980_50),
-	resultatKermesse: c(130_50),
+	/** Résultat + rattachements. */
+	variation: c(1408_00),
+	/** 130,50 de base + 20,00 du chèque ventilé. */
+	resultatKermesse: c(150_50),
 	/** Dette reprise de 2025-2026, toujours due. */
 	dettesRestantes: c(90_00),
 	creancesRestantes: c(0)

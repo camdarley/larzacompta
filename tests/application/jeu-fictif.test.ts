@@ -11,8 +11,8 @@ import { ATTENDUS_COMPLET, JEU_COMPLET } from '../jeux/exercice-fictif.ts';
 import { banc } from './aides/app.ts';
 import { valeur } from './aides/instance.ts';
 
-function charge() {
-	const b = banc('2026-12-31T10:00:00.000Z');
+function charge(instant = '2026-12-31T10:00:00.000Z') {
+	const b = banc(instant);
 	const jeu = chargerJeu(b.app, b.ctx());
 	const e = b.app.socle.depots.exercices
 		.lister()
@@ -20,7 +20,28 @@ function charge() {
 	return { b, jeu, e };
 }
 
-describe('Exercice fictif complet (6.7)', () => {
+describe('Exercice fictif complet (6.7, 8.9)', () => {
+	it('couvre chèques, Remises, rejet, registre et SumUp, Q1 à Q6 tenus', () => {
+		const { b, e } = charge('2027-03-01T10:00:00.000Z');
+		const tableau = valeur(b.app.etats.tableau(b.ctx(), e));
+		const tache = (id: string) => tableau.taches.find((t) => t.id === id)?.compteur;
+		expect(tache('cheques')).toBe(1);
+		expect(tache('cheques_absents')).toBe(1);
+		expect(tableau.cartes.map((x) => x.compte.type)).toContain('cheques_a_remettre');
+
+		const recus = valeur(b.app.cheques.recus(b.ctx()));
+		expect(recus.compteurs).toEqual({ en_attente: 1, remis: 4, pointe: 0, rejete: 1 });
+		const remises = valeur(b.app.cheques.remises(b.ctx()));
+		expect(remises.rangees.map((r) => [r.numero, r.compte])).toEqual([
+			[2, 'Livret des Tilleuls'],
+			[1, 'Banque des Tilleuls']
+		]);
+		const emis = valeur(b.app.cheques.emis(b.ctx()));
+		expect(emis.compteurs).toEqual({ emis: 1, pointe: 0, annule: 1 });
+		expect(emis.manquants.map((m) => m.numero)).toEqual([JEU_COMPLET.numeroChequeAbsent]);
+		expect(valeur(b.app.etats.verifier(b.ctx()))).toEqual([]);
+	});
+
 	it('donne son résultat et ses soldes au centime', () => {
 		const { b, e } = charge();
 		const { resultat, anomalies } = valeur(b.app.etats.compteDeResultat(b.ctx(), e));
@@ -35,8 +56,10 @@ describe('Exercice fictif complet (6.7)', () => {
 		expect(etat.fin).toBe(
 			ATTENDUS_COMPLET.soldeBanqueFin +
 				ATTENDUS_COMPLET.soldeLivretFin +
-				ATTENDUS_COMPLET.soldeCaisseFin
+				ATTENDUS_COMPLET.soldeCaisseFin +
+				ATTENDUS_COMPLET.chequesARemettre
 		);
+		expect(etat.chequesARemettre).toBe(ATTENDUS_COMPLET.chequesARemettre);
 		expect(etat.explication.difference).toBe(0);
 	});
 

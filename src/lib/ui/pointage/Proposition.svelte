@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Check } from '@lucide/svelte';
 	import { formaterDateCourte } from '#lib/domaine/dates.ts';
-	import { formaterMontantSigne, lectureMontant } from '#lib/domaine/montant.ts';
+	import { formaterMontant, formaterMontantSigne, lectureMontant } from '#lib/domaine/montant.ts';
 	import type { Proposition } from '#lib/domaine/releve/proposer.ts';
 	import Touche from '#lib/ui/Touche.svelte';
 
@@ -15,6 +15,10 @@
 	};
 
 	let { proposition: p, rang, selectionnee, cochee, selectionner, cocher }: Props = $props();
+
+	const VISIBLES = 4;
+	const visibles = $derived(p.remise?.cheques.slice(0, VISIBLES) ?? []);
+	const autres = $derived(Math.max(0, (p.remise?.cheques.length ?? 0) - VISIBLES));
 </script>
 
 <li class="proposition" class:selectionnee>
@@ -37,6 +41,22 @@
 			<span class="date t-caption">{formaterDateCourte(p.date)}</span>
 		</span>
 	</button>
+	{#if p.remise}
+		<div class="remise t-caption">
+			<ul aria-label="Chèques de la Remise n° {p.remise.numero}">
+				{#each visibles as c (c.id)}
+					<li>
+						<span>{c.emetteur}</span>
+						<span class="chiffre">{formaterMontant(c.montant)}</span>
+					</li>
+				{/each}
+				{#if autres > 0}
+					<li class="t-muted">et {autres} {autres > 1 ? 'autres' : 'autre'}</li>
+				{/if}
+			</ul>
+			<a href="/cheques/remises/{p.remise.id}">Voir le bordereau n° {p.remise.numero}</a>
+		</div>
+	{/if}
 	<label class="relier t-caption">
 		<input type="checkbox" checked={cochee} onchange={cocher} />
 		{#if cochee}<Check size={14} strokeWidth={2} aria-hidden="true" />{/if}
@@ -92,6 +112,23 @@
 	.raison,
 	.date {
 		color: var(--ink-muted);
+	}
+
+	.remise {
+		display: grid;
+		gap: var(--espace-1);
+		padding: 0 var(--espace-3) var(--espace-2) calc(var(--espace-3) * 2 + var(--espace-5));
+	}
+
+	.remise li {
+		display: flex;
+		justify-content: space-between;
+		gap: var(--espace-3);
+	}
+
+	.chiffre {
+		font-variant-numeric: tabular-nums lining-nums;
+		white-space: nowrap;
 	}
 
 	.relier {

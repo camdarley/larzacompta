@@ -32,6 +32,8 @@ export type EtatTresorerie = {
 	/** Reste dû à la fin de l'Exercice : hors trésorerie, donné au total. */
 	creances: Centimes;
 	dettes: Centimes;
+	/** Total des chèques reçus, pas encore remis : déjà compté dans la trésorerie (FR-21). */
+	chequesARemettre: Centimes;
 	explication: Explication;
 	anomalies: Anomalie[];
 };
@@ -91,6 +93,9 @@ export function etatTresorerie(
 		variation: sommeCentimes(comptes.map((c) => c.variation)),
 		creances: restes('creance'),
 		dettes: restes('dette'),
+		chequesARemettre: sommeCentimes(
+			comptes.filter((c) => c.type === 'cheques_a_remettre').map((c) => c.fin)
+		),
 		explication,
 		anomalies: anomaliesEquation(explication)
 	};

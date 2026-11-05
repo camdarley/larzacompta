@@ -13,7 +13,12 @@ import { libelleDisponible, prochainOrdre, type TypeCompte } from '#lib/domaine/
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import { sessionsAClore } from '#lib/domaine/caisse/index.ts';
 import { deciderCloture, figerParametrage, serialiserCloture } from '#lib/domaine/etats/cloture.ts';
-import { avecEcart, cartesComptes, lignesNonPointees } from '#lib/domaine/etats/controle.ts';
+import {
+	avecEcart,
+	cartesComptes,
+	chequesARemettre,
+	lignesNonPointees
+} from '#lib/domaine/etats/controle.ts';
 import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
 import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
 import { parametrageCourant, parametrageDe } from '../etats/index.ts';
@@ -264,6 +269,7 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 					ecarts: cartes.filter(avecEcart),
 					lignes: lignesNonPointees(j, e),
 					pieces: piecesManquantes(j, neutres, e).length,
+					cheques: chequesARemettre(j, e),
 					refus: decision.ok ? null : decision.erreur,
 					cloture: cloture && {
 						le: cloture.clotureLe,

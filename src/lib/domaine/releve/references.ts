@@ -20,6 +20,18 @@ export function referenceLue(libelle: string, reference: string): boolean {
 	return compact(libelle).includes(cherchee);
 }
 
+const CHEQUE_LU = /\b(?:CHEQUES?|CHQ|CHEQ)\b[^A-Z0-9]*(?:N(?:O|UMERO)?\b[^A-Z0-9]*)?(\d{3,})\b/;
+
+/** N° d'un chèque payé, lu dans un libellé de relevé : « CHEQUE N° 0001234 », « CHQ 1234 ». */
+export function numeroChequeLu(libelle: string): string | null {
+	return CHEQUE_LU.exec(normaliserLibelle(libelle))?.[1] ?? null;
+}
+
+/** Versement SumUp : une entrée dont le libellé nomme SumUp. */
+export function estVersementSumup(ligne: { libelle: string; montant: number }): boolean {
+	return ligne.montant > 0 && /\bSUM\s?UP\b/.test(normaliserLibelle(ligne.libelle));
+}
+
 /** Dans un libellé d'Opération, un mot qui mêle chiffres et lettres sert de référence. */
 export function referencesDuLibelle(libelle: string): string[] {
 	return libelle.split(/\s+/).filter((m) => m.length >= 5 && /\d/.test(m) && /\p{L}/u.test(m));

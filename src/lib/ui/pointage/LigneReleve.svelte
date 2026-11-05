@@ -51,7 +51,11 @@
 		</span>
 		<span class="bas">
 			<span class="date t-caption">{formaterDateCourte(ligne.date)}</span>
-			<Pastille etat={pastille} />
+			{#if ligne.chequeAbsent}
+				<Pastille etat="a_regarder" texte="Chèque vu en banque, absent du registre" />
+			{:else}
+				<Pastille etat={pastille} />
+			{/if}
 		</span>
 	</button>
 </li>
@@ -126,6 +130,7 @@
 
 	.bas {
 		align-items: center;
+		flex-wrap: wrap;
 	}
 
 	.libelle {

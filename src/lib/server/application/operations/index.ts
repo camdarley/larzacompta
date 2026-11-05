@@ -73,6 +73,7 @@ import {
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import { porteUneDepense, vuesPieces } from '#lib/domaine/pieces/index.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
+import { inscrireChequeEmis, retirerChequeEmis, suivreChequeEmis } from '../cheques/registre.ts';
 import { rattacherPieces } from '../pieces/index.ts';
 import type {
 	ContexteSaisie,
@@ -93,6 +94,8 @@ export type OptionsEcriture = {
 	cle?: string;
 	/** Réponse à « Cette somme était-elle encore dans la caisse au Comptage final ? ». */
 	phases?: PhasesChoisies;
+	/** Reprise d'une Opération existante : une Nature devenue inactive y reste permise (O11). */
+	existant?: ExistantLignes;
 };
 
 export type EntreeCreation = EntreeOperation &
@@ -132,6 +135,9 @@ const coteIdsPointes = (o: Pick<Outils, 'depots'>, op: OperationJ) =>
 function nomDeForme(b: Pick<Brouillon, 'genre' | 'origine' | 'cotes'>) {
 	if (b.origine === 'ecart_caisse') return 'l’Écart de caisse';
 	if (b.origine === 'recette_especes') return 'la Recette d’espèces';
+	if (b.origine === 'cheque_recu') return 'le Chèque reçu';
+	if (b.origine === 'cheque_rejete') return 'le rejet de chèque';
+	if (b.origine === 'remise') return 'la Remise';
 	if (b.genre === 'interne') return 'le Mouvement interne';
 	if (b.genre === 'compensee') return 'l’Opération compensée';
 	return (b.cotes[0]?.montant ?? 0) < 0 ? 'la Dépense' : 'la Recette';
@@ -151,7 +157,7 @@ export function ecrireOperation(
 	brouillon: Brouillon,
 	options: OptionsEcriture = {}
 ): Resultat<{ id: number }> {
-	const decision = validerOperation(brouillon, referencesSaisie(o));
+	const decision = validerOperation(brouillon, referencesSaisie(o), options.existant);
 	if (!decision.ok) return decision;
 	const acces = o.ctx.acces as NonNullable<Ctx['acces']>;
 	const id = o.depots.operations.creer({
@@ -167,7 +173,9 @@ export function ecrireOperation(
 		resume: `a enregistré ${nomDeForme(brouillon)} « ${brouillon.libelle} » de ${formaterMontant(montantDeForme(brouillon))}.`,
 		apres: { ...decision.valeur, cle: options.cle }
 	});
-	return succes({ id });
+	// Q6 : le registre s'écrit dans la transaction de l'Opération.
+	const registre = inscrireChequeEmis(o, id, decision.valeur);
+	return registre.ok ? succes({ id }) : registre;
 }
 
 function existantDe(op: OperationJ): ExistantLignes {
@@ -201,15 +209,26 @@ function brouillonDe(op: OperationJ): BrouillonValide {
 }
 
 function modifierOperation(o: Outils, e: EntreeModification): Resultat<{ id: number }> {
+	return ecrireModification(o, e, versBrouillon(e.saisie));
+}
+
+/** La modification, avec sa saisie déjà mise en forme. `parSonModule` : voir O9. */
+export function ecrireModification(
+	o: Outils,
+	e: Omit<EntreeModification, 'saisie'>,
+	brouillon: Brouillon,
+	options: { parSonModule?: boolean } = {}
+): Resultat<{ id: number }> {
 	const depot = o.depots.operations;
 	const avant = depot.parId(e.id);
 	if (avant === null) return echec('element_introuvable');
 
 	const references = referencesSaisie(o);
-	const decision = deciderModification(avant, versBrouillon(e.saisie), {
+	const decision = deciderModification(avant, brouillon, {
 		versionLue: e.version,
 		coteIdsPointes: coteIdsPointes(o, avant),
-		exercices: references.exercices
+		exercices: references.exercices,
+		parSonModule: options.parSonModule
 	});
 	if (!decision.ok) return decision;
 
@@ -239,7 +258,8 @@ function modifierOperation(o: Outils, e: EntreeModification): Resultat<{ id: num
 		avant: brouillonDe(avant),
 		apres: { ...validation.valeur, cle: e.cle }
 	});
-	return succes({ id: e.id });
+	const registre = suivreChequeEmis(o, e.id, validation.valeur);
+	return registre.ok ? succes({ id: e.id }) : registre;
 }
 
 /**
@@ -269,6 +289,7 @@ export function annulerOperation(
 		resume: `a annulé l’Opération « ${op.libelle} » de ${formaterMontant(centimes(Math.abs(montantOperation(op))))}.`,
 		avant: brouillonDe(op)
 	});
+	retirerChequeEmis(o, id);
 	return succes({ id });
 }
 

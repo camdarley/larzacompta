@@ -32,6 +32,7 @@ import { trous, type Trou } from '#lib/domaine/releve/trous.ts';
 import type { ReleveNormalise } from '#lib/domaine/releve/types.ts';
 import {
 	comptesPointables,
+	ligneASaisir,
 	lignesAPointer,
 	vuePointage,
 	type ComptePointable,
@@ -607,13 +608,7 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 				if (ligne === undefined) return null;
 				const retenue = dateDepuisLigne(j.exercices, ligne.date);
 				if (!retenue.ok) return retenue;
-				return succes({
-					id: ligne.id,
-					compteId: ligne.compteId,
-					libelle: ligne.libelle,
-					montant: ligne.montant,
-					...retenue.valeur
-				});
+				return succes(ligneASaisir(j, ligne, retenue.valeur));
 			});
 			if (!r.ok) return r;
 			return r.valeur === null ? echec('element_introuvable') : r.valeur;

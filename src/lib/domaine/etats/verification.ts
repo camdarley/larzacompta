@@ -3,6 +3,7 @@
  * Ils lisent la base telle qu'elle est : rien ne suppose que le chemin d'écriture a été respecté.
  */
 import { violationsCaisses } from '../caisse/verification.ts';
+import { violationsCheques } from '../cheques/verification.ts';
 import { ajouterJours, type DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, OperationJ } from '../journal.ts';
@@ -180,6 +181,7 @@ export function verifierJournal(
 		...violationsReleve(j),
 		...violationsCreances(j),
 		...violationsCaisses(j),
+		...violationsCheques(j),
 		...equations
 	];
 }

@@ -3,6 +3,7 @@
  * l'Écart et ses causes, puis la `phrase-bilan`. Jamais rassurante si un Écart existe.
  */
 import { dateSession, repereCaisse, sessionOuverteLe } from '../caisse/index.ts';
+import { etatChequeRecu } from '../cheques/index.ts';
 import { joursEntre, type DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal } from '../journal.ts';
@@ -41,9 +42,11 @@ export type CarteCompte = {
 	phraseEcart: string | null;
 };
 
-const CONTROLES = ['banque', 'epargne', 'caisse'] as const;
+const CONTROLES = ['banque', 'epargne', 'caisse', 'cheques_a_remettre'] as const;
 const estControle = (c: Compte) => (CONTROLES as readonly string[]).includes(c.type);
 const estPointable = (c: Compte) => c.type === 'banque' || c.type === 'epargne';
+/** Pas de solde constaté : Q3 tient lieu de contrôle, à toute date. */
+const estCheques = (c: Compte) => c.type === 'cheques_a_remettre';
 
 const decompte = (n: number, nom: string) => `${n} ${nom}${n > 1 ? 's' : ''}`;
 
@@ -155,12 +158,12 @@ export function carteCompte(
 						pointable: estPointable(compte)
 					})
 	};
-	return { ...carte, etat: etatDe(carte) };
+	return { ...carte, etat: estCheques(compte) ? 'juste' : etatDe(carte) };
 }
 
 /** Compte désactivé qui n'a plus rien à dire : ni solde, ni Écart, ni élément non pointé. */
 const muette = (c: CarteCompte) =>
-	!c.compte.actif &&
+	(!c.compte.actif || estCheques(c.compte)) &&
 	c.calcule === 0 &&
 	(c.ecart ?? 0) === 0 &&
 	(c.nonExplique ?? 0) === 0 &&
@@ -199,7 +202,8 @@ export function cartesComptes(
 		.filter((c) => !muette(c));
 }
 
-export type TacheControle = 'lignes' | 'pieces' | 'anciennes' | 'comptages' | 'sessions';
+export type TacheControle =
+	'lignes' | 'pieces' | 'anciennes' | 'comptages' | 'sessions' | 'cheques' | 'cheques_absents';
 export type Tache = { id: TacheControle; compteur: number };
 
 /** Non pointées, jusqu'à la fin de l'Exercice regardé : une ligne d'avant ne s'oublie pas. */
@@ -220,6 +224,21 @@ export function sessionsNonCloturees(
 	return j.sessions.filter((s) => {
 		const date = dateSession(j, s.id);
 		return s.clotureeLe === null && date !== null && date <= (e.fin as DateCivile);
+	}).length;
+}
+
+/** Chèques en attente, reçus jusqu'à la fin de l'Exercice regardé. */
+export function chequesARemettre(
+	j: Pick<
+		GrandJournal,
+		'operations' | 'operationsAnnulees' | 'pointages' | 'remises' | 'chequesRecus'
+	>,
+	e: Exercice
+): number {
+	const fin = e.fin as DateCivile;
+	return j.chequesRecus.filter((c) => {
+		const op = j.operations.find((o) => o.id === c.operationId);
+		return etatChequeRecu(j, c) === 'en_attente' && op !== undefined && op.date <= fin;
 	}).length;
 }
 

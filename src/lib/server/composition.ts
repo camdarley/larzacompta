@@ -12,6 +12,7 @@ import {
 	type Socle
 } from './application/executer.ts';
 import { creerCaisses } from './application/caisses/index.ts';
+import { creerCheques } from './application/cheques/index.ts';
 import { creerCreances } from './application/creances/index.ts';
 import { creerEtats } from './application/etats/index.ts';
 import { creerExercices } from './application/exercices/index.ts';
@@ -47,6 +48,7 @@ import { estOfx, sourceOfx } from './infra/sources/ofx.ts';
 import { ouvrirBase, type Base } from './infra/sqlite/connexion.ts';
 import { creerDepotAcces } from './infra/sqlite/depot-acces.ts';
 import { creerDepotCaisses } from './infra/sqlite/depot-caisses.ts';
+import { creerDepotCheques } from './infra/sqlite/depot-cheques.ts';
 import { creerDepotCreances } from './infra/sqlite/depot-creances.ts';
 import { creerDepotExercices } from './infra/sqlite/depot-exercices.ts';
 import { creerDepotExploitation } from './infra/sqlite/depot-exploitation.ts';
@@ -92,6 +94,7 @@ export function composer(options: OptionsComposition) {
 			pieces: creerDepotPieces(options.base),
 			creances: creerDepotCreances(options.base),
 			caisses: creerDepotCaisses(options.base),
+			cheques: creerDepotCheques(options.base),
 			exploitation: creerDepotExploitation(options.base)
 		},
 		transaction: creerTransaction(options.base),
@@ -136,6 +139,7 @@ export function composer(options: OptionsComposition) {
 		pieces: creerPieces(socle, executer, lire),
 		creances: creerCreances(socle, executer, lire),
 		caisses: creerCaisses(socle, executer, lire),
+		cheques: creerCheques(socle, executer, lire),
 		etats: creerEtats(socle, executer, lire),
 		exploitation: creerExploitation(socle, executer, lire)
 	};

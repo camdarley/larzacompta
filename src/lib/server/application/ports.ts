@@ -346,6 +346,39 @@ export type DepotCaisses = {
 	lierEcart(id: number, operationId: number | null): void;
 };
 
+export type NouveauChequeRecu = {
+	operationId: number;
+	emetteur: string;
+	banque: string | null;
+	numero: string | null;
+};
+
+export type NouveauChequeEmis = {
+	numero: string;
+	beneficiaire: string;
+	operationId: number | null;
+	annuleLe: Instant | null;
+	annulePar: number | null;
+};
+
+/** Seul chemin vers `cheque_recu`, `cheque_emis` et `remise` (AD-7). Aucun statut, aucun montant. */
+export type DepotCheques = {
+	creerRecu(c: NouveauChequeRecu): number;
+	modifierRecu(id: number, c: Omit<NouveauChequeRecu, 'operationId'>): void;
+	remettre(chequeId: number, remiseId: number): void;
+	/** Q4 : la Remise annulée libère ses chèques. */
+	liberer(remiseId: number): void;
+	definirRejet(chequeId: number, operationId: number | null): void;
+	dernierNumeroRemise(): number;
+	creerRemise(r: { numero: number; operationId: number }): number;
+	creerEmis(c: NouveauChequeEmis): number;
+	modifierEmis(id: number, c: { numero: string; beneficiaire: string }): void;
+	/** Une formule annulée reprend vie pour le paiement qui la corrige. */
+	reprendreEmis(id: number, c: { numero: string; beneficiaire: string; operationId: number }): void;
+	annulerEmis(id: number, le: Instant, par: number): void;
+	supprimerEmis(id: number): void;
+};
+
 /** Seul chemin vers `creance_dette` et `reglement` (AD-7). */
 export type DepotCreances = {
 	creer(c: EntreeCreance & { creeLe: Instant; creePar: number }): number;
@@ -375,6 +408,7 @@ export type Depots = {
 	pieces: DepotPieces;
 	creances: DepotCreances;
 	caisses: DepotCaisses;
+	cheques: DepotCheques;
 	exploitation: DepotExploitation;
 };
 

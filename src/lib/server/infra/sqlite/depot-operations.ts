@@ -1,4 +1,6 @@
 import type {
+	ChequeEmisJ,
+	ChequeRecuJ,
 	CoteJ,
 	CreanceDetteJ,
 	Genre,
@@ -12,6 +14,7 @@ import type {
 	PhaseSession,
 	PieceJ,
 	PointageJ,
+	RemiseJ,
 	ComptageJ,
 	Constat,
 	SessionJ,
@@ -118,6 +121,24 @@ type CreanceBrute = {
 	action_id: number | null;
 	note: string | null;
 	annulee_le: string | null;
+};
+type RemiseBrute = { id: number; numero: number; operation_id: number };
+type ChequeRecuBrut = {
+	id: number;
+	operation_id: number;
+	emetteur: string;
+	banque: string | null;
+	numero: string | null;
+	date_cheque: string | null;
+	remise_id: number | null;
+	operation_rejet_id: number | null;
+};
+type ChequeEmisBrut = {
+	id: number;
+	numero: string;
+	beneficiaire: string;
+	operation_id: number | null;
+	annule_le: string | null;
 };
 type ReglementBrut = {
 	creance_dette_id: number;
@@ -249,6 +270,14 @@ export function creerDepotOperations(
 			'SELECT * FROM comptage_coupure ORDER BY comptage_id, coupure_centimes DESC'
 		),
 		sessions: base.prepare('SELECT * FROM session_caisse ORDER BY id'),
+		remises: base.prepare('SELECT id, numero, operation_id FROM remise ORDER BY numero'),
+		chequesRecus: base.prepare(`
+			SELECT id, operation_id, emetteur, banque, numero, date_cheque, remise_id, operation_rejet_id
+			FROM cheque_recu ORDER BY id
+		`),
+		chequesEmis: base.prepare(
+			'SELECT id, numero, beneficiaire, operation_id, annule_le FROM cheque_emis ORDER BY id'
+		),
 
 		creerCote: base.prepare(`
 			INSERT INTO cote (operation_id, compte_id, date, montant_centimes, session_caisse_id, session_phase)
@@ -353,6 +382,31 @@ export function creerDepotOperations(
 		operationRecetteId: s.operation_recette_id
 	});
 
+	const versRemise = (x: RemiseBrute): RemiseJ => ({
+		id: x.id,
+		numero: x.numero,
+		operationId: x.operation_id
+	});
+
+	const versChequeRecu = (c: ChequeRecuBrut): ChequeRecuJ => ({
+		id: c.id,
+		operationId: c.operation_id,
+		emetteur: c.emetteur,
+		banque: c.banque,
+		numero: c.numero,
+		dateCheque: c.date_cheque,
+		remiseId: c.remise_id,
+		operationRejetId: c.operation_rejet_id
+	});
+
+	const versChequeEmis = (c: ChequeEmisBrut): ChequeEmisJ => ({
+		id: c.id,
+		numero: c.numero,
+		beneficiaire: c.beneficiaire,
+		operationId: c.operation_id,
+		annuleLe: c.annule_le
+	});
+
 	function chargerCreances(): CreanceDetteJ[] {
 		const reglements = grouper(r.reglements.all() as ReglementBrut[], (x) => x.creance_dette_id);
 		return (r.creances.all() as CreanceBrute[]).map((c) => ({
@@ -386,13 +440,16 @@ export function creerDepotOperations(
 					(pieces.get(o.id) ?? []).map(versPiece)
 				)
 			);
+			const actives = operations.filter((o) => o.annuleeLe === null);
+			const annulees = operations.filter((o) => o.annuleeLe !== null);
+			const sorties = new Set(annulees.map((o) => o.id));
 			return {
 				...journalVide(),
 				exercices: exercices.lister(),
 				comptes: parametrage.comptes(),
 				ancres: parametrage.ancres(),
-				operations: operations.filter((o) => o.annuleeLe === null),
-				operationsAnnulees: operations.filter((o) => o.annuleeLe !== null),
+				operations: actives,
+				operationsAnnulees: annulees,
 				liaisons: r.liaisons.all() as LiaisonJ[],
 				constats: (r.constats.all() as ConstatBrut[]).map((c) => ({
 					id: c.id,
@@ -416,6 +473,11 @@ export function creerDepotOperations(
 					identifiantSource: l.identifiant_source,
 					empreinte: l.empreinte
 				})),
+				remises: (r.remises.all() as RemiseBrute[]).map(versRemise),
+				chequesRecus: (r.chequesRecus.all() as ChequeRecuBrut[])
+					.map(versChequeRecu)
+					.filter((c) => !sorties.has(c.operationId)),
+				chequesEmis: (r.chequesEmis.all() as ChequeEmisBrut[]).map(versChequeEmis),
 				creancesDettes: chargerCreances()
 			};
 		},

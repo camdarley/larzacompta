@@ -91,6 +91,26 @@ const MESSAGES = {
 	comptage_vide: 'Rien n’est compté. Indiquez au moins une quantité, ou vérifiez la caisse.',
 	session_cloturee:
 		'Cette Opération fait partie d’une Session clôturée : la Recette d’espèces en dépend. Rouvrez la Session pour la corriger.',
+	cheque_remis:
+		'Ce chèque est déjà remis : il ne se modifie plus. Annulez d’abord sa Remise, si elle n’est pas pointée.',
+	cheque_rejete: 'Ce chèque est rejeté : il reste au registre, tel quel.',
+	remise_vide: 'Cochez au moins un chèque pour créer la Remise.',
+	remise_desequilibree:
+		'Ces chèques ne donnent plus le total affiché : l’un d’eux vient de changer. Rechargez la page, puis recomptez le paquet.',
+	remise_compte_invalide: 'Une Remise se dépose sur un Compte banque ou épargne. Choisissez-en un.',
+	remise_date_anterieure:
+		'Cette date précède la réception d’un des chèques. Choisissez le jour du dépôt.',
+	remise_avec_rejet:
+		'Un chèque de cette Remise est rejeté : elle ne s’annule plus. Annulez d’abord le rejet, si vous vous êtes trompé.',
+	rejet_date_anterieure:
+		'Cette date précède l’arrivée du chèque sur son Compte. Choisissez le jour du rejet.',
+	cheque_absent:
+		'Le chèque n° {numero} est passé en banque, mais il n’est pas au registre. Créez son Opération pour l’y inscrire.',
+	versement_sumup:
+		'Versement SumUp : répartissez le brut et les frais pour voir la vraie recette et le vrai coût.',
+	numero_cheque_utilise:
+		'Ce n° de chèque est déjà au registre. Vérifiez le numéro sur la formule ou le talon.',
+	numero_cheque_requis: 'Indiquez le n° du chèque : il entre au registre des Chèques émis.',
 	reglement_excessif: 'Ce règlement dépasse le reste dû. Corrigez le montant.',
 	reglement_sens:
 		'Une somme à recevoir se solde par une Recette, une somme à payer par une Dépense.',

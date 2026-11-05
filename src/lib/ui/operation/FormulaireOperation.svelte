@@ -52,6 +52,8 @@
 		solder: SommeASolder | null;
 		sommes: SommeASolder[];
 		rendre: boolean;
+		/** Ligne de relevé SumUp : le net est connu, reste à répartir brut et frais (FR-24). */
+		sumup: boolean;
 		introuvable: boolean;
 		intention: string | null;
 		/** Depuis Caisses ou une Session : Comptes et mode déjà connus (FR-18, FR-19). */
@@ -74,6 +76,7 @@
 		solder,
 		sommes,
 		rendre,
+		sumup,
 		introuvable,
 		intention,
 		preselection,
@@ -156,6 +159,17 @@
 			premiere.rattachementId = l.rattachementId;
 			premiere.rattachementOuvert = true;
 		}
+		if (l.chequeLu !== null) {
+			s.modePaiement = 'cheque';
+			s.reference = l.chequeLu;
+		}
+		if (sumup && l.sumup !== null) s.preparerSumup(l.sumup, natureFrais());
+	}
+
+	/** Les frais d'un premier versement vont aux frais bancaires, s'ils existent. */
+	function natureFrais() {
+		const n = contexte.natures.find((x) => x.actif && /^frais bancaires$/i.test(x.libelle));
+		return n?.id ?? null;
 	}
 
 	function montantTexte(c: Centimes) {
@@ -195,8 +209,13 @@
 	const ventilee = $derived(!interne && !compensee && !somme);
 	const recetteSens = $derived(saisie.choix === 'recette' || saisie.choix === 'remboursement');
 
+	const repartitionSumup = $derived(sumup && ligne?.sumup != null);
 	const titre = $derived(
-		introuvable ? 'Opération introuvable' : (detail?.operation.libelle ?? 'Nouvelle Opération')
+		introuvable
+			? 'Opération introuvable'
+			: repartitionSumup
+				? 'Répartir brut et frais'
+				: (detail?.operation.libelle ?? 'Nouvelle Opération')
 	);
 
 	function options(
@@ -345,7 +364,8 @@
 		reference: saisie.reference || null,
 		modePaiement: (saisie.modePaiement || null) as ModePaiement | null,
 		note: saisie.note || null,
-		tiers: saisie.tiers || null
+		tiers: saisie.tiers || null,
+		sansPiece: saisie.sansPiece
 	});
 
 	/** Contrôle ce qui se voit sans le serveur, puis prépare l'envoi. Rien ne sort si un champ manque. */
@@ -404,6 +424,13 @@
 		}
 
 		const m = montantPositif(saisie.montant, 'montant');
+
+		if (chequeEmis && !somme) {
+			if (detail === null || detail.operation.modePaiement !== 'cheque') {
+				requis(saisie.reference.trim(), 'reference');
+			}
+			requis(saisie.tiers.trim(), 'tiers');
+		}
 
 		if (somme) {
 			if (!m.ok || Object.keys(erreurs).length > 0) return null;
@@ -638,6 +665,8 @@
 		libelleAutre === 'Autre' ? 'Autre intention' : `${libelleAutre}, autre intention`
 	);
 	const estCheque = $derived(saisie.modePaiement === 'cheque');
+	/** Une Dépense par chèque entre au registre. Un chèque reçu, lui, a sa page. */
+	const chequeEmis = $derived(estCheque && !recetteSens);
 
 	/** Côtés sur une caisse dont le Comptage final tombe ce jour-là : eux seuls demandent (AD-10). */
 	const cotesEnQuestion = $derived.by(() => {
@@ -1035,6 +1064,12 @@
 							Reçue puis rendue, elle ne compte ni en recette, ni en dépense.
 						</p>
 					{/if}
+					{#if repartitionSumup}
+						<p class="note-forme t-caption">
+							Le Compte reçoit le net. Le brut est une recette, les frais une dépense. Sans détail
+							SumUp, indiquez les frais : le brut se calcule.
+						</p>
+					{/if}
 					<div class="trois">
 						{#if telephone}
 							{@render champDate()}
@@ -1069,9 +1104,16 @@
 								id="op-reference"
 								name="reference"
 								bind:valeur={saisie.reference}
+								erreur={erreurs.reference}
 								autocomplete="off"
 							/>
 						</div>
+						{#if estCheque && recetteSens && estNouvelle}
+							<p class="note-forme t-caption">
+								Un chèque reçu attend sa Remise : <a href="/cheques">enregistrez-le dans Chèques</a
+								>.
+							</p>
+						{/if}
 						{#if solder}
 							<Champ
 								etiquette="Tiers"
@@ -1080,12 +1122,13 @@
 								bind:valeur={saisie.tiers}
 								autocomplete="off"
 							/>
-						{:else if estCheque}
+						{:else if chequeEmis}
 							<Champ
 								etiquette="Bénéficiaire"
 								id="op-tiers"
 								name="tiers"
 								bind:valeur={saisie.tiers}
+								erreur={erreurs.tiers}
 								autocomplete="off"
 							/>
 						{/if}
@@ -1104,6 +1147,7 @@
 							{anterieurs}
 							{erreurs}
 							ligneDeRecette={recetteSens}
+							etiquettes={repartitionSumup ? ['Brut', 'Frais'] : []}
 							creerNature={(t) => creerVolee('/api/natures', t, naturesCreees, natureVolee)}
 							creerAction={(t) => creerVolee('/api/actions', t, actionsCreees, actionVolee)}
 						/>

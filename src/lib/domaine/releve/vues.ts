@@ -8,8 +8,10 @@ import { exerciceDeDate, soldeCompte, soldeDepart } from '../etats/soldes.ts';
 import type { GrandJournal, LigneReleveJ } from '../journal.ts';
 import { centimes, type Centimes } from '../montant.ts';
 import type { Compte } from '../parametrage.ts';
+import { chequeAbsent, sumupPrecedent, type ModeleSumup } from './cheques.ts';
 import { dateDepuisLigne } from './pointage.ts';
 import { libelleDuCote, proposer, type Proposition } from './proposer.ts';
+import { estVersementSumup, numeroChequeLu } from './references.ts';
 import { trous, type Periode, type Trou } from './trous.ts';
 
 export type EtatLigne = 'pointe' | 'a_pointer' | 'a_regarder';
@@ -31,6 +33,10 @@ export type LigneFile = Pick<LigneReleveJ, 'id' | 'date' | 'montant' | 'libelle'
 	jumelle: boolean;
 	/** Aucun Exercice n'accueille cette date : l'Opération attend qu'on ouvre le suivant. */
 	horsExercice: boolean;
+	/** N° d'un chèque payé, absent du registre (FR-23). */
+	chequeAbsent: string | null;
+	/** Versement SumUp : se répartit en brut et frais (FR-24). */
+	sumup: boolean;
 };
 
 export type BarreEcartVue = {
@@ -98,7 +104,31 @@ export function phraseEcartees(n: number): string {
 export type LigneASaisir = Pick<LigneReleveJ, 'id' | 'compteId' | 'libelle' | 'montant'> & {
 	date: DateCivile;
 	rattachementId: number | null;
+	/** N° lu dans le libellé d'un chèque payé : il reste à l'inscrire au registre. */
+	chequeLu: string | null;
+	/** Dernière répartition d'un versement SumUp, reprise pour ne rien ressaisir. */
+	sumup: ModeleSumup | null;
 };
+
+/** Ce que le panneau reprend d'une Ligne de relevé (FR-14, FR-23, FR-24). */
+export function ligneASaisir(
+	j: GrandJournal,
+	l: LigneReleveJ,
+	date: {
+		date: DateCivile;
+		rattachementId: number | null;
+	}
+): LigneASaisir {
+	return {
+		id: l.id,
+		compteId: l.compteId,
+		libelle: l.libelle,
+		montant: l.montant,
+		...date,
+		chequeLu: l.montant < 0 ? numeroChequeLu(l.libelle) : null,
+		sumup: estVersementSumup(l) ? sumupPrecedent(j) : null
+	};
+}
 
 export type ComptePointable = Pick<Compte, 'id' | 'libelle' | 'type'>;
 
@@ -164,7 +194,9 @@ function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): L
 				relies: pointage ? elementsRelies(j, pointage.coteIds) : [],
 				propositions: etat === 'a_pointer' ? proposer(j, l) : [],
 				jumelle: duCompte.some((x) => x.id !== l.id && x.empreinte === l.empreinte),
-				horsExercice: !dateDepuisLigne(j.exercices, l.date).ok
+				horsExercice: !dateDepuisLigne(j.exercices, l.date).ok,
+				chequeAbsent: pointage ? null : chequeAbsent(j, l),
+				sumup: !pointage && estVersementSumup(l)
 			};
 		})
 		.filter((l) => l.etat !== 'pointe' || depuis === null || l.date >= depuis);

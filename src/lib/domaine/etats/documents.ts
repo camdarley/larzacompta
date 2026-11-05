@@ -178,7 +178,11 @@ function sectionsTresorerie(t: EtatTresorerie): SectionDocument[] {
 			tableau: {
 				legende: 'Créances et Dettes',
 				colonnes: [colonne('Reste dû', false), colonne('Montant')],
-				rangees: [ligne('Ce que l’APE attend', t.creances), ligne('Ce que l’APE doit', t.dettes)]
+				rangees: [
+					ligne('Ce que l’APE attend', t.creances),
+					ligne('Ce que l’APE doit', t.dettes),
+					ligne('Chèques à remettre, déjà comptés dans la trésorerie', t.chequesARemettre)
+				]
 			}
 		},
 		{

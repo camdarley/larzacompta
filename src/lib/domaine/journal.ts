@@ -167,6 +167,30 @@ export type CreanceDetteJ = {
 	reglements: ReglementJ[];
 };
 
+/** `numero` : suite propre aux bordereaux. Compte et total se lisent sur l'Opération interne. */
+export type RemiseJ = { id: number; numero: number; operationId: number };
+
+/** Aucun statut ni montant : ils se déduisent (AD-11). */
+export type ChequeRecuJ = {
+	id: number;
+	operationId: number;
+	emetteur: string;
+	banque: string | null;
+	numero: string | null;
+	dateCheque: DateCivile | null;
+	remiseId: number | null;
+	operationRejetId: number | null;
+};
+
+/** `operationId` nul : formule annulée sans paiement, conservée au registre. */
+export type ChequeEmisJ = {
+	id: number;
+	numero: string;
+	beneficiaire: string;
+	operationId: number | null;
+	annuleLe: Instant | null;
+};
+
 export type GrandJournal = {
 	exercices: Exercice[];
 	comptes: Compte[];
@@ -181,9 +205,10 @@ export type GrandJournal = {
 	sessions: SessionJ[];
 	pointages: PointageJ[];
 	lignesReleve: LigneReleveJ[];
-	/** Tableaux de l'epic 8, vides avant lui : aucun calcul n'en dépend pour rester juste. */
-	chequesRecus: never[];
-	chequesEmis: never[];
+	remises: RemiseJ[];
+	/** Sans ceux dont l'Opération est annulée : ils sortent de tous les calculs. */
+	chequesRecus: ChequeRecuJ[];
+	chequesEmis: ChequeEmisJ[];
 	creancesDettes: CreanceDetteJ[];
 };
 
@@ -200,6 +225,7 @@ export function journalVide(): GrandJournal {
 		sessions: [],
 		pointages: [],
 		lignesReleve: [],
+		remises: [],
 		chequesRecus: [],
 		chequesEmis: [],
 		creancesDettes: []

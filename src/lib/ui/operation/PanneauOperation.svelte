@@ -31,7 +31,7 @@
 
 	const q = $derived(page.url.searchParams);
 	const cle = $derived(
-		['op', 'depuis', 'rendre', 'releve', 'solder', 'compte', 'de', 'vers']
+		['op', 'depuis', 'rendre', 'releve', 'sumup', 'solder', 'compte', 'de', 'vers']
 			.map((n) => q.get(n))
 			.join('|')
 	);
@@ -44,6 +44,7 @@
 				rendre: null,
 				intention: null,
 				releve: null,
+				sumup: null,
 				solder: null,
 				compte: null,
 				mode: null,
@@ -81,6 +82,7 @@
 			solder={donnees.solder}
 			sommes={donnees.sommes}
 			rendre={q.has('rendre')}
+			sumup={q.has('sumup')}
 			introuvable={donnees.introuvable}
 			intention={q.get('intention')}
 			preselection={{

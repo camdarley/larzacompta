@@ -102,6 +102,17 @@
 				</div>
 			</dl>
 			<a class="lien-cible" href={lien('/creances-dettes')}>Voir le détail</a>
+			<h2 id="titre-cheques" class="t-heading">
+				<AideTerme ancre="cheque-recu">Chèques à remettre</AideTerme>
+			</h2>
+			<p class="t-muted">Reçus et comptés dans la trésorerie, pas encore déposés.</p>
+			<dl>
+				<div>
+					<dt>Total à remettre</dt>
+					<dd class="montant">{formaterMontant(t.chequesARemettre)}</dd>
+				</div>
+			</dl>
+			<a class="lien-cible" href={lien('/cheques')}>Voir les chèques</a>
 		</section>
 
 		<section aria-labelledby="titre-explication">

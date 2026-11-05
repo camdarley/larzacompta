@@ -66,7 +66,8 @@ export function formeStandard(s: SaisieStandard): Brouillon {
 		modePaiement: s.modePaiement,
 		note: s.note,
 		tiers: s.tiers,
-		sansPiece: s.sansPiece ?? false,
+		// Un versement SumUp porte des frais, mais ce n'est pas une dépense à justifier (FR-24).
+		sansPiece: (s.sansPiece ?? false) || (s.modePaiement === 'sumup' && s.intention === 'recette'),
 		cotes: [
 			{
 				compteId: s.compteId,

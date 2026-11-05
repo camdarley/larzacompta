@@ -299,7 +299,7 @@
 		tick().then(focusActive);
 	}
 
-	function creer() {
+	function creer(options: { sumup?: boolean } = {}) {
 		if (!active || active.etat !== 'a_pointer') return;
 		if (active.horsExercice) {
 			alerte = message('ligne_hors_exercice');
@@ -307,9 +307,16 @@
 		}
 		attenteCreation = active.id;
 		suivanteCreation = suivanteDe(active.id)?.id ?? null;
-		goto(urlAvec({ op: 'nouvelle', releve: String(active.id), depuis: null, rendre: null }), {
-			reset: false
-		});
+		goto(
+			urlAvec({
+				op: 'nouvelle',
+				releve: String(active.id),
+				sumup: options.sumup ? '1' : null,
+				depuis: null,
+				rendre: null
+			}),
+			{ reset: false }
+		);
 	}
 
 	// Opération et Pointage enregistrés dans le panneau : la ligne suivante s'active.
@@ -466,7 +473,7 @@
 			j: () => aller(1),
 			k: () => aller(-1),
 			p: passer,
-			c: creer,
+			c: () => creer(),
 			r: ouvrirRelier
 		};
 		const action = actions[e.key];
@@ -862,6 +869,24 @@
 							<Bouton variante="secondaire" {occupe} onclick={retirer}>Écarter cette ligne</Bouton>
 						</div>
 					{:else}
+						{#if active.chequeAbsent}
+							<Bandeau ton="regarder">
+								{message('cheque_absent', { numero: active.chequeAbsent })}
+								{#snippet action()}
+									<Bouton variante="secondaire" onclick={() => creer()}>Créer l’Opération</Bouton>
+								{/snippet}
+							</Bandeau>
+						{/if}
+						{#if active.sumup}
+							<Bandeau ton="info">
+								{message('versement_sumup')}
+								{#snippet action()}
+									<Bouton variante="secondaire" onclick={() => creer({ sumup: true })}>
+										Répartir brut et frais
+									</Bouton>
+								{/snippet}
+							</Bandeau>
+						{/if}
 						{#if active.propositions.length > 0}
 							<h3 class="t-label sous-titre">Propositions</h3>
 							<ol class="propositions">
@@ -937,7 +962,9 @@
 
 						<div class="actions">
 							<Bouton {occupe} onclick={pointer}>Pointer <Touche>Entrée</Touche></Bouton>
-							<Bouton variante="secondaire" onclick={creer}>Créer <Touche>c</Touche></Bouton>
+							<Bouton variante="secondaire" onclick={() => creer()}>
+								Créer <Touche>c</Touche>
+							</Bouton>
 							<Bouton variante="secondaire" onclick={ouvrirRelier}>
 								Relier <Touche>r</Touche>
 							</Bouton>

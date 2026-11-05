@@ -11,6 +11,7 @@ import {
 	bilanCloture,
 	caisseACompter,
 	cartesComptes,
+	chequesARemettre,
 	dernierPointage,
 	lignesNonPointees,
 	operationsAnciennes,
@@ -46,6 +47,7 @@ import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
 import { serialiserCloture } from '#lib/domaine/etats/cloture.ts';
 import { verifierJournal, type Violation } from '#lib/domaine/etats/verification.ts';
 import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
+import { chequesAbsents } from '#lib/domaine/releve/cheques.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { CasUsage, Ctx, Executer, Lire, Socle } from '../executer.ts';
 import type { Depots, EntreeArchive } from '../ports.ts';
@@ -102,12 +104,16 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 		const cloture = e.statut === 'cloture';
 		const premierReleve = !cloture && sansReleve(j, cartes, e);
 		const caisses = cartes.filter((c) => c.compte.type === 'caisse');
+		const absents = chequesAbsents(j, e.fin as string).length;
 		const taches = cloture
 			? []
 			: [
 					{ id: 'lignes' as const, compteur: lignesNonPointees(j, e) },
 					{ id: 'pieces' as const, compteur: pieces },
+					{ id: 'cheques' as const, compteur: chequesARemettre(j, e) },
 					{ id: 'anciennes' as const, compteur: anciennes.length },
+					// Un signalement, pas une tâche de tous les jours : absent quand tout est inscrit.
+					...(absents > 0 ? [{ id: 'cheques_absents' as const, compteur: absents }] : []),
 					...(caisses.length > 0 && !premierReleve
 						? [{ id: 'comptages' as const, compteur: caisses.filter(caisseACompter).length }]
 						: []),

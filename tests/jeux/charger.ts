@@ -95,11 +95,11 @@ export function chargerJeu(app: Application, ctx: Ctx): JeuCharge {
 	depot.definirEtapeAssistant(5);
 	const groupes = depot.groupes();
 	const groupeDe = (nom: string) => groupes.find((g) => g.libelle === nom)?.id ?? groupes[0]!.id;
-	for (const libelle of [...PARAMETRES.natures, 'Subventions']) {
+	for (const libelle of [...PARAMETRES.natures, 'Subventions', 'Ventes', 'Frais bancaires']) {
 		const groupeId = groupeDe(libelle === 'Subventions' ? 'Subventions' : 'Fonctionnement');
 		exiger(app.parametrage.creerNature(ctx, { libelle, groupeId, neutre: false }));
 	}
-	for (const libelle of PARAMETRES.actions) {
+	for (const libelle of [...PARAMETRES.actions, 'Agrumes']) {
 		exiger(
 			app.parametrage.creerAction(ctx, {
 				libelle,
@@ -257,7 +257,142 @@ export function chargerJeu(app: Application, ctx: Ctx): JeuCharge {
 	);
 
 	pointerReleve(app, ctx, banque, livret);
+	chargerChequesEtSumup(app, ctx, { banque, livret, caisse, nature, action });
 	return { ...reperes, caisse, kermesse: action('Kermesse'), exercice: { courant, repere } };
+}
+
+/**
+ * Jalon 2 : la pile des Agrumes, sa Remise, un rejet, le registre des chèques émis, un versement
+ * SumUp, puis une Remise et un dépôt d'espèces vers le livret. Tout est daté après le relevé.
+ */
+function chargerChequesEtSumup(
+	app: Application,
+	ctx: Ctx,
+	r: Pick<Reperes, 'banque' | 'livret' | 'nature' | 'action'> & { caisse: number }
+) {
+	const ventes = r.nature('Ventes');
+	const agrumes = r.action('Agrumes');
+	const ligne = (montant: Centimes, actionId: number | null = agrumes) => ({
+		...LIGNE,
+		montant,
+		natureId: ventes,
+		actionId
+	});
+	const recu = (e: { emetteur: string; banque: string; montant: Centimes }, date: string) =>
+		exiger(
+			app.cheques.enregistrerRecu(ctx, {
+				...e,
+				numero: null,
+				date,
+				lignes:
+					// Un chèque peut couvrir plusieurs Actions (FR-21).
+					e.montant === c(60_00)
+						? [ligne(c(40_00)), ligne(c(20_00), r.action('Kermesse'))]
+						: [ligne(e.montant)]
+			})
+		).id;
+	const ids = JEU_COMPLET.cheques.map((x) => recu(x, '2027-01-12'));
+	const remis = ids.slice(0, 4);
+	exiger(
+		app.cheques.creerRemise(ctx, {
+			chequeIds: remis,
+			compteId: r.banque,
+			date: '2027-01-15',
+			total: c(157_50)
+		})
+	);
+	exiger(app.cheques.rejeter(ctx, { id: ids[1]!, date: '2027-01-25' }));
+
+	exiger(
+		app.operations.creer(ctx, {
+			...standard({
+				intention: 'depense',
+				compteId: r.banque,
+				date: '2027-01-20',
+				libelle: 'Location de la salle imaginaire',
+				lignes: [
+					{
+						montant: c(75_00),
+						natureId: r.nature('Spectacle'),
+						actionId: r.action('Spectacle de Noël')
+					}
+				]
+			}),
+			modePaiement: 'cheque',
+			reference: JEU_COMPLET.numeroChequeEmis,
+			tiers: 'Salle imaginaire'
+		} as EntreeCreation)
+	);
+	exiger(
+		app.cheques.annulerFormule(ctx, {
+			numero: JEU_COMPLET.numeroFormuleAnnulee,
+			beneficiaire: null
+		})
+	);
+
+	const { brut, frais, net } = JEU_COMPLET.sumup;
+	const ligneSumup = exiger(
+		app.pointage.saisirLigne(ctx, {
+			compteId: r.banque,
+			date: '2027-01-31',
+			montant: net,
+			libelle: 'VIREMENT SUMUP PAYOUT'
+		})
+	);
+	exiger(
+		app.pointage.creerDepuisLigne(ctx, {
+			ligneId: ligneSumup.id,
+			saisie: {
+				...standard({
+					intention: 'recette',
+					compteId: r.banque,
+					date: '2027-01-31',
+					libelle: 'Versement SumUp',
+					lignes: []
+				}),
+				modePaiement: 'sumup',
+				montant: net,
+				lignes: [
+					ligne(brut),
+					{ ...ligne(frais, null), contraire: true, natureId: r.nature('Frais bancaires') }
+				]
+			}
+		})
+	);
+
+	const livre = recu(
+		{ emetteur: 'Famille Figue', banque: 'Banque des Prés', montant: c(120_00) },
+		'2027-02-01'
+	);
+	exiger(
+		app.cheques.creerRemise(ctx, {
+			chequeIds: [livre],
+			compteId: r.livret,
+			date: '2027-02-01',
+			total: c(120_00)
+		})
+	);
+	exiger(
+		app.operations.creer(ctx, {
+			forme: 'interne',
+			libelle: 'Dépôt d’espèces sur le livret',
+			note: null,
+			reference: null,
+			deId: r.caisse,
+			versId: r.livret,
+			montant: c(20_00),
+			parti: '2027-02-02',
+			arrive: '2027-02-02'
+		} as EntreeCreation)
+	);
+	exiger(
+		app.pointage.saisirLigne(ctx, {
+			compteId: r.banque,
+			date: '2027-02-03',
+			montant: c(-35_00),
+			libelle: `CHEQUE N ${JEU_COMPLET.numeroChequeAbsent}`
+		})
+	);
 }
 
 /** Le relevé d'octobre : tout se pointe, sauf un frais que le cahier ne connaît pas encore. */

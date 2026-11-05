@@ -15,6 +15,8 @@
 
 	const c = $derived(carte);
 	const caisse = $derived(c.compte.type === 'caisse');
+	/** Chèques à remettre : solde seul. Il n'y a rien à constater, Q3 tient lieu de contrôle. */
+	const cheques = $derived(c.compte.type === 'cheques_a_remettre');
 	const juste = $derived(c.etat === 'juste');
 
 	const lue = $derived(
@@ -39,7 +41,7 @@
 	});
 </script>
 
-<article class="solde-compte" class:juste class:lien={href}>
+<article class="solde-compte" class:juste={juste && !cheques} class:lien={href}>
 	<header>
 		<div>
 			<h2 class="t-heading">
@@ -47,20 +49,25 @@
 			</h2>
 			<p class="t-caption t-muted">{LIBELLES_TYPE_COMPTE[c.compte.type]}</p>
 		</div>
-		<Pastille {...pastille} />
+		{#if !cheques}<Pastille {...pastille} />{/if}
 	</header>
-	<CalculPose
-		termes={[
-			{ libelle: 'Solde de départ', montant: c.depart },
-			{
-				libelle: 'Mouvements',
-				montant: centimes(Math.abs(c.mouvements)),
-				signe: c.mouvements < 0 ? '−' : '+'
-			}
-		]}
-		totalLibelle="Solde calculé"
-		total={c.calcule}
-	/>
+	{#if cheques}
+		<p class="montant-lg solde-seul">{formaterMontant(c.calcule)}</p>
+		<p class="t-caption t-muted">Reçus, pas encore déposés en banque.</p>
+	{:else}
+		<CalculPose
+			termes={[
+				{ libelle: 'Solde de départ', montant: c.depart },
+				{
+					libelle: 'Mouvements',
+					montant: centimes(Math.abs(c.mouvements)),
+					signe: c.mouvements < 0 ? '−' : '+'
+				}
+			]}
+			totalLibelle="Solde calculé"
+			total={c.calcule}
+		/>
+	{/if}
 	{#if c.constate !== null}
 		<div class="constate">
 			<p>
@@ -74,6 +81,10 @@
 </article>
 
 <style>
+	.solde-seul {
+		text-align: left;
+	}
+
 	.solde-compte {
 		display: flex;
 		flex-direction: column;

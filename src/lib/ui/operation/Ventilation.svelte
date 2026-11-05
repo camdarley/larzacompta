@@ -24,6 +24,8 @@
 		creerNature: (texte: string) => Promise<number | null>;
 		creerAction: (texte: string) => Promise<number | null>;
 		ligneDeRecette: boolean;
+		/** Versement SumUp : les deux Lignes se nomment, le premier regard suffit. */
+		etiquettes?: readonly string[];
 	};
 
 	let {
@@ -36,7 +38,8 @@
 		erreurs,
 		creerNature,
 		creerAction,
-		ligneDeRecette
+		ligneDeRecette,
+		etiquettes = []
 	}: Props = $props();
 
 	const totalPositif = $derived(centimes(Math.abs(saisie.total ?? 0)));
@@ -87,6 +90,7 @@
 	{#each saisie.lignes as l, i (l.cle)}
 		{@const nom = `Ligne ${i + 1}`}
 		<li class="ligne">
+			{#if etiquettes[i]}<p class="etiquette-ligne t-label">{etiquettes[i]}</p>{/if}
 			<div class="rangee">
 				<div class="montant-ligne">
 					<ChampMontant
@@ -98,7 +102,11 @@
 						bind:valeur={l.montant}
 						reste={resteDe(i)}
 						erreur={erreurs[`lignes.${i}.montant`]}
-						oninput={() => (l.auto = false)}
+						oninput={() => {
+							l.auto = false;
+							if (i === 0) saisie.brutSuitFrais = false;
+							else saisie.surFrais();
+						}}
 					/>
 				</div>
 				<div class="col-nature">
@@ -242,6 +250,11 @@
 		grid-template-columns: 124px minmax(0, 1fr) minmax(0, 1fr) var(--espace-row);
 		gap: var(--espace-2);
 		margin-bottom: calc(-1 * var(--espace-1));
+	}
+
+	.etiquette-ligne {
+		margin-bottom: var(--espace-1);
+		color: var(--ink-muted);
 	}
 
 	.montant-ligne {

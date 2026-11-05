@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { parcourir } from './fichiers.ts';
 
-/** Invariants du §6 livrés. Q et F3 à F5 viennent avec leurs fonctions. */
+/** Invariants du §6 livrés. F3 à F5 viennent avec leurs fonctions. */
 const LIVRES = [
 	...Array.from({ length: 11 }, (_, i) => `O${i + 1}`),
 	...Array.from({ length: 6 }, (_, i) => `P${i + 1}`),
 	...Array.from({ length: 7 }, (_, i) => `E${i + 1}`),
 	...Array.from({ length: 12 }, (_, i) => `C${i + 1}`),
+	...Array.from({ length: 6 }, (_, i) => `Q${i + 1}`),
 	'F1',
 	'F2',
 	'F6',

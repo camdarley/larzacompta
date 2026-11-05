@@ -59,6 +59,8 @@ export type ContexteCorrection = {
 	versionLue: number;
 	coteIdsPointes: readonly number[];
 	exercices: readonly Exercice[];
+	/** Le module propriétaire d'une Opération spécialisée (O9), et lui seul. */
+	parSonModule?: boolean;
 };
 
 export function deciderModification(
@@ -74,7 +76,7 @@ export function deciderModification(
 	const fige = exerciceFigeant(avant, ctx.exercices);
 	if (fige) return echec('exercice_cloture', { exercice: fige.libelle });
 
-	if (estSpecialisee(avant) && !memeAnalytique(avant, apres)) {
+	if (estSpecialisee(avant) && !ctx.parSonModule && !memeAnalytique(avant, apres)) {
 		return echec('operation_geree_ailleurs');
 	}
 

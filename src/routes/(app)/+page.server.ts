@@ -28,6 +28,7 @@ export async function load({ locals, parent }) {
 		phrase: phraseBilan(tableau.bilan),
 		pointage: fonctionLivree('pointage') && saisir,
 		caisses: fonctionLivree('caisses') && peut(acces.role, 'consulter_suivi'),
+		cheques: fonctionLivree('cheques') && peut(acces.role, 'consulter_suivi'),
 		aClore: saisir ? (aClore ?? null) : null
 	};
 }
