@@ -74,8 +74,7 @@
 			{#each data.sessions as s (s.id)}
 				<li>
 					<div>
-						{#if data.peutConsulterCaisses}<a href="/sessions/{s.id}">{s.caisse}</a
-							>{:else}{s.caisse}{/if}
+						<a href="/sessions/{s.id}">{s.caisse}</a>
 						<p class="t-caption t-muted">
 							{s.date ? formaterDateCourte(s.date) : ''}{s.ouverte ? ', ouverte' : ', clôturée'}
 						</p>

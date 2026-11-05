@@ -24,7 +24,9 @@ export const ARTICLES: readonly Article[] = [
 		titre: 'Accès',
 		paragraphes: [
 			'Pour transmettre la trésorerie, créez un Accès : un lien à usage unique s’affiche une seule fois, à copier et à envoyer à la personne. Il reste valable 7 jours.',
-			'Il n’y a pas de récupération par e-mail. Un mot de passe perdu se réinitialise par la personne qui gère l’installation.'
+			'Il n’y a pas de récupération par e-mail. Un mot de passe perdu se réinitialise par la personne qui gère l’installation.',
+			'Trois rôles existent. Trésorerie tient les comptes et les Réglages. Comptage saisit les Comptages des caisses autorisées, sur téléphone. Lecture convient à un membre du bureau ou à une personne chargée de vérifier les comptes : elle consulte Tableau de contrôle, Opérations, Pièces, Actions, États, Journal, Caisses, Chèques, Créances et Dettes.',
+			'Un Accès en lecture ne peut rien modifier. Il montre les mêmes écrans, sans bouton d’action. Le Pointage, le Budget, les Factures et les Réglages ne lui sont pas ouverts : leurs chiffres utiles restent visibles dans les états.'
 		]
 	},
 	{
