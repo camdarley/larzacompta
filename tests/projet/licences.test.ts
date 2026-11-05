@@ -8,7 +8,8 @@ type Paquet = { name: string; version: string; license?: string; dependencies?: 
 
 /** Paquets sans champ `license`, dont le fichier LICENSE a été lu à la main. */
 const LICENCES_VERIFIEES: Record<string, string> = {
-	'svelte-toolbelt': 'MIT'
+	'svelte-toolbelt': 'MIT',
+	'png-js': 'MIT'
 };
 
 /** Dossier réel d'un paquet : pnpm range les dépendances d'un paquet à côté de lui. */

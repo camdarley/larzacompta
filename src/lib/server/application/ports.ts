@@ -5,6 +5,7 @@ import type { Role } from '#lib/domaine/droits.ts';
 import type { Exercice, NouvelExercice } from '#lib/domaine/exercices.ts';
 import type { GrandJournal, LiaisonJ, OperationJ, TypeLiaison } from '#lib/domaine/journal.ts';
 import type { EntreeCreance } from '#lib/domaine/creances/index.ts';
+import type { ModeleDocument } from '#lib/domaine/etats/documents.ts';
 import type { BrouillonValide } from '#lib/domaine/operations/validation.ts';
 import type { Centimes } from '#lib/domaine/montant.ts';
 import type { PieceStockee } from '#lib/domaine/pieces/index.ts';
@@ -179,9 +180,20 @@ export type DepotParametrage = {
 	ecrireAncre(compteId: number, exerciceId: number, solde: Centimes): void;
 };
 
+export type ClotureExercice = {
+	exerciceId: number;
+	clotureLe: Instant;
+	cloturePar: number;
+	parametrageFigeJson: string;
+	empreinte: string;
+};
+
 export type DepotExercices = {
 	lister(): Exercice[];
 	creer(e: NouvelExercice): number;
+	/** Dans une transaction : `statut = 'cloture'`, paramétrage figé et empreinte (AD-5). */
+	cloturer(c: ClotureExercice): void;
+	cloture(exerciceId: number): ClotureExercice | null;
 };
 
 export type NouvelleOperation = BrouillonValide & { creeLe: Instant; creePar: number };
@@ -292,6 +304,11 @@ export type DepotCreances = {
 export type Exporteurs = {
 	/** CSV : UTF-8 avec BOM, séparateur `;`. Reçoit un modèle déjà calculé (AD-18). */
 	csv(entetes: readonly string[], lignes: readonly (readonly string[])[]): string;
+	/** PDF balisé, A4, noir sur blanc (AD-18). Aucun calcul de montant. */
+	pdf(modele: ModeleDocument): Promise<Uint8Array>;
+	/** Un nombre en euros au format monétaire, issu des centimes pour l'affichage seulement. */
+	xlsx(modele: ModeleDocument): Promise<Uint8Array>;
+	zip(fichiers: Readonly<Record<string, Uint8Array | string>>): Uint8Array;
 };
 
 export type Depots = {

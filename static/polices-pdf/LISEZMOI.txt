@@ -1,0 +1,7 @@
+Polices des documents PDF, sous licence SIL Open Font License 1.1 (OFL-*.txt).
+
+SourceSans3-Regular.ttf, SourceSans3-Semibold.ttf : TTF statiques publiés par Adobe,
+sans modification (adobe-fonts/source-sans, branche release).
+
+Fraunces-SemiBold.ttf : générée une fois depuis la fonte variable de Fraunces (google/fonts),
+par fontTools.varLib.instancer, avec wght=600, opsz=36, SOFT=50, WONK=0.

@@ -11,6 +11,11 @@ import {
 import { centimes, type Centimes } from '#lib/domaine/montant.ts';
 import { libelleDisponible, prochainOrdre, type TypeCompte } from '#lib/domaine/parametrage.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
+import { deciderCloture, figerParametrage, serialiserCloture } from '#lib/domaine/etats/cloture.ts';
+import { cartesComptes, lignesNonPointees } from '#lib/domaine/etats/controle.ts';
+import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
+import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
+import { parametrageCourant } from '../etats/index.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
 import { poserAncre } from '../parametrage/index.ts';
 
@@ -188,6 +193,39 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
+	/**
+	 * Clôture, dans la transaction d'`executer()` (AD-5). Bloquée seulement par E3 et E4 :
+	 * le jalon 2 passera ici les Sessions ouvertes, `journal.sessions` est vide jusque-là.
+	 */
+	const casCloture: CasUsage<number, Exercice> = {
+		droit: 'saisir',
+		faire(o, id) {
+			const j = o.depots.operations.journal();
+			const decision = deciderCloture(o.depots.exercices.lister(), id, []);
+			if (!decision.ok) return decision;
+			const e = decision.valeur;
+			const courant = parametrageCourant(o.depots);
+			const presentes = etatTresorerie(j, e, courant).comptes.map((c) => c.compteId);
+			const fige = figerParametrage(courant, presentes);
+			const empreinte = socle.jetons.empreinte(serialiserCloture(j, e, fige));
+			o.depots.exercices.cloturer({
+				exerciceId: e.id,
+				clotureLe: o.ctx.maintenant,
+				cloturePar: o.ctx.acces?.id as number,
+				parametrageFigeJson: JSON.stringify(fige),
+				empreinte
+			});
+			o.noter({
+				evenement: 'exercice.cloture',
+				entiteType: 'exercice',
+				entiteId: e.id,
+				resume: `a clôturé l’Exercice ${e.libelle}.`,
+				apres: { empreinte }
+			});
+			return succes({ ...e, statut: 'cloture' as const });
+		}
+	};
+
 	return {
 		lister(ctx: Ctx): Resultat<Exercice[]> {
 			return lire(ctx, 'etre_connecte', () => depot.lister());
@@ -202,6 +240,41 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 		anneeCourante(ctx: Ctx, mois: number): number {
 			return anneeExerciceDe(ctx.aujourdhui, mois);
 		},
+
+		/** Page de vérification : rien de ce qu'elle liste ne bloque, sauf E3 et E4 (`refus`). */
+		recapitulatifCloture(ctx: Ctx, id: number) {
+			const r = lire(ctx, 'saisir', () => {
+				const j = socle.depots.operations.journal();
+				const e = j.exercices.find((x) => x.id === id && x.statut !== 'repere');
+				if (e === undefined) return null;
+				const neutres = new Set(
+					socle.depots.parametrage
+						.natures()
+						.filter((n) => n.neutre)
+						.map((n) => n.id)
+				);
+				const suivant = j.exercices.find((x) => x.anneeDebut === e.anneeDebut + 1) ?? null;
+				const cartes = cartesComptes(j, e, ctx.aujourdhui);
+				const decision = deciderCloture(j.exercices, id, []);
+				const cloture = socle.depots.exercices.cloture(id);
+				return {
+					exercice: e,
+					suivant,
+					ecarts: cartes.filter((c) => c.ecart !== null && c.ecart !== 0),
+					lignes: lignesNonPointees(j, e),
+					pieces: piecesManquantes(j, neutres, e).length,
+					refus: decision.ok ? null : decision.erreur,
+					cloture: cloture && {
+						le: cloture.clotureLe,
+						empreinte: cloture.empreinte
+					}
+				};
+			});
+			if (!r.ok) return r;
+			return r.valeur === null ? echec('element_introuvable') : succes(r.valeur);
+		},
+
+		cloturer: (ctx: Ctx, id: number) => executer(casCloture, ctx, id),
 
 		ouvrirPremier: (ctx: Ctx, e: { anneeDebut: number; soldes: SoldeCompte[] }) =>
 			executer(casPremier, ctx, e),

@@ -170,5 +170,19 @@ export const ATTENDUS = {
 	effetSommeARendre: c(0),
 	/** Ventes 300,00 moins facture 500,00, un seul Côté. */
 	differentielPhotographe: c(-200_00),
-	coutSpectacle: c(400_00)
+	coutSpectacle: c(400_00),
+	/** 320,50 de buvette + 300,00 de ventes du photographe. */
+	recettes: c(620_50),
+	/** 1 000,00 d'autocars + 80,00 de papeterie nette + 500,00 de facture + 400,00 de spectacle. */
+	depenses: c(1980_00),
+	resultat: c(-1359_50),
+	/** Le résultat : le trop-perçu est reçu puis rendu, le virement ne change rien au total. */
+	variation: c(-1359_50),
+	resultatParAction: {
+		'Sortie mer': c(-600_00),
+		Olympiades: c(-250_00),
+		'Sortie ferme': c(-150_00),
+		Kermesse: c(40_50),
+		'Spectacle de Noël': c(-400_00)
+	}
 };

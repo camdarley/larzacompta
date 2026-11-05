@@ -126,6 +126,7 @@ export const TEXTES = {
 	quitter_sans_enregistrer: 'Quitter sans enregistrer ?',
 	cahier_pret: 'Votre cahier est prêt.',
 	tout_pointe: 'Tout est pointé',
+	aucun_ecart: 'Égal au relevé',
 	premier_releve: 'Importez votre premier relevé pour commencer le contrôle.',
 	solde_ignore: 'Le solde de ce relevé tombe dans un Exercice clôturé : il est ignoré.'
 } as const;

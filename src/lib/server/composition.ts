@@ -11,6 +11,7 @@ import {
 	type Socle
 } from './application/executer.ts';
 import { creerCreances } from './application/creances/index.ts';
+import { creerEtats } from './application/etats/index.ts';
 import { creerExercices } from './application/exercices/index.ts';
 import { creerJournal } from './application/journal/index.ts';
 import { creerOperations } from './application/operations/index.ts';
@@ -21,6 +22,9 @@ import type { Fichiers, Hacheur, Horloge, Journaliseur } from './application/por
 import { creerJetons } from './infra/auth/jetons.ts';
 import { creerHacheur } from './infra/auth/mot-de-passe.ts';
 import { genererCsv } from './infra/documents/csv.ts';
+import { genererPdf } from './infra/documents/pdf/index.ts';
+import { genererXlsx } from './infra/documents/xlsx.ts';
+import { genererZip } from './infra/documents/archive.ts';
 import { creerFichiers } from './infra/fichiers/index.ts';
 import { creerJournaliseur } from './infra/logs.ts';
 import { sourceCsv } from './infra/sources/csv.ts';
@@ -65,7 +69,12 @@ export function composer(options: OptionsComposition) {
 		hacheur: options.hacheur ?? creerHacheur(),
 		jetons: creerJetons(),
 		journaliseur: options.journaliseur ?? creerJournaliseur(() => horloge.maintenant()),
-		exporteurs: { csv: genererCsv },
+		exporteurs: {
+			csv: genererCsv,
+			pdf: (modele) => genererPdf(modele, process.env.APE_POLICES ?? 'static/polices-pdf'),
+			xlsx: genererXlsx,
+			zip: genererZip
+		},
 		sources: { ofx: sourceOfx, csv: sourceCsv, estOfx },
 		fichiers: options.fichiers ?? creerFichiers(join(dossierDonnees(), 'fichiers'))
 	};
@@ -84,7 +93,8 @@ export function composer(options: OptionsComposition) {
 		operations: creerOperations(socle, executer, lire),
 		pointage: creerPointage(socle, executer, lire),
 		pieces: creerPieces(socle, executer, lire),
-		creances: creerCreances(socle, executer, lire)
+		creances: creerCreances(socle, executer, lire),
+		etats: creerEtats(socle, executer, lire)
 	};
 }
 
