@@ -26,6 +26,7 @@
 		"test": "vitest run",
 		"test:couverture": "vitest run --coverage --project domaine",
 		"test:e2e": "pnpm build && playwright test",
+		"test:e2e:webkit": "pnpm build && WEBKIT=1 playwright test --project=webkit --timeout=45000",
 		"test:prive": "node scripts/test-prive.ts",
 		"test:cycle": "node tests/cycle/cycle.ts",
 		"test:cycle:montee": "node tests/cycle/montee.ts",

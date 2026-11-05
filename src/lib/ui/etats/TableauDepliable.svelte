@@ -10,7 +10,12 @@
 		type Noeud,
 		type Rangee
 	} from '#lib/domaine/etats/arbre.ts';
-	import { formaterMontant, formaterMontantSigne, type Centimes } from '#lib/domaine/montant.ts';
+	import {
+		formaterMontant,
+		formaterMontantSigne,
+		lectureMontant,
+		type Centimes
+	} from '#lib/domaine/montant.ts';
 	import type { PieceJ } from '#lib/domaine/journal.ts';
 	import Panneau from '#lib/ui/Panneau.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
@@ -108,8 +113,6 @@
 	const montant = (r: Rangee, c: Centimes) =>
 		c === 0 && (r.type === 'nature' || r.type === 'ligne') ? '' : formaterMontant(c);
 
-	const nomOuverture = (r: Rangee) => `${r.deplie ? 'Replier' : 'Déplier'} ${r.libelle}`;
-
 	/** La Pièce regardée vit dans l'URL : recharger rouvre la même visionneuse. */
 	function piecesDe(liste: readonly Noeud[]): PieceJ[] {
 		return liste.flatMap((n) => [...(n.ligne?.pieces ?? []), ...piecesDe(n.enfants)]);
@@ -119,6 +122,13 @@
 		sha === null ? null : (piecesDe(noeuds).find((p) => p.sha256 === sha) ?? null)
 	);
 </script>
+
+{#snippet cellule(texte: string, c: Centimes)}
+	{#if texte !== ''}
+		<span class="visuellement-cache">{lectureMontant(c)}</span>
+		<span aria-hidden="true">{texte}</span>
+	{/if}
+{/snippet}
 
 <div class="conteneur" class:reduit>
 	<!-- `treegrid` explicite : la mise en page téléphone retire au tableau ses rôles implicites. -->
@@ -153,11 +163,12 @@
 					<td role="gridcell" class="libelle">
 						<span class="tete">
 							{#if r.depliable}
+								<!-- Pour la souris et le doigt : la rangée porte déjà `aria-expanded`. -->
 								<a
 									class="chevron"
 									class:deplie={r.deplie}
 									href={urlBascule(r.cle)}
-									aria-label={nomOuverture(r)}
+									aria-hidden="true"
 									tabindex="-1"
 									data-sveltekit-reset="false"
 									data-sveltekit-replacestate
@@ -211,9 +222,15 @@
 							</span>
 						{/if}
 					</td>
-					<td role="gridcell" class="montant col-detail">{montant(r, r.recettes)}</td>
-					<td role="gridcell" class="montant col-detail">{montant(r, r.depenses)}</td>
-					<td role="gridcell" class="montant resultat">{formaterMontantSigne(r.resultat)}</td>
+					<td role="gridcell" class="montant col-detail">
+						{@render cellule(montant(r, r.recettes), r.recettes)}
+					</td>
+					<td role="gridcell" class="montant col-detail">
+						{@render cellule(montant(r, r.depenses), r.depenses)}
+					</td>
+					<td role="gridcell" class="montant resultat">
+						{@render cellule(formaterMontantSigne(r.resultat), r.resultat)}
+					</td>
 				</tr>
 			{/each}
 		</tbody>

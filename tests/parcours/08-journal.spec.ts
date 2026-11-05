@@ -24,7 +24,7 @@ test('le tableau montre date, personne, phrase et élément, du plus récent au 
 test('les filtres se combinent, passent par l’URL, et « Tout effacer » les retire', async ({
 	page
 }) => {
-	await page.goto('/journal');
+	await page.goto('/journal', { waitUntil: 'networkidle' });
 	const compteur = page.locator('[role=status]').filter({ hasText: /résultat/ });
 	const tous = await compteur.textContent();
 	await page.getByLabel('Type').selectOption({ label: 'Compte' });

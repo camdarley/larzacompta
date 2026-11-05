@@ -226,6 +226,7 @@ test('3.3 : deux lignes identiques : À regarder, confirmées ou écartées une 
 
 	await volet(page).getByRole('button', { name: 'Garder cette ligne' }).click();
 	await expect(page.getByText('Ligne gardée.')).toBeVisible();
+	await expect(page.locator('[data-ligne]', { hasText: 'À regarder' })).toHaveCount(1);
 	await page.locator('[data-ligne]', { hasText: 'À regarder' }).click();
 	await volet(page).getByRole('button', { name: 'Écarter cette ligne' }).click();
 	await expect(page.getByText('Ligne écartée.')).toBeVisible();

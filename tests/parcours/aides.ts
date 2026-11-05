@@ -64,3 +64,6 @@ export function sansDefilementHorizontal(page: Page) {
 		() => document.documentElement.scrollWidth <= document.documentElement.clientWidth
 	);
 }
+
+/** Safari ne s'arrête sur les liens qu'avec Option+Tab, à moins d'un réglage du système. */
+export const toucheLiens = (navigateur: string) => (navigateur === 'webkit' ? 'Alt+Tab' : 'Tab');

@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 
 test('2.5 : ?op=id montre les mêmes champs, l’Historique et le menu', async ({ page }) => {
 	const id = operationId('Papeterie du Lac');
-	await page.goto(`/operations?op=${id}`);
+	await page.goto(`/operations?op=${id}`, { waitUntil: 'networkidle' });
 	await expect(panneau(page).getByLabel('Libellé')).toHaveValue('Papeterie du Lac');
 	await expect(montant(page)).toHaveValue('100,00');
 	await expect(panneau(page).getByRole('heading', { name: 'Historique' })).toBeVisible();
@@ -28,6 +28,7 @@ test('2.5 : ?op=id montre les mêmes champs, l’Historique et le menu', async (
 	await expect(panneau(page).getByRole('button', { name: 'Annuler l’Opération' })).toBeVisible();
 	await axeSansViolation(page);
 	await page.keyboard.press('Escape');
+	await expect(panneau(page).getByRole('button', { name: 'Dupliquer' })).toHaveCount(0);
 
 	await panneau(page).getByLabel('Libellé').fill('Papeterie du Lac corrigée');
 	await enregistrer(page).click();

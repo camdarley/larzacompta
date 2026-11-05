@@ -23,6 +23,12 @@
 
 	let { detail, peutSaisir, relierOuvert = $bindable(false) }: Props = $props();
 
+	/** Le bloc s'ouvre en bas du `panneau` : sans cela, le geste ne montre rien. */
+	function amener(bloc: HTMLElement) {
+		bloc.scrollIntoView({ block: 'nearest' });
+		document.getElementById('relier-operation')?.focus({ preventScroll: true });
+	}
+
 	const op = $derived(detail.operation);
 	let autreId = $state<number | null>(null);
 	let libelle = $state('');
@@ -121,7 +127,7 @@
 {/if}
 
 {#if relierOuvert}
-	<section class="bloc relier" aria-label="Relier à une autre Opération">
+	<section class="bloc relier" aria-label="Relier à une autre Opération" {@attach amener}>
 		<h3 class="t-heading">Relier à une autre Opération</h3>
 		{#if erreur}<Bandeau ton="erreur" alerte>{erreur}</Bandeau>{/if}
 		<SelecteurRecherche

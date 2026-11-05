@@ -30,7 +30,7 @@ test('l’identité s’enregistre et se lit dans la barre et le titre', async (
 });
 
 test('chaque onglet a son URL et se parcourt aux flèches', async ({ page }) => {
-	await page.goto('/reglages');
+	await page.goto('/reglages', { waitUntil: 'networkidle' });
 	const sections = page.getByRole('navigation', { name: 'Sections des Réglages' });
 	await sections.getByRole('link', { name: 'Association' }).focus();
 	await page.keyboard.press('ArrowRight');

@@ -245,6 +245,26 @@ test('5.3 : déplier au clavier, l’état vit dans l’URL', async ({ page }) =
 	);
 });
 
+test('un mot du glossaire touche sa ponctuation', async ({ page }) => {
+	await page.goto('/etats', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('main')).toContainText('Mouvements internes, ni les');
+});
+
+test('5.3 : une rangée se lit une fois, montants en toutes lettres', async ({ page }) => {
+	await page.goto('/actions', { waitUntil: 'networkidle' });
+	const groupe = page
+		.getByRole('treegrid')
+		.first()
+		.getByRole('row', { name: /Évènements/ });
+	const nom = await groupe.evaluate(
+		(e) => e.querySelector('.resultat .visuellement-cache')?.textContent ?? ''
+	);
+	expect(nom).toMatch(/^(moins )?[\d\s]+ euros?/);
+	await expect(groupe).not.toHaveAccessibleName(/Déplier|Replier/);
+	await expect(groupe).not.toHaveAccessibleName(/Évènements.*Évènements/);
+	await expect(groupe).toHaveAccessibleName(new RegExp(nom.replaceAll(/\s/g, '\\s')));
+});
+
 test('5.3 : une Ligne ouvre l’Opération, l’icône Pièce ouvre la visionneuse', async ({ page }) => {
 	await page.goto('/actions', { waitUntil: 'networkidle' });
 	const grille = page.getByRole('treegrid').first();

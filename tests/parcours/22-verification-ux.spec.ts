@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import Database from 'better-sqlite3';
 import { chargerDansDossier, COMPTES_FICTIFS, type JeuCharge } from '../jeux/charger.ts';
+import { toucheLiens } from './aides.ts';
 import { demarrerServeur as demarrer, envServeur } from './aides-instance.ts';
 import { panneau } from './aides-operations.ts';
 
@@ -325,14 +326,17 @@ test('chargement lent : le squelette paraît après 300 ms', async ({ page }) =>
 	await expect(page.getByRole('heading', { level: 1, name: 'Journal' })).toBeVisible();
 });
 
-test('UJ-1 au clavier seul : focus visible, ordre de tabulation, raccourcis', async ({ page }) => {
+test('UJ-1 au clavier seul : focus visible, ordre de tabulation, raccourcis', async ({
+	page,
+	browserName
+}) => {
 	await connecter(page, COMPTES_FICTIFS.tresorier);
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/');
 	await page.waitForLoadState('networkidle');
 
 	// Le premier arrêt est le lien d'évitement, visible au focus.
-	await page.keyboard.press('Tab');
+	await page.keyboard.press(toucheLiens(browserName));
 	const evitement = page.getByRole('link', { name: 'Aller au contenu' });
 	await expect(evitement).toBeFocused();
 	await expect(evitement).toBeInViewport();
@@ -353,7 +357,7 @@ test('UJ-1 au clavier seul : focus visible, ordre de tabulation, raccourcis', as
 
 	// Chaque élément tabulable du Pointage porte un contour de focus.
 	for (let i = 0; i < 6; i++) {
-		await page.keyboard.press('Tab');
+		await page.keyboard.press(toucheLiens(browserName));
 		const contour = await page.evaluate(() => {
 			const s = getComputedStyle(document.activeElement as Element);
 			return s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) >= 2;

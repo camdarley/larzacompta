@@ -82,7 +82,7 @@
 			id={idAuto}
 			{name}
 			{type}
-			value={valeur}
+			bind:value={valeur}
 			readonly={lectureSeule}
 			aria-invalid={erreurAffichee ? 'true' : undefined}
 			aria-describedby={decrit}

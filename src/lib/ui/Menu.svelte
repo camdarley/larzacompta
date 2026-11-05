@@ -42,6 +42,7 @@
 
 	// Différé : retirer le menu pendant le clic annulerait l'envoi d'un formulaire qu'il contient.
 
+	/** Sur la fenêtre : Safari ne donne pas le focus à un bouton cliqué, ni donc à ce menu. */
 	function surTouche(e: KeyboardEvent) {
 		if (e.key === 'Escape' && ouvert) {
 			e.stopPropagation();
@@ -59,9 +60,10 @@
 </script>
 
 <svelte:document onclick={surClicDocument} />
+<svelte:window onkeydowncapture={surTouche} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="menu" bind:this={racine} onkeydown={surTouche} onfocusout={surSortieFocus}>
+<div class="menu" bind:this={racine} onfocusout={surSortieFocus}>
 	<button
 		bind:this={declencheur}
 		class="declencheur {classe}"

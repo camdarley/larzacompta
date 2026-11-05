@@ -131,6 +131,24 @@ async function ciblesPetites(page: Page) {
 	);
 }
 
+test('une saisie faite avant la fin du chargement survit à l’hydratation', async ({ page }) => {
+	// Téléphone lent : la page est là, le script pas encore.
+	let lacher = () => {};
+	const script = new Promise<void>((r) => (lacher = r));
+	await page.route('**/_app/immutable/**', async (route) => {
+		await script;
+		await route.continue();
+	});
+	await page.goto(`${ORIGINE}/connexion`, { waitUntil: 'commit' });
+	const identifiant = page.getByLabel('Identifiant');
+	await identifiant.fill(COMPTES_FICTIFS.tresorier.identifiant);
+	lacher();
+	await page.waitForLoadState('networkidle');
+	// L'hydratation ne laisse aucune trace publique : on lui laisse le temps de passer.
+	await page.waitForTimeout(500);
+	await expect(identifiant).toHaveValue(COMPTES_FICTIFS.tresorier.identifiant);
+});
+
 for (const format of FORMATS) {
 	test(`aucun écran ne déborde en ${format.nom}`, async ({ browser }) => {
 		test.setTimeout(captures ? 300_000 : 60_000);

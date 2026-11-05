@@ -22,7 +22,8 @@
 	});
 
 	function surTouche(e: KeyboardEvent) {
-		// `Échap` revient à l'Opération sans fermer le panneau.
+		// `Échap` revient à l'Opération sans fermer le panneau. Écouté sur la fenêtre : Safari ne
+		// donne pas le focus à un bouton cliqué, il peut être hors de la visionneuse.
 		if (e.key === 'Escape' && revenir) {
 			e.stopPropagation();
 			revenir();
@@ -30,8 +31,9 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="visionneuse" class:superposee={revenir} onkeydown={surTouche}>
+<svelte:window onkeydowncapture={surTouche} />
+
+<div class="visionneuse" class:superposee={revenir}>
 	<div class="barre">
 		{#if revenir}
 			<span bind:this={retour}>

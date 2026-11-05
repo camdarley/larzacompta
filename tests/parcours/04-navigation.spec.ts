@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { ape, axeSansViolation, base, connecter, sansDefilementHorizontal } from './aides.ts';
+import {
+	ape,
+	axeSansViolation,
+	base,
+	connecter,
+	sansDefilementHorizontal,
+	toucheLiens
+} from './aides.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -80,7 +87,8 @@ test('seules les entrées livrées apparaissent, sans entrée grisée', async ({
 });
 
 test('chaque écran a un h1 et un title uniques, des repères et un lien d’évitement', async ({
-	page
+	page,
+	browserName
 }) => {
 	await connecter(page);
 	const titres = new Set<string>();
@@ -109,8 +117,8 @@ test('chaque écran a un h1 et un title uniques, des repères et un lien d’év
 	}
 	expect(titres.size).toBe(chemins.length);
 
-	await page.goto('/');
-	await page.keyboard.press('Tab');
+	await page.goto('/', { waitUntil: 'networkidle' });
+	await page.keyboard.press(toucheLiens(browserName));
 	const evitement = page.getByRole('link', { name: 'Aller au contenu' });
 	await expect(evitement).toBeFocused();
 });
@@ -124,9 +132,12 @@ test('le focus suit la navigation', async ({ page }) => {
 });
 
 test.describe('panneau', () => {
-	test('vit dans l’URL, piège le focus, se ferme à Échap et rend le focus', async ({ page }) => {
+	test('vit dans l’URL, piège le focus, se ferme à Échap et rend le focus', async ({
+		page,
+		browserName
+	}) => {
 		await connecter(page);
-		await page.goto('/reglages/comptes');
+		await page.goto('/reglages/comptes', { waitUntil: 'networkidle' });
 		const lien = page.getByRole('link', { name: 'Créer un Compte' });
 		await lien.focus();
 		await lien.press('Enter');
@@ -136,7 +147,7 @@ test.describe('panneau', () => {
 		await expect(page.getByLabel('Nom du Compte')).toBeFocused();
 
 		for (let i = 0; i < 8; i++) {
-			await page.keyboard.press('Tab');
+			await page.keyboard.press(toucheLiens(browserName));
 			const dedans = await page.evaluate(
 				() => document.activeElement?.closest('[role=dialog]') !== null
 			);

@@ -50,7 +50,7 @@ test('2.4 : chaque rangée montre tout, se clique, et son libellé est un vrai l
 });
 
 test('2.4 : un montant se trouve aussi dans une Ligne, et le dit', async ({ page }) => {
-	await page.goto('/operations');
+	await page.goto('/operations', { waitUntil: 'networkidle' });
 	await page.getByLabel('Chercher une Opération').fill('250');
 	await expect(page).toHaveURL(/q=250/);
 	await expect(page.getByRole('main')).toContainText(

@@ -72,8 +72,7 @@
 		onclick={ouvrir}
 	>
 		{@render children()}
-	</button>
-	{#if ouvert && entree}
+	</button><!-- Rien entre le mot et la suite : la ponctuation du texte doit le toucher. -->{#if ouvert && entree}
 		<span
 			{id}
 			class="bulle"
@@ -87,8 +86,8 @@
 			<span class="definition">{entree.definition}</span>
 			<a href="/aide#terme-{ancre}" data-sveltekit-reload>En savoir plus</a>
 		</span>
-	{/if}
-</span>
+	{/if}</span
+>
 
 <style>
 	.aide-terme {

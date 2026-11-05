@@ -15,7 +15,11 @@ export default defineConfig({
 		// Tient lieu de Caddy : adapter-node 6 déduit l'origine de cet en-tête, https par défaut.
 		extraHTTPHeaders: { 'x-forwarded-proto': 'http' }
 	},
-	projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+	projects: [
+		{ name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+		// Sur demande (`WEBKIT=1`) : le moteur de Safari, la CI n'installe que Chromium.
+		...(process.env.WEBKIT ? [{ name: 'webkit', use: { ...devices['Desktop Safari'] } }] : [])
+	],
 	webServer: {
 		// Chaque campagne repart d'une base temporaire vide, hors du dépôt.
 		command: `rm -rf "${DOSSIER_E2E}" && mkdir -p "${DOSSIER_E2E}" && node build/index.js`,

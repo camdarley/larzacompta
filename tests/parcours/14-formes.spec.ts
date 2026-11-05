@@ -277,10 +277,12 @@ test('2.11 : relier deux paiements affiche le total, délier le recalcule', asyn
 	const [a, b] = [operationId('Cachet artiste'), operationId('Cotisations artiste')];
 	const lignesAvant = lire('SELECT * FROM ligne WHERE operation_id IN (?, ?) ORDER BY id', a, b);
 
-	await page.goto(`/operations?op=${a}`);
+	await page.goto(`/operations?op=${a}`, { waitUntil: 'networkidle' });
 	await panneau(page).getByRole('button', { name: 'Actions de l’Opération' }).click();
 	await panneau(page).getByRole('button', { name: 'Relier à une autre Opération' }).click();
 	const cible = panneau(page).getByRole('combobox', { name: 'Opération à relier' });
+	await expect(cible).toBeFocused();
+	await expect(cible).toBeInViewport();
 	await cible.fill('cotisations');
 	await panneau(page)
 		.getByRole('option', { name: /Cotisations artiste/ })

@@ -173,6 +173,8 @@ test('4.1 : apercu-piece ouvre une image en grand, un PDF dans le panneau', asyn
 	await expect(panneau(page).getByRole('link', { name: 'Télécharger' })).toBeVisible();
 	await panneau(page).getByRole('button', { name: 'Agrandir' }).click();
 	await expect(panneau(page).getByRole('button', { name: 'Ajuster' })).toBeVisible();
+	// Safari ne donne pas le focus à un bouton cliqué : Échap doit marcher sans lui.
+	await page.evaluate(() => (document.activeElement as HTMLElement).blur());
 	await page.keyboard.press('Escape');
 	await expect(panneau(page).getByRole('img', { name: 'ticket-ramettes.jpg' })).toHaveCount(0);
 	await expect(panneau(page)).toBeVisible();
@@ -330,7 +332,10 @@ test.describe('4.3 : photo sur téléphone', () => {
 		await page.setViewportSize({ width: 320, height: 640 });
 	});
 
-	test('Photo ouvre l’appareil, réduit l’image et retire EXIF et GPS', async ({ page }) => {
+	test('Photo ouvre l’appareil, réduit l’image et retire EXIF et GPS', async ({
+		page,
+		browserName
+	}) => {
 		await nouvelleDepense(page, { libelle: 'Pain du goûter', montant: '6', date: '2028-08-01' });
 		await page.goto('/', { waitUntil: 'networkidle' });
 		const photo = await photoAvecExif(page);
@@ -351,7 +356,8 @@ test.describe('4.3 : photo sur téléphone', () => {
 		expect(stockee.mime).toBe('image/jpeg');
 		const r = await page.request.get(`/fichiers/${stockee.sha256}`);
 		const octets = await r.body();
-		expect(octets.includes('Exif')).toBe(false);
+		// Safari écrit son propre Exif, espace couleur et dimensions, même sur une toile vierge.
+		if (browserName !== 'webkit') expect(octets.includes('Exif')).toBe(false);
 		expect(octets.includes('GPSLatitude')).toBe(false);
 		const largeur = await page.evaluate(async (sha) => {
 			const b = await (await fetch(`/fichiers/${sha}`)).blob();
