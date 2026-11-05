@@ -59,6 +59,18 @@ test('Chrome affiche le Document d’AG dans son iframe', async () => {
 	const cadre = page.frames().find((f) => f.url().includes('/document-ag/pdf'));
 	expect(cadre, 'cadre du PDF').toBeDefined();
 	await page.screenshot({ path: join(dossierCaptures as string, 'document-ag-chrome.png') });
+
+	// L'aperçu d'une Facture passe par le même chemin : il suit la frappe, sans rien enregistrer.
+	await page.goto('/factures/nouvelle');
+	await page.getByLabel('Tiers').fill('Cantine fictive');
+	await page.getByLabel('Désignation, ligne 1').fill('Repas de novembre');
+	await page.getByLabel('Quantité, ligne 1').fill('120');
+	await page.getByLabel('Prix unitaire, ligne 1').fill('3,50');
+	const apercu = page.waitForResponse((r) => r.url().includes('/factures/apercu?v='));
+	await page.getByLabel('Prix unitaire, ligne 1').blur();
+	expect((await apercu).headers()['content-type']).toContain('application/pdf');
+	await page.waitForTimeout(4000);
+	await page.screenshot({ path: join(dossierCaptures as string, 'facture-chrome.png') });
 	await navigateur.close();
 	expect(bloques).toEqual([]);
 });

@@ -1,11 +1,5 @@
 /** Écart de caisse (C8) : son écriture, et son suivi quand un ticket en retard arrive (C11). */
-import {
-	comptageDe,
-	ecartDeComptage,
-	sessionOuverte,
-	soldeCourantCaisse,
-	totalComptage
-} from '#lib/domaine/caisse/index.ts';
+import { ecartDeComptage, soldeCourantCaisse, totalComptage } from '#lib/domaine/caisse/index.ts';
 import type { DateCivile } from '#lib/domaine/dates.ts';
 import type { ComptageJ, GrandJournal } from '#lib/domaine/journal.ts';
 import { centimes, type Centimes } from '#lib/domaine/montant.ts';
@@ -100,10 +94,25 @@ function remplacerEcart(o: Outils, ouverture: ComptageJ, ecart: Centimes): Resul
 	return succes(true);
 }
 
+/** Le premier Comptage après ce jour : c'est lui qui a constaté ce que ce Côté a changé. */
+function premierComptageApres(
+	j: Pick<GrandJournal, 'comptages'>,
+	compteId: number,
+	date: DateCivile
+): ComptageJ | undefined {
+	return j.comptages
+		.filter((c) => c.compteId === compteId && c.date > date)
+		.sort(
+			(a, b) => a.date.localeCompare(b.date) || a.compteLe.localeCompare(b.compteLe) || a.id - b.id
+		)[0];
+}
+
 /**
- * Un Côté daté avant le Comptage d'ouverture d'une Session ouverte ne touche pas la Recette
- * d'espèces, mais il change ce qu'on aurait dû trouver ce jour-là. L'Écart d'ouverture se recalcule
- * donc, sans recomptage : les billets n'ont pas bougé, seul le solde attendu s'est précisé.
+ * Un Côté daté avant un Comptage d'ouverture ne touche pas la Recette d'espèces, mais il change ce
+ * qu'on aurait dû trouver ce jour-là. L'Écart de cette ouverture se recalcule donc, sans recomptage,
+ * que la Session soit ouverte ou clôturée : les billets n'ont pas bougé, seul le solde attendu s'est
+ * précisé. Sans cela, après clôture, `soldeCompte` garderait le ticket et s'écarterait de la caisse.
+ * Les Comptages suivants repartent chacun du précédent : le premier suffit.
  */
 export function reajusterEcartOuverture(
 	o: Outils,
@@ -114,11 +123,10 @@ export function reajusterEcartOuverture(
 	for (const { compteId } of cotes) {
 		if (vus.has(compteId)) continue;
 		vus.add(compteId);
-		const session = sessionOuverte(j, compteId);
-		const ouverture = session && comptageDe(j, session.id, 'ouverture');
-		if (!ouverture) continue;
-		const anterieur = cotes.some((c) => c.compteId === compteId && c.date < ouverture.date);
-		if (!anterieur) continue;
+		const dates = cotes.filter((c) => c.compteId === compteId).map((c) => c.date);
+		const premiere = [...dates].sort()[0] as DateCivile;
+		const ouverture = premierComptageApres(j, compteId, premiere);
+		if (ouverture?.type !== 'ouverture') continue;
 		const lie = j.operations.find((op) => op.id === ouverture.operationEcartId);
 		const ecart = ecartAttendu(j, ouverture);
 		if (ecart === centimes(lie?.cotes[0]?.montant ?? 0)) continue;

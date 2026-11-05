@@ -402,6 +402,22 @@
 		tick().then(focusActive);
 	}
 
+	/** Un montant démesuré n'est dans aucune file : il se retire depuis son bandeau. */
+	async function retirerDemesure(type: 'lignes' | 'constats', id: number) {
+		if (occupe) return;
+		occupe = true;
+		const r = await envoyer(`/api/pointage/${type}/${id}/retirer`);
+		occupe = false;
+		if (r.type === 'ok') {
+			afficherToast('Retiré du relevé.');
+			await refreshAll();
+		} else if (r.type === 'refus') {
+			afficherToast(messageErreur(r.erreur));
+		} else {
+			echecCommun(r);
+		}
+	}
+
 	async function retirer() {
 		if (!active || occupe) return;
 		const id = active.id;
@@ -693,6 +709,32 @@
 	<ReserveOrdinateur />
 
 	<div class="annonces seulement-ordinateur">
+		{#if !lectureSeule}
+			{#each vue.demesures.lignes as l (l.id)}
+				<Bandeau ton="erreur">
+					{message('ligne_demesuree', { libelle: l.libelle, date: formaterDateCourte(l.date) })}
+					{#snippet action()}
+						<Bouton variante="secondaire" {occupe} onclick={() => retirerDemesure('lignes', l.id)}>
+							Retirer cette ligne
+						</Bouton>
+					{/snippet}
+				</Bandeau>
+			{/each}
+			{#each vue.demesures.constats as c (c.id)}
+				<Bandeau ton="erreur">
+					{message('solde_demesure', { date: formaterDateCourte(c.date) })}
+					{#snippet action()}
+						<Bouton
+							variante="secondaire"
+							{occupe}
+							onclick={() => retirerDemesure('constats', c.id)}
+						>
+							Retirer ce solde
+						</Bouton>
+					{/snippet}
+				</Bandeau>
+			{/each}
+		{/if}
 		{#if erreurImport}
 			<Bandeau ton={erreurImport.reessayer ? 'regarder' : 'erreur'} alerte>
 				{erreurImport.texte}

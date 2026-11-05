@@ -117,6 +117,16 @@ export type LigneReleveJ = {
 	empreinte: string;
 };
 
+/**
+ * Montant au-delà de `MONTANT_MAX`, déjà en base : il ne vient pas d'un relevé. Il reste hors de
+ * tout calcul, et il se montre pour se retirer. Son montant n'est pas lu : il dépasse parfois ce
+ * qu'un entier JavaScript représente, et ferait tomber toute lecture du journal.
+ */
+export type RelevesDemesures = {
+	lignes: { id: number; compteId: number; date: DateCivile; libelle: string }[];
+	constats: { id: number; compteId: number; date: DateCivile }[];
+};
+
 export type CoupureJ = { coupure: Centimes; quantite: number };
 
 export type TypeComptage = 'ouverture' | 'fin' | 'controle';
@@ -213,6 +223,7 @@ export type GrandJournal = {
 	chequesRecus: ChequeRecuJ[];
 	chequesEmis: ChequeEmisJ[];
 	creancesDettes: CreanceDetteJ[];
+	relevesDemesures: RelevesDemesures;
 };
 
 export function journalVide(): GrandJournal {
@@ -231,6 +242,7 @@ export function journalVide(): GrandJournal {
 		remises: [],
 		chequesRecus: [],
 		chequesEmis: [],
-		creancesDettes: []
+		creancesDettes: [],
+		relevesDemesures: { lignes: [], constats: [] }
 	};
 }

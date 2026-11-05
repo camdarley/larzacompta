@@ -22,7 +22,7 @@ import type {
 	TypeLiaison
 } from '#lib/domaine/journal.ts';
 import { journalVide } from '#lib/domaine/journal.ts';
-import { centimes } from '#lib/domaine/montant.ts';
+import { centimes, MONTANT_MAX } from '#lib/domaine/montant.ts';
 import type { BrouillonValide } from '#lib/domaine/operations/validation.ts';
 import type { DepotExercices, DepotOperations, DepotParametrage } from '../../application/ports.ts';
 import type { Base } from './connexion.ts';
@@ -70,6 +70,9 @@ type PieceBrute = {
 	nom_original: string;
 	mime: string;
 };
+/** Lu brut : au-delà du plafond, ce n'est pas un montant, et `centimes()` lèverait. */
+const demesure = (montant: number) => Math.abs(montant) > MONTANT_MAX;
+
 type ConstatBrut = {
 	id: number;
 	compte_id: number;
@@ -435,6 +438,8 @@ export function creerDepotOperations(
 	return {
 		/** Des lignes, sans agrégat : aucun montant ne se calcule en SQL (AD-4). */
 		journal(): GrandJournal {
+			const constats = r.constats.all() as ConstatBrut[];
+			const lignesReleve = r.lignesReleve.all() as LigneReleveBrute[];
 			const cotes = grouper((r.cotes.all() as CoteBrut[]).map(versCote), (c) => c.operationId);
 			const lignes = grouper((r.lignes.all() as LigneBrute[]).map(versLigne), (l) => l.operationId);
 			const pieces = grouper(r.pieces.all() as PieceBrute[], (p) => p.operation_id);
@@ -457,28 +462,40 @@ export function creerDepotOperations(
 				operations: actives,
 				operationsAnnulees: annulees,
 				liaisons: r.liaisons.all() as LiaisonJ[],
-				constats: (r.constats.all() as ConstatBrut[]).map((c) => ({
-					id: c.id,
-					compteId: c.compte_id,
-					date: c.date,
-					solde: centimes(c.solde_centimes),
-					source: c.source,
-					creeLe: c.cree_le
-				})),
+				constats: constats
+					.filter((c) => !demesure(c.solde_centimes))
+					.map((c) => ({
+						id: c.id,
+						compteId: c.compte_id,
+						date: c.date,
+						solde: centimes(c.solde_centimes),
+						source: c.source,
+						creeLe: c.cree_le
+					})),
 				comptages: chargerComptages(),
 				sessions: (r.sessions.all() as SessionBrute[]).map(versSession),
 				pointages: chargerPointages(),
-				lignesReleve: (r.lignesReleve.all() as LigneReleveBrute[]).map((l) => ({
-					id: l.id,
-					compteId: l.compte_id,
-					date: l.date,
-					montant: centimes(l.montant_centimes),
-					libelle: l.libelle,
-					doublon: l.doublon,
-					importId: l.import_id,
-					identifiantSource: l.identifiant_source,
-					empreinte: l.empreinte
-				})),
+				lignesReleve: lignesReleve
+					.filter((l) => !demesure(l.montant_centimes))
+					.map((l) => ({
+						id: l.id,
+						compteId: l.compte_id,
+						date: l.date,
+						montant: centimes(l.montant_centimes),
+						libelle: l.libelle,
+						doublon: l.doublon,
+						importId: l.import_id,
+						identifiantSource: l.identifiant_source,
+						empreinte: l.empreinte
+					})),
+				relevesDemesures: {
+					lignes: lignesReleve
+						.filter((l) => demesure(l.montant_centimes))
+						.map((l) => ({ id: l.id, compteId: l.compte_id, date: l.date, libelle: l.libelle })),
+					constats: constats
+						.filter((c) => demesure(c.solde_centimes))
+						.map((c) => ({ id: c.id, compteId: c.compte_id, date: c.date }))
+				},
 				remises: (r.remises.all() as RemiseBrute[]).map(versRemise),
 				chequesRecus: (r.chequesRecus.all() as ChequeRecuBrut[])
 					.map(versChequeRecu)
@@ -561,6 +578,7 @@ export function creerDepotOperations(
 
 		annuler: (id, le, par) => void r.annuler.run(le, par, id),
 		definirPhaseCote: (id, phase) => void r.phaseCote.run(phase, id),
+		definirSessionCote: (id, session, phase) => void r.sessionCote.run(session, phase, id),
 		definirSansPiece: (id, sansPiece) => void r.definirSansPiece.run(sansPiece ? 1 : 0, id),
 
 		creerLiaison: (l: { type: TypeLiaison; libelle: string }) =>

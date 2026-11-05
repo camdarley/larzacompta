@@ -458,7 +458,7 @@
 
 	.edition {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 		align-items: start;
 		gap: var(--espace-5);
 		margin-top: var(--espace-4);
@@ -498,7 +498,7 @@
 	.tete,
 	.ligne {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 72px 112px 96px var(--espace-touch);
+		grid-template-columns: minmax(0, 1fr) 64px 108px 92px 40px;
 		align-items: start;
 		gap: var(--espace-2);
 	}
@@ -519,7 +519,7 @@
 	.retirer {
 		display: inline-grid;
 		place-items: center;
-		width: var(--espace-touch);
+		width: 40px;
 		height: var(--espace-touch);
 		border: 0;
 		border-radius: var(--rayon-md);

@@ -341,6 +341,21 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 		droit: 'saisir',
 		faire(o, id) {
 			const j = o.depots.operations.journal();
+			const demesuree = j.relevesDemesures.lignes.find((l) => l.id === id);
+			if (demesuree) {
+				if (j.pointages.some((p) => p.ligneReleveIds.includes(id))) {
+					return echec('ligne_releve_pointee');
+				}
+				o.depots.pointage.supprimerLigne(id);
+				o.noter({
+					evenement: 'ligne_releve.ecartee',
+					entiteType: 'ligne_releve',
+					entiteId: id,
+					resume: `a retiré la Ligne de relevé démesurée « ${demesuree.libelle} ».`,
+					avant: demesuree
+				});
+				return succes(true);
+			}
 			const ligne = j.lignesReleve.find((l) => l.id === id);
 			if (ligne === undefined) return echec('element_introuvable');
 			const decision = deciderRetrait(j, ligne);
@@ -352,6 +367,26 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 				entiteId: id,
 				resume: `a écarté la Ligne de relevé « ${ligne.libelle} ».`,
 				avant: ligne
+			});
+			return succes(true);
+		}
+	};
+
+	/** Seul un solde démesuré se retire : tout autre Constat reste la preuve d'un relevé. */
+	const casRetirerConstat: CasUsage<number, true> = {
+		droit: 'saisir',
+		faire(o, id) {
+			const constat = o.depots.operations
+				.journal()
+				.relevesDemesures.constats.find((c) => c.id === id);
+			if (constat === undefined) return echec('element_introuvable');
+			o.depots.pointage.supprimerConstat(id);
+			o.noter({
+				evenement: 'constat.retire',
+				entiteType: 'constat_solde',
+				entiteId: id,
+				resume: `a retiré le solde démesuré d’un relevé du ${formaterDateCourte(constat.date)}.`,
+				avant: constat
 			});
 			return succes(true);
 		}
@@ -544,6 +579,7 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 		saisirSolde: (ctx: Ctx, e: EntreeSolde) => executer(casSolde, ctx, e),
 		confirmerLigne: (ctx: Ctx, id: number) => executer(casConfirmer, ctx, id),
 		retirerLigne: (ctx: Ctx, id: number) => executer(casRetirer, ctx, id),
+		retirerConstat: (ctx: Ctx, id: number) => executer(casRetirerConstat, ctx, id),
 		pointer: (ctx: Ctx, d: DemandePointage) => executer(casPointer, ctx, d),
 		annuler: (ctx: Ctx, id: number) => executer(casAnnuler, ctx, id),
 		ajuster: (ctx: Ctx, d: DemandePointage) => executer(casAjuster, ctx, d),

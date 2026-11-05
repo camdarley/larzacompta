@@ -3,13 +3,7 @@ import { type DateCivile } from '../dates.ts';
 import { exerciceDeDate } from '../etats/soldes.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, LigneReleveJ, PointageJ } from '../journal.ts';
-import {
-	centimes,
-	formaterMontant,
-	MONTANT_MAX,
-	sommeCentimes,
-	type Centimes
-} from '../montant.ts';
+import { centimes, formaterMontant, sommeCentimes, type Centimes } from '../montant.ts';
 import { echec, succes, type Resultat } from '../resultat.ts';
 
 export type DemandePointage = { compteId: number; coteIds: number[]; ligneIds: number[] };
@@ -82,9 +76,7 @@ export function deciderRetrait(
 	if (j.pointages.some((p) => p.ligneReleveIds.includes(ligne.id))) {
 		return echec('ligne_releve_pointee');
 	}
-	// Un montant au-delà du plafond ne vient pas d'un relevé : il se retire, l'import l'a laissé passer.
-	const demesuree = Math.abs(ligne.montant) > MONTANT_MAX;
-	if (ligne.importId !== null && ligne.doublon !== 'a_confirmer' && !demesuree) {
+	if (ligne.importId !== null && ligne.doublon !== 'a_confirmer') {
 		return echec('ligne_releve_conservee');
 	}
 	return succes(true);

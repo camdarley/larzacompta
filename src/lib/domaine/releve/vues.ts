@@ -5,7 +5,7 @@
 import type { DateCivile } from '../dates.ts';
 import { causesEcart, dernierConstat, ecart, type Causes } from '../etats/ecart.ts';
 import { exerciceDeDate, soldeCompte, soldeDepart } from '../etats/soldes.ts';
-import type { GrandJournal, LigneReleveJ } from '../journal.ts';
+import type { GrandJournal, LigneReleveJ, RelevesDemesures } from '../journal.ts';
 import { centimes, type Centimes } from '../montant.ts';
 import type { Compte } from '../parametrage.ts';
 import { numeroInscrit } from '../cheques/index.ts';
@@ -77,6 +77,8 @@ export type VuePointage = {
 	causes: CausesVue | null;
 	trou: Trou | null;
 	dernierPointageId: number | null;
+	/** Montants hors de tout calcul, à retirer : sans eux, l'Écart redevient juste. */
+	demesures: RelevesDemesures;
 };
 
 /** Résultat d'un import, sans changer d'écran. */
@@ -255,6 +257,10 @@ export function vuePointage(
 		},
 		causes: causes && causesVue(j, causes),
 		trou: trous(o.periodes).at(-1) ?? null,
-		dernierPointageId: j.pointages.filter((p) => p.compteId === compteId).at(-1)?.id ?? null
+		dernierPointageId: j.pointages.filter((p) => p.compteId === compteId).at(-1)?.id ?? null,
+		demesures: {
+			lignes: j.relevesDemesures.lignes.filter((l) => l.compteId === compteId),
+			constats: j.relevesDemesures.constats.filter((c) => c.compteId === compteId)
+		}
 	};
 }

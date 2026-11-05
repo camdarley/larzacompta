@@ -185,14 +185,20 @@ export function repereCaisse(
 		: undefined;
 }
 
-/** Recette ou Écart nés de ce Comptage : ils sont déjà dans son total. */
+/**
+ * Recette ou Écart nés de ce Comptage : ils sont déjà dans son total. L'Écart d'ouverture de sa
+ * Session aussi : il peut se recalculer après le Comptage final, le même jour, sans rien bouger.
+ */
 function issuDuComptage(
-	j: Pick<GrandJournal, 'sessions'>,
+	j: Pick<GrandJournal, 'sessions' | 'comptages'>,
 	comptage: ComptageJ,
 	operationId: number
 ): boolean {
 	if (comptage.operationEcartId === operationId) return true;
 	if (comptage.type !== 'fin' || comptage.sessionCaisseId === null) return false;
+	if (comptageDe(j, comptage.sessionCaisseId, 'ouverture')?.operationEcartId === operationId) {
+		return true;
+	}
 	return sessionDe(j, comptage.sessionCaisseId)?.operationRecetteId === operationId;
 }
 
@@ -201,7 +207,7 @@ function issuDuComptage(
  * phase répond : une kermesse tient en un jour, et la date seule ne suffit pas.
  */
 function posterieur(
-	j: Pick<GrandJournal, 'sessions'>,
+	j: Pick<GrandJournal, 'sessions' | 'comptages'>,
 	r: Repere,
 	operation: OperationJ,
 	cote: CoteJ

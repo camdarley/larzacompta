@@ -155,13 +155,19 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 						: [])
 				];
 		const anomalies = anomaliesEquation(equationDeControle(j, e, p));
+		const { lignes, constats } = j.relevesDemesures;
+		const demesures = [...new Set([...lignes, ...constats].map((x) => x.compteId))];
 		const lu = cloture ? bilanCloture(cartes) : bilan(cartes, taches, premierReleve);
 		return {
 			cartes,
 			taches,
 			premierReleve,
 			// Une équation fausse n'est jamais « Tout est à jour » (AD-4).
-			bilan: anomalies.length > 0 && lu.type === 'a_jour' ? anormal(anomalies.length) : lu,
+			bilan:
+				anomalies.length + demesures.length > 0 && lu.type === 'a_jour'
+					? anormal(anomalies.length + demesures.length)
+					: lu,
+			demesures,
 			anomalies: anomalies.map(messageAnomalie),
 			dernierPointage: dernierPointage(j, e)
 		};

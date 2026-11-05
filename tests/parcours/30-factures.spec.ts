@@ -298,6 +298,38 @@ test.describe('sur ordinateur', () => {
 	});
 });
 
+test.describe('relevé démesuré déjà en base', () => {
+	test.use({ viewport: { width: 1280, height: 800 } });
+
+	test('Tableau de contrôle et Pointage répondent, et le bouton de sortie retire tout', async ({
+		page
+	}) => {
+		const base = ouvrirBase(join(dossier, 'base.sqlite'));
+		base
+			.prepare(
+				`INSERT INTO ligne_releve (compte_id, date, montant_centimes, libelle, empreinte, cree_le)
+				 VALUES (?, '2026-10-01', ?, 'COLONNE MAL CHOISIE', 'e-demesure', '2026-10-02T10:00:00.000Z')`
+			)
+			.run(jeu.banque, 9_000_000_000_000_000_000n);
+		base.close();
+
+		await connecte(page);
+		const accueil = await page.goto('/');
+		expect(accueil?.status()).toBe(200);
+		await expect(page.getByText('Un relevé porte un montant démesuré')).toBeVisible();
+		await photo(page, 'demesure-tableau');
+		await page.getByRole('link', { name: 'Ouvrir le Pointage' }).click();
+		await expect(page.getByText('« COLONNE MAL CHOISIE »')).toBeVisible();
+		await axeSansViolation(page);
+		await photo(page, 'demesure-pointage');
+		await page.getByRole('button', { name: 'Retirer cette ligne' }).click();
+		await expect(page.getByText('Retiré du relevé.')).toBeVisible();
+		await expect(page.getByText('COLONNE MAL CHOISIE')).toHaveCount(0);
+		await page.goto('/');
+		await expect(page.getByText('Un relevé porte un montant démesuré')).toHaveCount(0);
+	});
+});
+
 test.describe('sur téléphone', () => {
 	test.use({ viewport: { width: 390, height: 780 }, hasTouch: true });
 

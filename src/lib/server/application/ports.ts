@@ -233,6 +233,8 @@ export type DepotOperations = {
 	annuler(id: number, le: Instant, par: number): void;
 	/** Phase réécrite quand le Comptage final arrive ou change de date (C12). */
 	definirPhaseCote(coteId: number, phase: PhaseSession): void;
+	/** Rattachement revu quand la date du Comptage d'ouverture change (C12). */
+	definirSessionCote(coteId: number, sessionId: number | null, phase: PhaseSession | null): void;
 	/** Ne touche pas `version` : la dispense ne change aucun état, et n'invalide pas une saisie. */
 	definirSansPiece(id: number, sansPiece: boolean): void;
 	creerLiaison(l: { type: TypeLiaison; libelle: string }): number;
@@ -281,6 +283,7 @@ export type DepotPointage = {
 	): number;
 	confirmerLigne(id: number): void;
 	supprimerLigne(id: number): void;
+	supprimerConstat(id: number): void;
 	creerConstat(c: NouveauConstat): number;
 	creerPointage(p: {
 		compteId: number;

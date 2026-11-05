@@ -18,7 +18,7 @@
 	import { formaterJourMois } from '#lib/domaine/dates.ts';
 	import { peut } from '#lib/domaine/droits.ts';
 	import type { TacheControle } from '#lib/domaine/etats/controle.ts';
-	import { TEXTES } from '#lib/messages.ts';
+	import { message, TEXTES } from '#lib/messages.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import EnTete from '#lib/ui/EnTete.svelte';
@@ -94,6 +94,17 @@
 		</Bandeau>
 	</div>
 {/each}
+
+{#if data.pret}
+	{#each data.demesures as compte (compte)}
+		<div class="exploitation">
+			<Bandeau ton="erreur">
+				{message('releve_demesure')}
+				{#if data.pointage}<a href="/pointage/{compte}">Ouvrir le Pointage</a>{/if}
+			</Bandeau>
+		</div>
+	{/each}
+{/if}
 
 {#if !data.pret}
 	<EtatVide

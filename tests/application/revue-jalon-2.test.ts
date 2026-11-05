@@ -326,6 +326,124 @@ describe('date d’un Comptage d’ouverture corrigé (P6)', () => {
 	});
 });
 
+/** Comme à l'écran : deux gestes ne tombent pas à la même milliseconde. */
+const plusTard = () => {
+	i.horloge.instant = new Date(Date.parse(i.horloge.instant) + 60_000).toISOString();
+};
+
+describe('correction de la date d’ouverture : les Côtés suivent (reprise du jalon 3)', () => {
+	it('un Côté rattaché qui passe avant l’ouverture sort de la Session et de C5', () => {
+		quand('2026-10-10');
+		const s = ouvrir(10, '2026-10-10');
+		quand('2026-10-12');
+		const id = depense(20_00, '2026-10-12');
+		expect(cote(id).sessionCaisseId).toBe(s);
+
+		quand('2026-10-15');
+		const refus = compter(s, 10, '2026-10-13', true);
+		expect(code(refus)).toBe('recomptage_requis');
+		expect(cote(id).sessionCaisseId).toBe(s);
+
+		valeur(compter(s, 10, '2026-10-13', true, c(100_00)));
+		expect(cote(id).sessionCaisseId ?? null).toBeNull();
+		expect(cote(id).sessionPhase ?? null).toBeNull();
+		expect(
+			j()
+				.operations.filter((o) => o.origine === 'ecart_caisse')
+				.map((o) => o.cotes[0]!.montant)
+		).toEqual([20_00]);
+
+		valeur(compter(s, 28, '2026-10-15'));
+		expect(recette(s)).toBe(180_00);
+		valeur(i.app.caisses.cloturer(i.ctx(), s));
+		expect(soldeCompte(j(), caisse, '2026-10-15')).toBe(280_00);
+		expect(soldeCourantCaisse(j(), caisse, { jour: '2026-10-15' })).toBe(280_00);
+		expect(verifier()).toEqual([]);
+	});
+
+	it('un ticket resté hors Session y entre quand l’ouverture remonte avant lui', () => {
+		quand('2026-10-10');
+		const s = ouvrir(8, '2026-10-10', c(80_00));
+		plusTard();
+		const id = depense(20_00, '2026-10-05');
+		expect(cote(id).sessionCaisseId ?? null).toBeNull();
+
+		plusTard();
+		valeur(compter(s, 10, '2026-10-03', true));
+		expect(cote(id).sessionCaisseId).toBe(s);
+		expect(cote(id).sessionPhase).toBe('pendant');
+		expect(j().operations.filter((o) => o.origine === 'ecart_caisse')).toEqual([]);
+		valeur(compter(s, 28, '2026-10-10'));
+		expect(recette(s)).toBe(200_00);
+		valeur(i.app.caisses.cloturer(i.ctx(), s));
+		expect(soldeCompte(j(), caisse, '2026-10-10')).toBe(280_00);
+		expect(soldeCourantCaisse(j(), caisse, { jour: '2026-10-10' })).toBe(280_00);
+		expect(verifier()).toEqual([]);
+	});
+
+	it('une correction sans changement de date ne touche à aucun Côté', () => {
+		quand('2026-10-10');
+		const s = ouvrir(10, '2026-10-10');
+		plusTard();
+		const id = depense(20_00, '2026-10-10');
+		plusTard();
+		valeur(compter(s, 10, '2026-10-10', true));
+		expect(cote(id).sessionCaisseId).toBe(s);
+	});
+});
+
+describe('ticket antérieur à l’ouverture, saisi après clôture (reprise du jalon 3)', () => {
+	function close() {
+		quand(JOUR);
+		const s = ouvrir(10, JOUR);
+		plusTard();
+		valeur(compter(s, 30, JOUR));
+		plusTard();
+		valeur(i.app.caisses.cloturer(i.ctx(), s));
+		plusTard();
+		return s;
+	}
+
+	it('l’Écart d’ouverture absorbe le ticket : solde et caisse restent égaux', () => {
+		const s = close();
+		const avant = recette(s);
+		const id = depense(20_00, '2026-10-05');
+		expect(cote(id).sessionCaisseId ?? null).toBeNull();
+		expect(recette(s)).toBe(avant);
+		expect(
+			j()
+				.operations.filter((o) => o.origine === 'ecart_caisse')
+				.map((o) => [o.date, o.cotes[0]!.montant])
+		).toEqual([[JOUR, 20_00]]);
+		expect(j().comptages.find((x) => x.type === 'ouverture')?.operationEcartId).toBe(
+			j().operations.find((o) => o.origine === 'ecart_caisse')?.id
+		);
+		expect(soldeCompte(j(), caisse, JOUR)).toBe(300_00);
+		expect(soldeCourantCaisse(j(), caisse, { jour: JOUR })).toBe(300_00);
+		expect(verifier()).toEqual([]);
+	});
+
+	it('annulé, le ticket retire l’Écart qu’il avait créé', () => {
+		close();
+		const id = depense(20_00, '2026-10-05');
+		valeur(i.app.operations.annuler(i.ctx(), id));
+		expect(j().operations.filter((o) => o.origine === 'ecart_caisse')).toEqual([]);
+		expect(soldeCompte(j(), caisse, JOUR)).toBe(300_00);
+	});
+
+	it('vise la première ouverture après le ticket, pas la dernière Session', () => {
+		const s1 = close();
+		quand('2026-10-12');
+		const s2 = ouvrir(30, '2026-10-12');
+		depense(20_00, '2026-10-05');
+		const ouvertures = j().comptages.filter((x) => x.type === 'ouverture');
+		const ecart = j().operations.find((o) => o.origine === 'ecart_caisse');
+		expect(ecart?.date).toBe(JOUR);
+		expect(ouvertures.find((x) => x.sessionCaisseId === s1)?.operationEcartId).toBe(ecart?.id);
+		expect(ouvertures.find((x) => x.sessionCaisseId === s2)?.operationEcartId).toBeNull();
+	});
+});
+
 describe('Action désactivée (P9)', () => {
 	it('la Session se clôture quand même', () => {
 		quand(JOUR);
@@ -463,6 +581,65 @@ describe('relevé (P8, défauts CSV, FR-12, AD-9)', () => {
 		]);
 		expect(i.app.pointage.retirerLigne(i.ctx(), ligne.id).ok).toBe(true);
 		expect(j().lignesReleve).toEqual([]);
+		expect(j().relevesDemesures.lignes).toEqual([]);
+	});
+
+	describe('déjà en base, il ne fait plus tomber les écrans (reprise du jalon 3)', () => {
+		const lignePosee = (montant: bigint | number, empreinte: string) =>
+			i.base
+				.prepare(
+					`INSERT INTO ligne_releve (compte_id, date, montant_centimes, libelle, empreinte, cree_le)
+					 VALUES (?, '2026-10-01', ?, 'FICTIF DEMESURE', ?, '2026-10-02T10:00:00.000Z')`
+				)
+				.run(i.compteId, montant, empreinte).lastInsertRowid as number;
+		const constatPose = (montant: bigint | number) =>
+			i.base
+				.prepare(
+					`INSERT INTO constat_solde (compte_id, date, solde_centimes, source, cree_le, cree_par)
+					 VALUES (?, '2026-10-20', ?, 'releve', '2026-10-20T10:00:00.000Z', ?)`
+				)
+				.run(i.compteId, montant, i.tresorier.id).lastInsertRowid as number;
+
+		it.each([
+			['au-delà d’un entier sûr', 9_000_000_000_000_000_000n],
+			['dont la somme déborderait', 9_000_000_000_000_000]
+		])('%s : Tableau de contrôle et Pointage répondent', (_, montant) => {
+			lignePosee(montant, 'e1');
+			lignePosee(montant, 'e2');
+			constatPose(montant);
+			const tableau = valeur(i.app.etats.tableau(i.ctx(), i.courant));
+			expect(tableau.demesures).toEqual([i.compteId]);
+			expect(tableau.bilan.type).not.toBe('a_jour');
+			const page = valeur(i.app.pointage.page(i.ctx(), i.compteId, null));
+			expect(page.lignes).toEqual([]);
+			expect(page.barre.releve).toBeNull();
+			expect(page.demesures.lignes).toHaveLength(2);
+			expect(page.demesures.constats).toHaveLength(1);
+		});
+
+		it('ligne et solde se retirent, et les écrans redeviennent ordinaires', () => {
+			const ligne = lignePosee(9_000_000_000_000_000_000n, 'e1');
+			const solde = constatPose(9_000_000_000_000_000_000n);
+			expect(verifier()).toHaveLength(2);
+			valeur(i.app.pointage.retirerLigne(i.ctx(), ligne));
+			valeur(i.app.pointage.retirerConstat(i.ctx(), solde));
+			expect(verifier()).toEqual([]);
+			expect(valeur(i.app.etats.tableau(i.ctx(), i.courant)).demesures).toEqual([]);
+			expect(i.journal().map((l) => l.evenement)).toContain('constat.retire');
+		});
+
+		it('un solde ordinaire ne se retire pas par cette voie', () => {
+			valeur(
+				i.app.pointage.saisirSolde(i.ctx(), {
+					compteId: i.compteId,
+					date: '2026-10-20',
+					solde: c(100_00)
+				})
+			);
+			expect(code(i.app.pointage.retirerConstat(i.ctx(), j().constats[0]!.id))).toBe(
+				'element_introuvable'
+			);
+		});
 	});
 });
 

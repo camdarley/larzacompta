@@ -23,7 +23,8 @@ import {
 } from '#lib/domaine/caisse/vues.ts';
 import type { DateCivile } from '#lib/domaine/dates.ts';
 import type { Exercice } from '#lib/domaine/exercices.ts';
-import type { ComptageJ, CoupureJ, GrandJournal } from '#lib/domaine/journal.ts';
+import { rattachementsARevoir } from '#lib/domaine/caisse/saisie.ts';
+import type { ComptageJ, CoupureJ, GrandJournal, SessionJ } from '#lib/domaine/journal.ts';
 import { centimes, formaterMontant, type Centimes } from '#lib/domaine/montant.ts';
 import type { Compte } from '#lib/domaine/parametrage.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
@@ -88,6 +89,14 @@ function recalerPhases(o: Outils, sessionId: number, dateFinale: DateCivile) {
 	const j = o.depots.operations.journal();
 	for (const { coteId, phase } of phasesARecaler(j, sessionId, dateFinale)) {
 		o.depots.operations.definirPhaseCote(coteId, phase);
+	}
+}
+
+/** C12 : ce que la Session recouvre suit la date de son ouverture, avant de comparer le total. */
+function revoirRattachements(o: Outils, session: SessionJ, dateOuverture: DateCivile) {
+	const j = o.depots.operations.journal();
+	for (const r of rattachementsARevoir(j, session, dateOuverture)) {
+		o.depots.operations.definirSessionCote(r.coteId, r.sessionCaisseId, r.sessionPhase);
 	}
 }
 
@@ -213,6 +222,7 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 	function corrigerOuverture(
 		o: Outils,
 		compte: Compte,
+		session: SessionJ,
 		comptage: ComptageJ,
 		e: EntreeComptageSession,
 		total: Centimes
@@ -222,6 +232,7 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			if (!annule.ok) return annule;
 			o.depots.caisses.lierEcart(comptage.id, null);
 		}
+		if (e.date !== comptage.date) revoirRattachements(o, session, e.date);
 		const attendu = soldeCourantCaisse(o.depots.operations.journal(), compte.id, {
 			jour: e.date,
 			jusqua: comptage.compteLe,
@@ -277,7 +288,7 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			if (!date.ok) return date;
 			let ecart = centimes(0);
 			if (dernier.type === 'ouverture') {
-				const r = corrigerOuverture(o, compte, dernier, e, total);
+				const r = corrigerOuverture(o, compte, session, dernier, e, total);
 				if (!r.ok) return r;
 				ecart = r.valeur;
 			}

@@ -37,6 +37,7 @@ export function creerDepotPointage(base: Base): DepotPointage {
 		`),
 		confirmerLigne: base.prepare(`UPDATE ligne_releve SET doublon = 'confirme' WHERE id = ?`),
 		supprimerLigne: base.prepare('DELETE FROM ligne_releve WHERE id = ?'),
+		supprimerConstat: base.prepare('DELETE FROM constat_solde WHERE id = ?'),
 		creerConstat: base.prepare(`
 			INSERT INTO constat_solde (compte_id, date, solde_centimes, source, import_id, cree_le, cree_par)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -85,6 +86,7 @@ export function creerDepotPointage(base: Base): DepotPointage {
 
 		confirmerLigne: (id) => void r.confirmerLigne.run(id),
 		supprimerLigne: (id) => void r.supprimerLigne.run(id),
+		supprimerConstat: (id) => void r.supprimerConstat.run(id),
 
 		creerConstat: (c) =>
 			Number(

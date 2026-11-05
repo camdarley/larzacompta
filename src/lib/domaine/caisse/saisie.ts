@@ -1,6 +1,6 @@
 /** Rattachement des Côtés de caisse à leur Session, au seul point d'écriture (C4, C12). */
 import type { DateCivile } from '../dates.ts';
-import type { CoteJ, GrandJournal, OperationJ, PhaseSession } from '../journal.ts';
+import type { CoteJ, GrandJournal, OperationJ, PhaseSession, SessionJ } from '../journal.ts';
 import type { Brouillon, CoteSaisi } from '../operations/validation.ts';
 import { comptageDe, phaseDuCote, sessionDe, sessionOuverte } from './index.ts';
 
@@ -61,6 +61,38 @@ export function rattacherCotes<C extends CoteSaisi>(
 			)
 		};
 	});
+}
+
+export type RattachementRevu = {
+	coteId: number;
+	sessionCaisseId: number | null;
+	sessionPhase: PhaseSession | null;
+};
+
+/**
+ * La date du Comptage d'ouverture vient de changer (C12) : un Côté de la Session daté avant elle en
+ * sort, comme un ticket antérieur. Un Côté saisi depuis l'ouverture et daté à partir d'elle y
+ * entre. Avant le Comptage final, sa phase est `pendant` : aucune date ne dit le contraire.
+ */
+export function rattachementsARevoir(
+	j: Pick<GrandJournal, 'operations'>,
+	session: Pick<SessionJ, 'id' | 'compteId' | 'ouverteLe'>,
+	dateOuverture: DateCivile
+): RattachementRevu[] {
+	return j.operations.flatMap((op) =>
+		op.cotes.flatMap((c): RattachementRevu[] => {
+			if (c.compteId !== session.compteId) return [];
+			const rattache = c.sessionCaisseId === session.id;
+			if (rattache && c.date < dateOuverture) {
+				return [{ coteId: c.id, sessionCaisseId: null, sessionPhase: null }];
+			}
+			const libre = (c.sessionCaisseId ?? null) === null && !horsSession(op.origine);
+			if (libre && c.date >= dateOuverture && op.creeLe > session.ouverteLe) {
+				return [{ coteId: c.id, sessionCaisseId: session.id, sessionPhase: 'pendant' }];
+			}
+			return [];
+		})
+	);
 }
 
 /** Une Session clôturée a arrêté sa recette : ses Côtés ne bougent plus sans la rouvrir. */

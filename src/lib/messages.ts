@@ -65,6 +65,13 @@ const MESSAGES = {
 	version_obsolete:
 		'Une version plus récente est disponible, avec des correctifs de sécurité. Prévenez la personne qui gère l’installation.',
 
+	ligne_demesuree:
+		'« {libelle} », du {date}, porte un montant démesuré : ce n’est pas un mouvement réel. Cette ligne est écartée des calculs. Retirez-la, puis importez le bon fichier.',
+	solde_demesure:
+		'Le solde de relevé du {date} est démesuré : il est écarté du contrôle. Retirez-le, puis indiquez le bon solde.',
+	releve_demesure:
+		'Un relevé porte un montant démesuré : il est écarté des calculs. Retirez-le depuis le Pointage.',
+
 	// Refus métier.
 	ligne_hors_exercice:
 		'Cette ligne tombe après le dernier Exercice ouvert. Ouvrez l’Exercice suivant dans Réglages, puis créez l’Opération.',
