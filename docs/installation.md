@@ -6,7 +6,7 @@ Ce guide s'adresse à une personne capable d'administrer un serveur Linux. Une i
 
 - Un serveur Linux avec 1 Go de mémoire, 1 vCPU, 10 Go de disque, Git, et Docker avec son extension Compose.
 - Un nom de domaine, ou un sous-domaine, qui pointe vers ce serveur.
-- Les ports 80 et 443 ouverts. Caddy s'en sert pour obtenir et servir le certificat HTTPS.
+- Les ports 80 et 443 ouverts et libres. Caddy s'en sert pour obtenir et servir le certificat HTTPS.
 - Un dépôt de sauvegarde **hors de ce serveur** : un espace compatible S3 chez un autre hébergeur, ou un serveur SFTP. Le choix vous revient.
 
 ## 1. Récupérer le projet
@@ -80,7 +80,7 @@ S'il est perdu ou expiré, redemandez-en un :
 docker compose exec app ape lien-initial
 ```
 
-Ouvrez ce lien, choisissez un mot de passe, puis laissez-vous guider par l'assistant de démarrage.
+Ouvrez ce lien, choisissez un identifiant et un mot de passe, puis laissez-vous guider par l'assistant de démarrage. Avant ce premier Accès, `ape verifier` signale `[A1]` : c'est normal.
 
 ## 7. Vérifier la sauvegarde
 
