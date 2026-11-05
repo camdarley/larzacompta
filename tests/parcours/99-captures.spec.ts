@@ -50,6 +50,35 @@ const ECRANS: [string, string][] = [
 	['bienvenue-fin', '/bienvenue?etape=fin']
 ];
 
+function compteDe(libelle: string) {
+	const b = base();
+	const id = b.prepare('SELECT id FROM compte WHERE libelle = ?').pluck().get(libelle);
+	b.close();
+	return id;
+}
+
+/** La file vivante et les autres états du Pointage, posés par `16-pointage.spec.ts`. */
+function ecransPointage(): [string, string][] {
+	const vivant = compteDe('CCP imaginaire');
+	if (!vivant) return [];
+	return [
+		['pointage-file', `/pointage/${vivant}`],
+		['pointage-causes', `/pointage/${vivant}?causes=1`],
+		['pointage-saisir', `/pointage/${vivant}?saisir=ligne`],
+		['pointage-solde', `/pointage/${vivant}?saisir=solde`],
+		['pointage-fin', `/pointage/${compteDe('Banque du parcours')}`],
+		['pointage-ecart-restant', `/pointage/${compteDe('Banque imaginaire')}`],
+		['pointage-vide', `/pointage/${compteDe('Compte courant')}`]
+	];
+}
+
+function ligneDe(libelle: string) {
+	const b = base();
+	const id = b.prepare('SELECT id FROM ligne_releve WHERE libelle = ?').pluck().get(libelle);
+	b.close();
+	return id;
+}
+
 function idDe(libelle: string) {
 	const b = base();
 	const id = b.prepare('SELECT id FROM operation WHERE libelle = ?').pluck().get(libelle);
@@ -99,8 +128,8 @@ test.describe('captures', () => {
 				await page.emulateMedia({ colorScheme });
 				await page.setViewportSize({ width: format.largeur, height: format.hauteur });
 				const avecOperations = idDe('Autocars du Sud') ? ecransOperation() : [];
-				for (const [nom, chemin] of [...ECRANS, ...avecOperations].filter(([n]) =>
-					filtre.test(n)
+				for (const [nom, chemin] of [...ECRANS, ...avecOperations, ...ecransPointage()].filter(
+					([n]) => filtre.test(n)
 				)) {
 					await page.goto(chemin);
 					await photographier(page, `${nom}-${format.nom}-${theme}`);
@@ -108,7 +137,7 @@ test.describe('captures', () => {
 			}
 		}
 		// États qui ne s'atteignent que par un geste : liste ouverte, bulle, palette, reste.
-		for (const format of FORMATS.filter((f) => f.nom !== 'tablette')) {
+		for (const format of FORMATS.filter((f) => f.nom !== 'tablette' && filtre.test('geste'))) {
 			for (const [theme, colorScheme] of THEMES) {
 				await page.emulateMedia({ colorScheme });
 				await page.setViewportSize({ width: format.largeur, height: format.hauteur });
@@ -150,6 +179,42 @@ test.describe('captures', () => {
 				await page.keyboard.type('?');
 				await photographier(page, `geste-raccourcis-${suffixe}`);
 				await page.keyboard.press('Escape');
+			}
+		}
+		// Pointage : écran de correspondance, panneau prérempli, propositions sélectionnées.
+		for (const format of FORMATS.filter((f) => f.nom === 'ordinateur')) {
+			for (const [theme, colorScheme] of THEMES) {
+				if (!filtre.test('pointage-geste') || !compteDe('CCP imaginaire')) continue;
+				await page.emulateMedia({ colorScheme });
+				await page.setViewportSize({ width: format.largeur, height: format.hauteur });
+				const suffixe = `${format.nom}-${theme}`;
+				const vivant = compteDe('CCP imaginaire');
+				await page.goto(
+					`/pointage/${vivant}?op=nouvelle&releve=${ligneDe('FRAIS TENUE DE COMPTE')}`,
+					{
+						waitUntil: 'networkidle'
+					}
+				);
+				await photographier(page, `pointage-geste-creer-${suffixe}`);
+				await page.goto(`/pointage/${vivant}?ligne=${ligneDe('REMISE CHEQUES ECOLE FICTIVE')}`, {
+					waitUntil: 'networkidle'
+				});
+				await page.keyboard.press('r');
+				await page.keyboard.type('a');
+				await page.waitForTimeout(400);
+				await photographier(page, `pointage-geste-relier-${suffixe}`);
+				await page.goto(`/pointage/${compteDe('Banque trouée')}`, { waitUntil: 'networkidle' });
+				await page
+					.locator('input[type=file]')
+					.first()
+					.setInputFiles({
+						name: 'releve-fictif.csv',
+						mimeType: 'text/csv',
+						buffer: Buffer.from(
+							'Date;Libellé;Référence;Sorties;Entrées\n12/10/2027;Intérêts imaginaires;R1;;1 234,56\n13/10/2027;Frais imaginaires;R2;3,50;\n15/10/2027;Cotisation fictive;R3;12,00;\n'
+						)
+					});
+				await photographier(page, `pointage-geste-csv-${suffixe}`);
 			}
 		}
 		if (process.env.CAPTURES_FILTRE) return;

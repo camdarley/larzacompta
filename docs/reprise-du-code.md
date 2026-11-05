@@ -30,6 +30,12 @@ Limites constatées :
 - Une couleur vient de `src/lib/ui/jetons.source.json`. Après modification : `pnpm jetons`.
 - `goto()` n'accepte plus `noScroll` ni `keepFocus` en Kit 3 : `{ reset: false }` les remplace, et `data-sveltekit-reset="false"` sur un lien.
 
+## Relevés et Pointage
+
+- Une banque ne se connaît que dans `src/lib/server/infra/sources/`. Une source nouvelle implémente `SourceReleve` et rend un `ReleveNormalise` : le reste du chemin ne change pas.
+- `.gitignore` protège tout `*.ofx`. Les relevés de test sont donc écrits en TypeScript, dans `tests/jeux/releve-fictif.ts`. Garder cette règle telle quelle.
+- `proposer()` ne fait que lire : seul `pointage.pointer()` et ses variantes (`ajuster`, `creerDepuisLigne`) créent un Pointage. Un test échoue si `proposer` est importé hors de `domaine/releve`.
+
 ## Lancer l'application en local
 
 Derrière Caddy, adapter-node 6 lit `PROTOCOL_HEADER` et `HOST_HEADER`. Sans proxy, en http, il faut poser `PROTOCOL_HEADER=x-forwarded-proto` et envoyer cet en-tête, comme le fait `playwright.config.ts`. Sinon, Kit voit une origine en `https` et refuse les formulaires.
