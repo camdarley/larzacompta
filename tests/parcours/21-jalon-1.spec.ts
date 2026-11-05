@@ -206,6 +206,8 @@ test('FR-40 : reprendre en cours d’année depuis la Balance d’ouverture', as
 	await page.getByRole('button', { name: 'Continuer' }).click();
 	await expect(page.getByText('au 1er septembre 2026')).toBeVisible();
 	await page.locator('#solde-0').fill('1000');
+	await page.locator('#solde-1').fill('0');
+	await page.locator('#solde-2').fill('0');
 	await page.getByRole('button', { name: 'Continuer' }).click();
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Natures et Actions');
 	await page.getByRole('button', { name: 'Continuer' }).click();

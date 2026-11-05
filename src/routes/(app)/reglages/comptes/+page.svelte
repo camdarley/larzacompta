@@ -68,7 +68,7 @@
 	{/snippet}
 </EnTete>
 
-{#if form?.erreur && Object.keys(form.erreur.champs).length === 0}
+{#if form?.erreur && Object.keys(form.erreur.champs).length === 0 && form.erreur.code !== 'compte_non_vide'}
 	<Bandeau ton="erreur" alerte>{form.erreur.message}</Bandeau>
 {/if}
 
@@ -178,6 +178,9 @@
 	{/key}
 	{#if compte}
 		<div class="zone-etat">
+			{#if form?.erreur?.code === 'compte_non_vide'}
+				<Bandeau ton="regarder" alerte>{form.erreur.message}</Bandeau>
+			{/if}
 			{#if compte.actif}
 				<p class="t-caption t-muted">
 					Un Compte désactivé n’est plus proposé, mais reste affiché sur l’existant.

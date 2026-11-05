@@ -9,7 +9,8 @@
 		Paperclip,
 		Sprout,
 		TriangleAlert,
-		History
+		History,
+		Wallet
 	} from '@lucide/svelte';
 	import { formaterJourMois } from '#lib/domaine/dates.ts';
 	import { peut } from '#lib/domaine/droits.ts';
@@ -38,7 +39,8 @@
 			libelle: 'Opérations anciennes à pointer',
 			icone: History,
 			href: '/operations?anciennes=1'
-		}
+		},
+		comptages: { libelle: 'Caisses à compter', icone: Wallet, href: '#soldes' }
 	} as const satisfies Record<TacheControle, unknown>;
 
 	/** Une liste que le rôle n'atteint pas garde son compteur, sans lien (EXPERIENCE.md). */
@@ -49,7 +51,8 @@
 		ecart: TriangleAlert,
 		taches: CircleAlert,
 		a_jour: CircleCheck,
-		premier_releve: FileUp
+		premier_releve: FileUp,
+		cloture: Lock
 	};
 	const Icone = $derived(data.pret ? icones[data.bilan.type] : Sprout);
 </script>
@@ -101,7 +104,7 @@
 		<div class="erreur"><Bandeau ton="erreur" alerte>{form.erreur.message}</Bandeau></div>
 	{/if}
 
-	<ul class="soldes">
+	<ul class="soldes" id="soldes">
 		{#each data.cartes as c (c.compte.id)}
 			<li>
 				<SoldeCompte
@@ -110,6 +113,7 @@
 						? lien(`/pointage/${c.compte.id}`)
 						: null}
 					constatDu={c.compte.type === 'caisse' ? data.constatDu : null}
+					aujourdhui={data.aujourdhui}
 					erreur={form?.saisie?.compteId === String(c.compte.id)
 						? form.erreur?.champs?.solde
 						: undefined}
@@ -118,29 +122,36 @@
 		{/each}
 	</ul>
 
-	<section class="a-faire" aria-labelledby="titre-a-faire">
-		<h2 id="titre-a-faire" class="t-heading">À faire</h2>
-		<ul>
-			{#each data.taches as t (t.id)}
-				<li>
-					<TuileAFaire
-						libelle={TUILES[t.id].libelle}
-						compteur={t.compteur}
-						icone={TUILES[t.id].icone}
-						href={hrefTuile(t.id) === null ? null : lien(hrefTuile(t.id) as string)}
-					/>
-				</li>
-			{/each}
-			{#if data.aClore}
-				<li>
-					<a class="cloture" href="/reglages/exercices/{data.aClore.id}/cloture">
-						<Lock size={20} strokeWidth={1.75} aria-hidden="true" />
-						{data.aClore.libelle} est terminé : vérifier et clôturer
-					</a>
-				</li>
-			{/if}
-		</ul>
-	</section>
+	{#if data.taches.length > 0 || data.aClore}<section
+			class="a-faire"
+			aria-labelledby="titre-a-faire"
+		>
+			<h2 id="titre-a-faire" class="t-heading">À faire</h2>
+			<ul>
+				{#each data.taches as t (t.id)}
+					<li>
+						<TuileAFaire
+							libelle={TUILES[t.id].libelle}
+							compteur={t.compteur}
+							icone={TUILES[t.id].icone}
+							href={t.id === 'comptages'
+								? TUILES.comptages.href
+								: hrefTuile(t.id) === null
+									? null
+									: lien(hrefTuile(t.id) as string)}
+						/>
+					</li>
+				{/each}
+				{#if data.aClore}
+					<li>
+						<a class="cloture" href="/reglages/exercices/{data.aClore.id}/cloture">
+							<Lock size={20} strokeWidth={1.75} aria-hidden="true" />
+							{data.aClore.libelle} est terminé : vérifier et clôturer
+						</a>
+					</li>
+				{/if}
+			</ul>
+		</section>{/if}
 {/if}
 
 <style>

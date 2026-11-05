@@ -13,7 +13,9 @@ const MESSAGES = {
 	releve_autre_compte:
 		'Ce fichier vient d’un autre compte bancaire que les relevés déjà importés ici. Rien n’a été importé. Vérifiez le Compte choisi.',
 	identifiant_repete:
-		'{lignes} d’un identifiant déjà vu sur un autre contenu : c’est peut-être un mouvement de plus. Gardez ou écartez chacune.',
+		'{lignes} un identifiant déjà vu, avec un autre contenu : c’est peut-être un mouvement de plus. Gardez ou écartez chaque ligne.',
+	ligne_identifiant_repete:
+		'Cette ligne reprend un identifiant déjà vu, avec un autre contenu. Gardez-la si c’est un mouvement réel.',
 	format_change:
 		'La colonne {colonne} est introuvable dans ce fichier. Rien n’a été importé. Indiquez les colonnes pour continuer.',
 	fichier_connu: 'Toutes les lignes de ce fichier sont déjà connues. Rien n’a été ajouté.',
@@ -64,8 +66,10 @@ const MESSAGES = {
 		'Une version plus récente est disponible, avec des correctifs de sécurité. Prévenez la personne qui gère l’installation.',
 
 	// Refus métier.
+	ligne_hors_exercice:
+		'Cette ligne tombe après le dernier Exercice ouvert. Ouvrez l’Exercice suivant dans Réglages, puis créez l’Opération.',
 	date_hors_exercice:
-		'Cette date ne tombe dans aucun Exercice ouvert. Choisissez une date dans un Exercice ouvert.',
+		'Cette date ne tombe dans aucun Exercice ouvert. Choisissez une date dans un Exercice ouvert, ou ouvrez l’Exercice suivant dans Réglages.',
 	rattachement_invalide:
 		'Une Ligne se rattache à son Exercice ou à un Exercice antérieur. Choisissez-en un autre.',
 	reference_inactive: 'Cette Nature ou cette Action est désactivée. Choisissez-en une autre.',
@@ -116,6 +120,7 @@ const MESSAGES = {
 	liaison_invalide:
 		'Ces Opérations ne peuvent pas être reliées : elles le sont déjà, ou l’une d’elles est annulée.',
 	saisie_invalide: 'Vérifiez les champs signalés.',
+	solde_depart_requis: 'Indiquez ce solde, même s’il vaut 0.',
 	champ_requis: 'Ce champ est à remplir.',
 	montant_invalide: 'Ce montant n’est pas lisible. Écrivez par exemple 1 000,50 ou 220+180.',
 	date_invalide: 'Cette date n’est pas lisible. Écrivez-la sous la forme 12/03/2026.',
@@ -139,6 +144,10 @@ export type CodeMessage = keyof typeof MESSAGES;
 export const TEXTES = {
 	enregistre: 'Enregistré.',
 	exercice_cloture_bandeau: 'Exercice clôturé, lecture seule',
+	aucun_exercice_ouvert:
+		'Aucun Exercice n’est ouvert : une Opération ne pourrait pas s’enregistrer.',
+	exercice_cloture_pieces:
+		'Exercice clôturé : ses chiffres ne changent plus. Une Pièce retrouvée peut encore se joindre.',
 	sur_ordinateur: 'Cet écran se travaille sur ordinateur.',
 	quitter_sans_enregistrer: 'Quitter sans enregistrer ?',
 	cahier_pret: 'Votre cahier est prêt.',

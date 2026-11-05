@@ -47,6 +47,14 @@
 		cursor: pointer;
 	}
 
+	/* Téléphone en paysage : la largeur d'un ordinateur, le doigt d'un téléphone. */
+	@media (pointer: coarse) {
+		button {
+			width: 48px;
+			height: 48px;
+		}
+	}
+
 	button:hover:not(:disabled) {
 		background: var(--primary-soft);
 	}

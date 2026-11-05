@@ -219,6 +219,9 @@
 		{#snippet action()}
 			{#if data.peutSaisir}
 				<Bouton href={urlAvec({ op: 'nouvelle' })} conserverFocus>Nouvelle Opération</Bouton>
+				{#if fonctionLivree('pointage')}
+					<Bouton variante="secondaire" href="/pointage">Importer un relevé</Bouton>
+				{/if}
 			{/if}
 		{/snippet}
 	</EtatVide>
@@ -324,6 +327,10 @@
 								{:else}
 									{#if o.cloture}<Pastille etat="cloture" />{/if}
 									{#if o.etat === 'pointe'}<Pastille etat="pointe" />{/if}
+									{#if o.etat === 'partiel'}<Pastille
+											etat="a_pointer"
+											texte="Pointé en partie"
+										/>{/if}
 									{#if o.etat === 'a_pointer'}<Pastille etat="a_pointer" />{/if}
 									{#each o.rattachements as e (e)}
 										<Pastille etat="rattachee" texte="Sur {e}" />

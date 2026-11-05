@@ -99,6 +99,18 @@
 
 	let attente: ReturnType<typeof setTimeout> | undefined;
 
+	function vider() {
+		clearTimeout(attente);
+		texte = '';
+		active = 0;
+		distant = { operations: [], actions: [] };
+	}
+
+	// Fermée, quel que soit le geste : la recherche suivante repart d'un champ vide.
+	$effect(() => {
+		if (!ouvert) vider();
+	});
+
 	function surSaisie() {
 		active = 0;
 		clearTimeout(attente);
@@ -116,8 +128,6 @@
 	function lancer(c: Choix | undefined) {
 		if (!c) return;
 		ouvert = false;
-		texte = '';
-		distant = { operations: [], actions: [] };
 		c.lancer();
 	}
 

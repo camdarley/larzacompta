@@ -174,6 +174,16 @@ describe('phraseEcart', () => {
 	});
 });
 
+describe('bilan d’un Exercice clôturé', () => {
+	it('dit ce que l’Exercice garde, sans rien demander', () => {
+		expect(phraseBilan({ type: 'cloture', comptes: 0 })).toBe(
+			'Exercice clôturé, chaque solde tombe juste.'
+		);
+		expect(phraseBilan({ type: 'cloture', comptes: 1 })).toMatch(/1 Compte garde un Écart/);
+		expect(phraseBilan({ type: 'cloture', comptes: 2 })).toMatch(/2 Comptes gardent un Écart/);
+	});
+});
+
 const carteFictive = (partiel: Partial<CarteCompte>): CarteCompte => ({
 	...carte(journal({ constats: [constat({ solde: c(1000_00) })] })),
 	...partiel

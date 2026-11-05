@@ -318,6 +318,12 @@ describe('liaisons', () => {
 		expect(r.total).toBe(40050);
 		expect(phraseLiaison(r)).toContain('Fait partie de : Spectacle, ');
 		expect(phraseLiaison(r)).toContain('au total, 220 + 180,50');
+		// Un remboursement relié vient en moins : l'addition affichée tombe juste.
+		const depense = operationJ({ id: 1, date: '2026-10-01', montant: -40000, liaisonId: 1 });
+		const retour = operationJ({ id: 2, date: '2026-10-02', montant: 5000, liaisonId: 1 });
+		const mele = resumeLiaison(journal({ operations: [depense, retour], liaisons }), 1)!;
+		expect(mele.total).toBe(35000);
+		expect(mele.termes).toBe('400 − 50');
 		expect(resumeLiaison(journal(), 9)).toBeNull();
 	});
 

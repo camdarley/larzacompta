@@ -88,6 +88,7 @@
 					<span class="t-muted" aria-label="Non calculé">—</span>
 				{:else}
 					<button
+						class="cible-etendue"
 						type="button"
 						aria-label="Écart de {ecartAffiche}, voir les causes"
 						onclick={causes}
@@ -251,6 +252,19 @@
 
 	.fini progress::-moz-progress-bar {
 		background: var(--success);
+	}
+
+	/* La cible de 48 px déborde en transparence : la valeur reste alignée sur ses voisines. */
+	@media (max-width: 639.98px), (pointer: coarse) {
+		.ecart button {
+			position: relative;
+		}
+
+		.ecart button::after {
+			content: '';
+			position: absolute;
+			inset: -14px -8px;
+		}
 	}
 
 	/* Rail d'icônes ou téléphone : le Compte prend sa rangée, les trois valeurs restent ensemble. */

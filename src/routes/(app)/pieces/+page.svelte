@@ -17,7 +17,7 @@
 	import { demanderReconnexion } from '#lib/ui/reconnexion.svelte.ts';
 	import Tableau from '#lib/ui/Tableau.svelte';
 	import { afficherToast } from '#lib/ui/toasts.svelte.ts';
-	import { urlAvec } from '#lib/ui/url.ts';
+	import { changerUrl, urlAvec } from '#lib/ui/url.ts';
 
 	let { data } = $props();
 
@@ -57,6 +57,13 @@
 			const r = await deposerPiece(fichier, { operationId: d.id });
 			if (suivre(r) && r.type === 'ok') apresDepot(d, r.valeur);
 		}
+	}
+
+	/** Toute la rangée ouvre la dépense, comme dans Opérations. Le focus part du lien. */
+	function ouvrir(e: MouseEvent, id: number) {
+		if ((e.target as HTMLElement).closest('a, button, label, input')) return;
+		(e.currentTarget as HTMLElement).querySelector<HTMLElement>('a')?.focus();
+		changerUrl({ op: String(id) });
 	}
 
 	async function dispenser(d: DepenseSansPiece, sansPiece: boolean) {
@@ -108,7 +115,9 @@
 		<tbody>
 			{#each data.manquantes as d (d.id)}
 				<tr
+					class="cliquable"
 					class:survol={survolee === d.id}
+					onclick={(e) => ouvrir(e, d.id)}
 					ondragover={data.peutSaisir
 						? (e) => {
 								e.preventDefault();
@@ -156,6 +165,10 @@
 {/if}
 
 <style>
+	.cliquable {
+		cursor: pointer;
+	}
+
 	.alerte {
 		margin-bottom: var(--espace-4);
 	}

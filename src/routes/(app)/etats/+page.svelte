@@ -11,7 +11,11 @@
 	let { data } = $props();
 
 	const r = $derived(data.etat?.resultat ?? null);
-	const noeuds = $derived(r?.groupes.map(noeudGroupe) ?? []);
+	/** Un Groupe sans mouvement n'apprend rien : il repousserait le résultat loin sous la barre. */
+	const groupesUtiles = $derived(
+		r?.groupes.filter((g) => g.recettes !== 0 || g.depenses !== 0) ?? []
+	);
+	const noeuds = $derived(groupesUtiles.map(noeudGroupe));
 	const anterieurs = $derived(r?.anterieurs.groupes.map(noeudAnterieur) ?? []);
 	const nomExercice = (id: number) => data.reperes.find((e) => e.id === id)?.libelle ?? '';
 	const avecExercice = (href: string) => {
@@ -43,6 +47,9 @@
 
 {#if r}
 	<div>
+		{#if noeuds.length === 0}
+			<p class="t-muted">Aucune recette ni dépense sur cet Exercice.</p>
+		{/if}
 		<TableauDepliable
 			{noeuds}
 			legende="Compte de résultat de {data.exercice?.libelle}"

@@ -167,6 +167,10 @@
 	let dernierEnvoi: (() => Promise<void>) | null = null;
 
 	const estNouvelle = $derived(detail === null);
+	/** Rien ne pourrait s'enregistrer : on ne laisse pas remplir le formulaire pour rien. */
+	const sansExerciceOuvert = $derived(
+		detail === null && !contexte.exercices.some((e) => e.statut === 'ouvert')
+	);
 	const lectureSeule = $derived(
 		introuvable || !peutSaisir || (detail !== null && (detail.annulee || detail.figeePar !== null))
 	);
@@ -235,16 +239,47 @@
 		for (const l of saisie.lignes) l.reduction = c === 'remboursement';
 	}
 
-	async function creerVolee(chemin: string, libelle: string, liste: OptionRecherche[]) {
+	async function creerVolee(
+		chemin: string,
+		libelle: string,
+		liste: OptionRecherche[],
+		nom: { phrase: (l: string) => string; retirer: (id: number) => void }
+	) {
 		const r = await envoyer<{ id: number; libelle: string }>(chemin, { libelle });
 		if (r.type === 'ok') {
+			const { id } = r.valeur;
 			liste.push(r.valeur);
-			afficherToast(`${r.valeur.libelle} est créé.`);
-			return r.valeur.id;
+			// Une flèche de trop crée vite un doublon : le geste se reprend aussitôt.
+			afficherToast(nom.phrase(r.valeur.libelle), {
+				libelle: 'Annuler',
+				faire: async () => {
+					const retrait = await envoyer(`${chemin}/${id}/retirer`);
+					if (retrait.type !== 'ok') return;
+					liste.splice(
+						liste.findIndex((o) => o.id === id),
+						1
+					);
+					nom.retirer(id);
+				}
+			});
+			return id;
 		}
 		traiterEchec(r, () => Promise.resolve());
 		return null;
 	}
+
+	const natureVolee = {
+		phrase: (l: string) => `La Nature ${l} est créée.`,
+		retirer: (id: number) => {
+			for (const l of saisie.lignes) if (l.natureId === id) l.natureId = null;
+		}
+	};
+	const actionVolee = {
+		phrase: (l: string) => `L’Action ${l} est créée.`,
+		retirer: (id: number) => {
+			for (const l of saisie.lignes) if (l.actionId === id) l.actionId = null;
+		}
+	};
 
 	// Suggestion : préremplit la première Ligne, n'enregistre jamais rien.
 	let attente: ReturnType<typeof setTimeout> | undefined;
@@ -691,6 +726,11 @@
 
 	{#if introuvable}
 		<Bandeau ton="regarder">{message('element_introuvable')}</Bandeau>
+	{:else if sansExerciceOuvert}
+		<div class="sans-exercice">
+			<Bandeau ton="regarder">{TEXTES.aucun_exercice_ouvert}</Bandeau>
+			<Bouton href="/reglages/exercices">Ouvrir l’Exercice suivant</Bouton>
+		</div>
 	{:else}
 		<div
 			class="etats"
@@ -1006,8 +1046,8 @@
 							{anterieurs}
 							{erreurs}
 							ligneDeRecette={recetteSens}
-							creerNature={(t) => creerVolee('/api/natures', t, naturesCreees)}
-							creerAction={(t) => creerVolee('/api/actions', t, actionsCreees)}
+							creerNature={(t) => creerVolee('/api/natures', t, naturesCreees, natureVolee)}
+							creerAction={(t) => creerVolee('/api/actions', t, actionsCreees, actionVolee)}
 						/>
 					</section>
 				{/if}
@@ -1049,7 +1089,7 @@
 	{/snippet}
 
 	{#snippet pied()}
-		{#if !lectureSeule}
+		{#if !lectureSeule && !sansExerciceOuvert}
 			<Bouton {occupe} onclick={() => envoyerSaisie(false)}>
 				{ligne ? 'Enregistrer et pointer' : 'Enregistrer'}
 				<span class="touches"><Touche>Ctrl</Touche><Touche>Entrée</Touche></span>
@@ -1127,6 +1167,12 @@
 		border-color: var(--border-strong);
 		background: var(--surface-raised);
 		color: var(--primary);
+	}
+
+	.sans-exercice {
+		display: grid;
+		justify-items: start;
+		gap: var(--espace-3);
 	}
 
 	.formulaire {

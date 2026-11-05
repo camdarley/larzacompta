@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { CheckCheck, Plus, Trash2 } from '@lucide/svelte';
 	import { refreshAll } from '$app/navigation';
+	import { tick } from 'svelte';
 	import { ETAPE_ASSISTANT_SOMMES, ETAPES_ASSISTANT } from '#lib/domaine/assistant.ts';
 	import { capitaliser, formaterDateLongue, nomDuMois } from '#lib/domaine/dates.ts';
 	import { bornesExercice, libelleExercice } from '#lib/domaine/exercices.ts';
@@ -29,6 +30,8 @@
 		return async ({ update }: { update: (o: { reset: boolean }) => Promise<void> }) => {
 			await update({ reset: false });
 			occupe = false;
+			await tick();
+			document.querySelector<HTMLElement>('form [aria-invalid="true"]')?.focus();
 		};
 	};
 
@@ -283,6 +286,7 @@
 					</div>
 					<div class="navigation">
 						<a class="t-label" href="/bienvenue?etape=1">Retour</a>
+						<a class="t-label plus-tard" href="/">Reprendre plus tard</a>
 						<Bouton type="submit" {occupe}>Continuer</Bouton>
 					</div>
 				</form>
@@ -362,6 +366,7 @@
 				</form>
 				<form method="post" action="?/terminer" class="navigation" use:enhance={soumettre}>
 					<a class="t-label" href="/bienvenue?etape=3">Retour</a>
+					<a class="t-label plus-tard" href="/">Reprendre plus tard</a>
 					<Bouton type="submit" {occupe}>
 						{data.sommes.length > 0 ? 'Terminer' : 'Passer cette étape'}
 					</Bouton>
@@ -397,6 +402,7 @@
 					</div>
 					<div class="navigation">
 						<a class="t-label" href="/bienvenue?etape=2">Retour</a>
+						<a class="t-label plus-tard" href="/">Reprendre plus tard</a>
 						<Bouton type="submit" {occupe}>Continuer</Bouton>
 					</div>
 				</form>
@@ -477,6 +483,12 @@
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--espace-touch);
+	}
+
+	.navigation .plus-tard {
+		margin-right: auto;
+		margin-left: var(--espace-3);
+		color: var(--ink-muted);
 	}
 
 	.deux {

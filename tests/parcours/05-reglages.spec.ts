@@ -77,6 +77,12 @@ test.describe('Comptes', () => {
 		await page.goto('/reglages/comptes');
 		await page.getByRole('link', { name: 'Caisse 2' }).click();
 		await expect(page.getByRole('button', { name: 'Supprimer' })).toHaveCount(0);
+		// Il porte encore de l'argent : le refus se lit dans le panneau.
+		await page.getByRole('button', { name: 'Désactiver' }).click();
+		await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Soldez-le d’abord');
+		await page.getByLabel('Solde de départ', { exact: true }).fill('0');
+		await page.getByRole('button', { name: 'Enregistrer' }).click();
+		await page.getByRole('link', { name: 'Caisse 2' }).click();
 		await page.getByRole('button', { name: 'Désactiver' }).click();
 		await expect(page.getByRole('row', { name: /^Caisse 2 / })).toContainText('Désactivé');
 		await page.getByRole('link', { name: 'Caisse 2' }).click();

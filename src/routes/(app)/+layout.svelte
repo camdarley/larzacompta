@@ -93,7 +93,11 @@
 		<main id="contenu" tabindex="-1">
 			{#if data.exercice?.statut === 'cloture'}
 				<div class="bandeau-exercice">
-					<Bandeau ton="fige">{TEXTES.exercice_cloture_bandeau}</Bandeau>
+					<Bandeau ton="fige">
+						{page.url.pathname.startsWith('/pieces')
+							? TEXTES.exercice_cloture_pieces
+							: TEXTES.exercice_cloture_bandeau}
+					</Bandeau>
 				</div>
 			{/if}
 			{#if attente}

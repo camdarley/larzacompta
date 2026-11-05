@@ -34,7 +34,7 @@ La commande refuse de s'exécuter à côté de l'application. Arrêtez-la, puis 
 docker compose stop app
 ```
 
-Sur une installation qui contient déjà des données, il faut le demander explicitement. La base et les fichiers en place ne sont pas effacés : ils sont gardés dans `/data/avant-restauration/`.
+Sur une installation qui contient déjà des données, il faut le demander explicitement. La base, son journal d'écriture (`-wal`) et les fichiers en place ne sont pas effacés : ils sont gardés dans `/data/avant-restauration/`. Après un arrêt brutal, les dernières écritures s'y retrouvent à la première ouverture de cette copie.
 
 ```sh
 docker compose run --rm app ape restaurer --remplacer

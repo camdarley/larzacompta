@@ -8,6 +8,8 @@ import type { GrandJournal } from '#lib/domaine/journal.ts';
 import { messageAnomalie } from '#lib/domaine/etats/anomalies.ts';
 import {
 	bilan,
+	bilanCloture,
+	caisseACompter,
 	cartesComptes,
 	dernierPointage,
 	lignesNonPointees,
@@ -95,14 +97,21 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 		const cartes = cartesComptes(j, e, aujourdhui, p.comptes);
 		const anciennes = operationsAnciennes(j, debutsReleve(), e);
 		const pieces = piecesManquantes(j, neutres(), e).length;
-		const taches = [
-			{ id: 'lignes' as const, compteur: lignesNonPointees(j, e) },
-			{ id: 'pieces' as const, compteur: pieces },
-			{ id: 'anciennes' as const, compteur: anciennes.length }
-		];
-		const premierReleve = sansReleve(j, cartes, e);
+		const cloture = e.statut === 'cloture';
+		const premierReleve = !cloture && sansReleve(j, cartes, e);
+		const caisses = cartes.filter((c) => c.compte.type === 'caisse');
+		const taches = cloture
+			? []
+			: [
+					{ id: 'lignes' as const, compteur: lignesNonPointees(j, e) },
+					{ id: 'pieces' as const, compteur: pieces },
+					{ id: 'anciennes' as const, compteur: anciennes.length },
+					...(caisses.length > 0 && !premierReleve
+						? [{ id: 'comptages' as const, compteur: caisses.filter(caisseACompter).length }]
+						: [])
+				];
 		const anomalies = anomaliesEquation(equationDeControle(j, e, p));
-		const lu = bilan(cartes, taches, premierReleve);
+		const lu = cloture ? bilanCloture(cartes) : bilan(cartes, taches, premierReleve);
 		return {
 			cartes,
 			taches,

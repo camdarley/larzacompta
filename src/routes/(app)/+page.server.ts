@@ -36,6 +36,7 @@ export async function load({ locals, parent }) {
 					? ctx.aujourdhui
 					: exercice.fin
 				: null,
+		aujourdhui: ctx.aujourdhui,
 		aClore: saisir ? (aClore ?? null) : null
 	};
 }

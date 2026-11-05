@@ -75,7 +75,9 @@ export const ROUTES: Readonly<Record<string, RegleRoute>> = {
 	'/api/creances/[id]/annuler': 'saisir',
 	'/api/creances/[id]/retablir': 'saisir',
 	'/api/natures': 'parametrer',
+	'/api/natures/[id]/retirer': 'parametrer',
 	'/api/actions': 'parametrer',
+	'/api/actions/[id]/retirer': 'parametrer',
 	'/api/palette': 'consulter',
 	'/api/reconnexion': 'publique'
 };

@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { History, X } from '@lucide/svelte';
+	import { page } from '$app/state';
+	import { History, SlidersHorizontal, X } from '@lucide/svelte';
 	import { formaterDateCourte, formaterHorodatage } from '#lib/domaine/dates.ts';
 	import ChampListe from '#lib/ui/ChampListe.svelte';
 	import EnTete from '#lib/ui/EnTete.svelte';
 	import EtatVide from '#lib/ui/EtatVide.svelte';
 	import Pagination from '#lib/ui/Pagination.svelte';
 	import Tableau from '#lib/ui/Tableau.svelte';
-	import { urlAvec } from '#lib/ui/url.ts';
+	import { changerUrl, urlAvec } from '#lib/ui/url.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
+	import Panneau from '#lib/ui/Panneau.svelte';
 
 	let { data } = $props();
 
@@ -24,7 +26,15 @@
 		pointage: 'Pointage',
 		import_releve: 'Relevé',
 		ligne_releve: 'Ligne de relevé',
-		constat_solde: 'Solde du relevé'
+		constat_solde: 'Solde du relevé',
+		piece: 'Pièce',
+		creance_dette: 'Créance ou Dette'
+	};
+	/** Ce que toute personne qui lit le Journal peut aussi ouvrir. */
+	const CHEMINS_CONSULTATION: Record<string, (id: number) => string> = {
+		operation: (id) => urlAvec({ op: String(id) }),
+		piece: (id) => `/pieces/toutes?piece=${id}`,
+		creance_dette: (id) => `/creances-dettes#somme-${id}`
 	};
 	const CHEMINS: Record<string, (id: number) => string> = {
 		acces: () => '/reglages/acces',
@@ -33,7 +43,11 @@
 		compte: (id) => `/reglages/comptes?compte=${id}`,
 		exercice: () => '/reglages/exercices',
 		groupe: (id) => `/reglages/groupes?groupe=${id}`,
-		nature: (id) => `/reglages/natures?nature=${id}`
+		nature: (id) => `/reglages/natures?nature=${id}`,
+		pointage: () => '/pointage',
+		import_releve: () => '/pointage',
+		ligne_releve: () => '/pointage',
+		constat_solde: () => '/pointage'
 	};
 
 	const j = $derived(data.journal);
@@ -66,7 +80,62 @@
 	function choisir(nom: string, valeur: string) {
 		return goto(urlAvec({ [nom]: valeur || null, page: null }), { reset: false });
 	}
+
+	function lienDe(e: { entiteType: string; entiteId: number | null }) {
+		if (e.entiteId === null) return null;
+		const chemin =
+			CHEMINS_CONSULTATION[e.entiteType] ??
+			(data.liensReglages ? CHEMINS[e.entiteType] : undefined);
+		return chemin?.(e.entiteId) ?? null;
+	}
+
+	/** Toute la rangée mène à l'élément, au doigt comme à la souris. Le lien reste pour le clavier. */
+	function ouvrir(ev: MouseEvent, href: string | null) {
+		if (href === null || (ev.target as HTMLElement).closest('a, button')) return;
+		goto(href);
+	}
+
+	const panneauFiltres = $derived(page.url.searchParams.has('filtres'));
 </script>
+
+{#snippet champsFiltres(prefixe: string)}
+	<ChampListe
+		id="{prefixe}-personne"
+		etiquette="Personne"
+		name="personne"
+		options={personnes}
+		valeur={f.personne ?? ''}
+		onchange={(v) => choisir('personne', v)}
+	/>
+	<ChampListe
+		id="{prefixe}-type"
+		etiquette="Type"
+		name="type"
+		options={types}
+		valeur={f.type ?? ''}
+		onchange={(v) => choisir('type', v)}
+	/>
+	<div class="date">
+		<label class="t-label" for="{prefixe}-du">Du</label>
+		<input
+			id="{prefixe}-du"
+			type="date"
+			name="du"
+			value={f.du ?? ''}
+			onchange={(e) => choisir('du', e.currentTarget.value)}
+		/>
+	</div>
+	<div class="date">
+		<label class="t-label" for="{prefixe}-au">Au</label>
+		<input
+			id="{prefixe}-au"
+			type="date"
+			name="au"
+			value={f.au ?? ''}
+			onchange={(e) => choisir('au', e.currentTarget.value)}
+		/>
+	</div>
+{/snippet}
 
 <EnTete titre="Journal" sousTitre="Qui a fait quoi, et quand. Personne ne peut le modifier." />
 
@@ -78,41 +147,12 @@
 	/>
 {:else}
 	<form class="filtres" method="get" aria-label="Filtres du Journal">
-		<div class="champs">
-			<ChampListe
-				etiquette="Personne"
-				name="personne"
-				options={personnes}
-				valeur={f.personne ?? ''}
-				onchange={(v) => choisir('personne', v)}
-			/>
-			<ChampListe
-				etiquette="Type"
-				name="type"
-				options={types}
-				valeur={f.type ?? ''}
-				onchange={(v) => choisir('type', v)}
-			/>
-			<div class="date">
-				<label class="t-label" for="filtre-du">Du</label>
-				<input
-					id="filtre-du"
-					type="date"
-					name="du"
-					value={f.du ?? ''}
-					onchange={(e) => choisir('du', e.currentTarget.value)}
-				/>
-			</div>
-			<div class="date">
-				<label class="t-label" for="filtre-au">Au</label>
-				<input
-					id="filtre-au"
-					type="date"
-					name="au"
-					value={f.au ?? ''}
-					onchange={(e) => choisir('au', e.currentTarget.value)}
-				/>
-			</div>
+		<div class="champs seulement-ordinateur">{@render champsFiltres('filtre')}</div>
+		<div class="seulement-telephone">
+			<Bouton variante="secondaire" pleineLargeur href={urlAvec({ filtres: '1' })} conserverFocus>
+				<SlidersHorizontal size={20} strokeWidth={1.75} aria-hidden="true" />
+				Filtres{criteres.length > 0 ? ` (${criteres.length})` : ''}
+			</Bouton>
 		</div>
 		<noscript><Bouton type="submit" variante="secondaire">Filtrer</Bouton></noscript>
 		<div class="bilan">
@@ -149,13 +189,14 @@
 			</thead>
 			<tbody>
 				{#each j.entrees as e (e.id)}
-					<tr>
+					{@const href = lienDe(e)}
+					<tr class:cliquable={href} onclick={(ev) => ouvrir(ev, href)}>
 						<td class="date-cellule t-caption t-muted">{formaterHorodatage(e.horodatage)}</td>
 						<td class="personne">{e.accesNom}</td>
 						<td class="principale">{e.resume}</td>
 						<td class="element">
-							{#if data.liensReglages && e.entiteId !== null && CHEMINS[e.entiteType]}
-								<a href={CHEMINS[e.entiteType]?.(e.entiteId)}>{nomType(e.entiteType)}</a>
+							{#if href}
+								<a {href} data-sveltekit-reset="false">{nomType(e.entiteType)}</a>
 							{:else}
 								{nomType(e.entiteType)}
 							{/if}
@@ -170,7 +211,30 @@
 	{/if}
 {/if}
 
+<Panneau
+	ouvert={panneauFiltres}
+	sansConfirmation
+	titre="Filtres"
+	fermer={() => changerUrl({ filtres: null })}
+>
+	<div class="pile">{@render champsFiltres('filtre-panneau')}</div>
+	{#snippet pied()}
+		<Bouton variante="secondaire" onclick={() => changerUrl({ filtres: null })}>
+			Voir {compteur.toLocaleLowerCase('fr')}
+		</Bouton>
+	{/snippet}
+</Panneau>
+
 <style>
+	.cliquable {
+		cursor: pointer;
+	}
+
+	.pile {
+		display: grid;
+		gap: var(--espace-3);
+	}
+
 	.filtres {
 		display: grid;
 		gap: var(--espace-3);

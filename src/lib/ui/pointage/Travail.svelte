@@ -49,9 +49,11 @@
 		comptes: ComptePointable[];
 		raccourcis: boolean;
 		aujourdhui: string;
+		/** Exercice clôturé : file, barre et causes se consultent, rien ne s'y écrit. */
+		lectureSeule?: boolean;
 	};
 
-	let { vue, compte, comptes, raccourcis, aujourdhui }: Props = $props();
+	let { vue, compte, comptes, raccourcis, aujourdhui, lectureSeule = false }: Props = $props();
 
 	type Coche = ElementRelie & { coteId: number };
 	type Demande = {
@@ -167,6 +169,7 @@
 	function selectionner(coteId: number) {
 		selection = selection === coteId ? null : coteId;
 		alerte = null;
+		indication = '';
 	}
 
 	function basculerCoche(c: Coche) {
@@ -174,6 +177,7 @@
 			? coches.filter((x) => x.coteId !== c.coteId)
 			: [...coches, c];
 		alerte = null;
+		indication = '';
 	}
 
 	function basculerLigne(id: number) {
@@ -219,7 +223,10 @@
 	async function pointer() {
 		if (occupe || !active || active.etat !== 'a_pointer') return;
 		if (elements.length === 0) {
-			indication = 'Choisissez une proposition, ou reliez une Opération.';
+			indication =
+				active.propositions.length > 0
+					? 'Choisissez une proposition, ou reliez une Opération.'
+					: 'Reliez une Opération, ou créez-la.';
 			return;
 		}
 		if (difference !== 0) {
@@ -265,11 +272,13 @@
 	async function annuler(id: number | null) {
 		if (id === null || occupe) return;
 		occupe = true;
-		const r = await envoyer(`/api/pointage/annuler/${id}`);
+		const r = await envoyer<{ ajustementsAnnules: number }>(`/api/pointage/annuler/${id}`);
 		occupe = false;
 		if (r.type === 'ok') {
 			const ligne = vue.lignes.find((l) => l.pointageId === id);
-			afficherToast('Pointage annulé.');
+			afficherToast(
+				r.valeur.ajustementsAnnules > 0 ? 'Pointage et ajustement annulés.' : 'Pointage annulé.'
+			);
 			await refreshAll();
 			if (ligne) activer(ligne.id);
 			await tick();
@@ -292,6 +301,10 @@
 
 	function creer() {
 		if (!active || active.etat !== 'a_pointer') return;
+		if (active.horsExercice) {
+			alerte = message('ligne_hors_exercice');
+			return;
+		}
 		attenteCreation = active.id;
 		suivanteCreation = suivanteDe(active.id)?.id ?? null;
 		goto(urlAvec({ op: 'nouvelle', releve: String(active.id), depuis: null, rendre: null }), {
@@ -358,6 +371,7 @@
 		];
 		selection = null;
 		relierOuvert = false;
+		indication = '';
 		tick().then(focusActive);
 	}
 
@@ -401,6 +415,19 @@
 	/** Les raccourcis lisent le caractère produit, et se taisent pendant une saisie. */
 	function surTouche(e: KeyboardEvent) {
 		const cible = e.target as HTMLElement;
+		if (lectureSeule) {
+			if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+				e.preventDefault();
+				aller(e.key === 'ArrowDown' ? 1 : -1);
+			}
+			return;
+		}
+		// Sur une case « Relier aussi », Entrée pointe comme depuis la file. Espace la coche.
+		if (e.key === 'Enter' && cible.matches('input[type=checkbox]')) {
+			e.preventDefault();
+			pointer();
+			return;
+		}
 		if (dansUnChamp(cible) || e.altKey) return;
 		const ctrl = e.ctrlKey || e.metaKey;
 		if (ctrl) {
@@ -453,17 +480,26 @@
 	let attente = $state<File[]>([]);
 	let importEnCours = $state(false);
 	let recapitulatifs = $state<{ nom: string; r: Recapitulatif }[]>([]);
-	let erreurImport = $state<{ texte: string; reessayer: boolean } | null>(null);
+	let erreurImport = $state<{
+		texte: string;
+		reessayer: boolean;
+		fichier?: File;
+	} | null>(null);
 	let correspondance = $state<{ fichier: File; demande: Demande; erreur: string | null } | null>(
 		null
 	);
 	let glisse = $state(0);
 	let dateSolde = $state<string | null>(null);
 
-	async function lireFichier(fichier: File, reglage?: ReglageCsv): Promise<'suite' | 'stop'> {
+	async function lireFichier(
+		fichier: File,
+		reglage?: ReglageCsv,
+		autreCompte = false
+	): Promise<'suite' | 'stop'> {
 		const corps = new FormData();
 		corps.set('fichier', fichier);
 		if (reglage) corps.set('reglage', JSON.stringify(reglage));
+		if (autreCompte) corps.set('autreCompte', '1');
 		const r = await envoyerFichier<Recapitulatif | Demande>(
 			`/api/pointage/comptes/${compte.id}/import`,
 			corps
@@ -484,7 +520,13 @@
 		}
 		if (r.type === 'refus') {
 			if (correspondance) correspondance.erreur = messageErreur(r.erreur);
-			else erreurImport = { texte: messageErreur(r.erreur), reessayer: false };
+			else {
+				erreurImport = {
+					texte: messageErreur(r.erreur),
+					reessayer: false,
+					...(r.erreur.code === 'releve_autre_compte' ? { fichier } : {})
+				};
+			}
 			return correspondance ? 'stop' : 'suite';
 		}
 		erreurImport = {
@@ -507,6 +549,16 @@
 		await apresImport();
 	}
 
+	async function importerQuandMeme() {
+		const fichier = erreurImport?.fichier;
+		if (fichier === undefined || importEnCours) return;
+		erreurImport = null;
+		importEnCours = true;
+		await lireFichier(fichier, undefined, true);
+		importEnCours = false;
+		await apresImport();
+	}
+
 	async function apresImport() {
 		dateSoldeAffichee();
 		await refreshAll();
@@ -514,6 +566,11 @@
 			activer(vue.lignes[0]?.id ?? null);
 		} else if (active) {
 			activer(active.id);
+		}
+		// Le récapitulatif lu, Entrée pointe aussitôt (UJ-1). Un solde demandé garde le focus.
+		if (erreurImport === null && dateSolde === null && correspondance === null) {
+			await tick();
+			focusActive();
 		}
 	}
 
@@ -573,7 +630,7 @@
 
 	const q = $derived(page.url.searchParams);
 	const reste = $derived(ouvertes.length);
-	const aConfirmer = $derived(ouvertes.some((l) => l.etat === 'a_regarder'));
+	const aConfirmer = $derived(ouvertes.some((l) => l.etat === 'a_regarder' && l.jumelle));
 	const fin = $derived(vue.lignes.length > 0 && reste === 0);
 	const montrerDetail = $derived(active?.etat === 'pointe' && choisie);
 	const derniereDate = $derived(
@@ -617,7 +674,7 @@
 		barre={vue.barre}
 		{compte}
 		{comptes}
-		peutAgir
+		peutAgir={!lectureSeule}
 		causes={() => changerUrl({ causes: '1' })}
 		indiquerSolde={() => changerUrl({ saisir: 'solde' })}
 	/>
@@ -631,6 +688,8 @@
 				{#snippet action()}
 					{#if erreurImport?.reessayer}
 						<Bouton variante="secondaire" onclick={derouler}>Réessayer</Bouton>
+					{:else if erreurImport?.fichier}
+						<Bouton variante="secondaire" onclick={importerQuandMeme}>Importer quand même</Bouton>
 					{/if}
 				{/snippet}
 			</Bandeau>
@@ -642,8 +701,18 @@
 				{#if r.ecartees > 0}{phraseEcartees(r.ecartees)}{/if}
 				{#if r.soldeIgnore}{TEXTES.solde_ignore}{/if}
 			</Bandeau>
+			{#if r.identifiantsRepetes > 0}
+				<Bandeau ton="regarder">
+					{message('identifiant_repete', {
+						lignes:
+							r.identifiantsRepetes > 1
+								? `${r.identifiantsRepetes} lignes reprennent`
+								: 'Une ligne reprend'
+					})}
+				</Bandeau>
+			{/if}
 		{/each}
-		{#if aConfirmer}
+		{#if aConfirmer && !lectureSeule}
 			<Bandeau ton="regarder">{message('doublon_possible')}</Bandeau>
 		{/if}
 		{#if vue.trou}
@@ -652,17 +721,19 @@
 	</div>
 
 	{#if vue.lignes.length === 0}
-		<div class="seulement-telephone">{@render aucunReleve()}</div>
-		<div class="seulement-ordinateur">
-			<DepotFichier {deposer} occupe={importEnCours} accepte=".ofx,.csv,.txt,.tsv">
-				{@render aucunReleve()}
-				{#snippet autres()}
-					<Bouton variante="secondaire" onclick={() => changerUrl({ saisir: 'ligne' })}>
-						Saisir une ligne
-					</Bouton>
-				{/snippet}
-			</DepotFichier>
-		</div>
+		<div class={lectureSeule ? '' : 'seulement-telephone'}>{@render aucunReleve()}</div>
+		{#if !lectureSeule}
+			<div class="seulement-ordinateur">
+				<DepotFichier {deposer} occupe={importEnCours} accepte=".ofx,.csv,.txt,.tsv">
+					{@render aucunReleve()}
+					{#snippet autres()}
+						<Bouton variante="secondaire" onclick={() => changerUrl({ saisir: 'ligne' })}>
+							Saisir une ligne
+						</Bouton>
+					{/snippet}
+				</DepotFichier>
+			</div>
+		{/if}
 	{:else}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="travail" onkeydown={surTouche}>
@@ -672,31 +743,42 @@
 						<LigneReleve
 							ligne={l}
 							active={l.id === active?.id}
-							surlignee={l.id === active?.id && (!fin || montrerDetail)}
+							surlignee={l.id === active?.id &&
+								(lectureSeule ? montrerDetail : !fin || montrerDetail)}
 							cochee={lignesCochees.includes(l.id)}
-							peutAgir
+							peutAgir={!lectureSeule}
 							activer={() => activer(l.id, { choix: true })}
 							cocher={() => basculerLigne(l.id)}
 						/>
 					{/each}
 				</ol>
-				<div class="pied-file seulement-ordinateur">
-					<DepotFichier
-						compact
-						{deposer}
-						occupe={importEnCours}
-						accepte=".ofx,.csv,.txt,.tsv"
-						libelleBouton="Importer un relevé"
-					/>
-					<Bouton variante="discret" onclick={() => changerUrl({ saisir: 'ligne' })}>
-						<Plus size={20} strokeWidth={1.75} aria-hidden="true" />
-						Saisir une ligne
-					</Bouton>
-				</div>
+				{#if !lectureSeule}
+					<div class="pied-file seulement-ordinateur">
+						<DepotFichier
+							compact
+							{deposer}
+							occupe={importEnCours}
+							accepte=".ofx,.csv,.txt,.tsv"
+							libelleBouton="Importer un relevé"
+						/>
+						<Bouton variante="discret" onclick={() => changerUrl({ saisir: 'ligne' })}>
+							<Plus size={20} strokeWidth={1.75} aria-hidden="true" />
+							Saisir une ligne
+						</Bouton>
+					</div>
+				{/if}
 			</section>
 
 			<section class="volet seulement-ordinateur" aria-label="Ligne active">
-				{#if fin && !montrerDetail}
+				{#if lectureSeule && !montrerDetail}
+					<div class="fin">
+						<h2 class="t-heading">Ce relevé se consulte</h2>
+						<p class="t-muted">
+							Pour pointer une ligne, revenez à un Exercice ouvert. Une ligne pointée montre ici ce
+							qui la relie.
+						</p>
+					</div>
+				{:else if fin && !montrerDetail}
 					<div class="fin">
 						{#if vue.barre.ecart === 0}
 							<h2 class="t-title">{TEXTES.tout_pointe}</h2>
@@ -759,18 +841,22 @@
 								</li>
 							{/each}
 						</ul>
-						<div class="actions">
-							<Bouton
-								variante="secondaire"
-								{occupe}
-								onclick={() => annuler(active?.pointageId ?? null)}
-							>
-								<Undo2 size={20} strokeWidth={1.75} aria-hidden="true" />
-								Annuler le Pointage
-							</Bouton>
-						</div>
+						{#if !lectureSeule}
+							<div class="actions">
+								<Bouton
+									variante="secondaire"
+									{occupe}
+									onclick={() => annuler(active?.pointageId ?? null)}
+								>
+									<Undo2 size={20} strokeWidth={1.75} aria-hidden="true" />
+									Annuler le Pointage
+								</Bouton>
+							</div>
+						{/if}
 					{:else if active.etat === 'a_regarder'}
-						<Bandeau ton="regarder">{message('doublon_a_confirmer')}</Bandeau>
+						<Bandeau ton="regarder">
+							{message(active.jumelle ? 'doublon_a_confirmer' : 'ligne_identifiant_repete')}
+						</Bandeau>
 						<div class="actions">
 							<Bouton {occupe} onclick={confirmer}>Garder cette ligne</Bouton>
 							<Bouton variante="secondaire" {occupe} onclick={retirer}>Écarter cette ligne</Bouton>
@@ -883,7 +969,9 @@
 	<CausesEcart causes={vue.causes} fermer={fermerCauses} />
 {/if}
 
-{#if q.get('saisir') === 'ligne'}
+{#if lectureSeule}
+	<!-- Rien ne s'écrit sur un Exercice clôturé, même par une URL gardée. -->
+{:else if q.get('saisir') === 'ligne'}
 	<SaisieLigne
 		compteId={compte.id}
 		dateProposee={aujourdhui}
@@ -962,10 +1050,13 @@
 		border-top: 1px solid var(--border);
 	}
 
+	/* Le volet tient dans la fenêtre : la rangée d'actions reste visible, le détail défile. */
 	.volet {
 		position: sticky;
 		top: 120px;
 		display: grid;
+		max-height: calc(100dvh - 136px);
+		overflow-y: auto;
 		gap: var(--espace-3);
 		padding: var(--espace-4);
 		border: 1px solid var(--border);
@@ -1007,9 +1098,17 @@
 	}
 
 	.actions {
+		position: sticky;
+		z-index: 1;
+		bottom: 0;
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--espace-2);
+		margin: 0 calc(-1 * var(--espace-4)) calc(-1 * var(--espace-4));
+		padding: var(--espace-3) var(--espace-4);
+		border-top: 1px solid var(--border);
+		border-radius: 0 0 var(--rayon-lg) var(--rayon-lg);
+		background: var(--surface-raised);
 	}
 
 	.actions :global(kbd) {
@@ -1062,6 +1161,8 @@
 
 		.volet {
 			position: static;
+			max-height: none;
+			overflow-y: visible;
 		}
 	}
 

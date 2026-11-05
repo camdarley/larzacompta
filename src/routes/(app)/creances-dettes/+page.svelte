@@ -102,7 +102,7 @@
 				</thead>
 				<tbody>
 					{#each b.rangees as r (r.id)}
-						<tr>
+						<tr id="somme-{r.id}">
 							<td class="principale">{r.tiers}</td>
 							<td>{r.motif}</td>
 							<td class="t-muted">{r.action ?? ''}</td>

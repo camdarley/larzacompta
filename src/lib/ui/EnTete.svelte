@@ -31,7 +31,10 @@
 	}: Props = $props();
 
 	const titreOnglet = $derived(
-		[onglet, titre, contexte, page.data.nomApe as string | undefined].filter(Boolean).join(', ')
+		// Sans doublon : sur Connexion, le titre de la page est déjà le nom de l'APE.
+		[...new Set([onglet, titre, contexte, page.data.nomApe as string | undefined])]
+			.filter(Boolean)
+			.join(', ')
 	);
 </script>
 

@@ -157,7 +157,9 @@ test('5.2 : la phrase, les soldes, les tuiles', async ({ page }) => {
 	const ccp = principal.getByRole('article').filter({ hasText: 'CCP imaginaire' });
 	await expect(ccp).toContainText('Solde de départ');
 	await expect(ccp).toContainText('Solde constaté');
-	await expect(ccp).toContainText(/Écart de 95,00.€\. 2 lignes non pointées l’expliquent\./);
+	await expect(ccp).toContainText(
+		/Écart de 95,00.€\. 1 ligne de relevé et 1 Opération non pointées l’expliquent\./
+	);
 	await expect(ccp.getByRole('link', { name: 'CCP imaginaire' })).toHaveAttribute(
 		'href',
 		`/pointage/${jeu.ccp}`
@@ -189,15 +191,15 @@ test('5.2 : le solde d’une caisse se saisit sur sa carte, sans lien vers le Po
 	const caisse = page.getByRole('article').filter({ hasText: 'Caisse de la fête' });
 	await expect(caisse.getByRole('link')).toHaveCount(0);
 	await expect(caisse).toContainText('Pas encore comptée');
-	await caisse.getByLabel(/^Compté le/).fill('80');
+	await caisse.getByLabel(/^Solde compté/).fill('80');
 	await caisse.getByRole('button', { name: 'Enregistrer' }).click();
 	await expect(caisse).toContainText('Égal au comptage');
 
-	await caisse.getByLabel(/^Compté le/).fill('78,50');
+	await caisse.getByLabel(/^Solde compté/).fill('78,50');
 	await caisse.getByRole('button', { name: 'Enregistrer' }).click();
 	await expect(caisse).toContainText(/Écart de 1,50.€/);
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 Compte ne tombe pas juste.');
-	await caisse.getByLabel(/^Compté le/).fill('80');
+	await caisse.getByLabel(/^Solde compté/).fill('80');
 	await caisse.getByRole('button', { name: 'Enregistrer' }).click();
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(/à regarder\.$/);
 });

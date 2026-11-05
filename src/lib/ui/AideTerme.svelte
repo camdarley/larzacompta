@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { flushSync, tick, type Snippet } from 'svelte';
 	import { GLOSSAIRE } from '#lib/aide.ts';
 
 	let { ancre, children }: { ancre: string; children: Snippet } = $props();
@@ -10,6 +10,9 @@
 	let ouvert = $state(false);
 	let racine = $state<HTMLElement | null>(null);
 	let declencheur = $state<HTMLButtonElement | null>(null);
+	let lien = $state<HTMLAnchorElement | null>(null);
+	/** Ouverte au clavier par Entrée : son lien s'atteint. Au simple passage de Tab, la bulle se lit. */
+	let lienAtteignable = $state(false);
 	let position = $state<{ left: string; top?: string; bottom?: string; width: string } | null>(
 		null
 	);
@@ -41,13 +44,34 @@
 	}
 
 	function surSortieFocus(e: FocusEvent) {
-		if (!racine?.contains(e.relatedTarget as Node)) ouvert = false;
+		if (racine?.contains(e.relatedTarget as Node)) return;
+		ouvert = false;
+		lienAtteignable = false;
+	}
+
+	/** `detail` nul : le clic vient d'Entrée ou d'Espace, pas de la souris. */
+	async function surClic(e: MouseEvent) {
+		ouvrir();
+		if (e.detail !== 0) return;
+		lienAtteignable = true;
+		await tick();
+		lien?.focus();
+	}
+
+	/** Tab repart du mot : la saisie continue au champ suivant, le lien n'est pas un cul-de-sac. */
+	function surToucheLien(e: KeyboardEvent) {
+		if (e.key !== 'Tab') return;
+		lienAtteignable = false;
+		flushSync();
+		declencheur?.focus();
 	}
 
 	function surTouche(e: KeyboardEvent) {
 		if (e.key === 'Escape' && ouvert) {
 			e.stopPropagation();
 			ouvert = false;
+			if (racine?.contains(document.activeElement)) declencheur?.focus();
+			lienAtteignable = false;
 		}
 	}
 </script>
@@ -69,7 +93,7 @@
 		aria-expanded={ouvert}
 		aria-controls={ouvert ? id : undefined}
 		onfocus={ouvrir}
-		onclick={ouvrir}
+		onclick={surClic}
 	>
 		{@render children()}
 	</button><!-- Rien entre le mot et la suite : la ponctuation du texte doit le toucher. -->{#if ouvert && entree}
@@ -84,7 +108,13 @@
 			style:width={position?.width}
 		>
 			<span class="definition">{entree.definition}</span>
-			<a href="/aide#terme-{ancre}" data-sveltekit-reload>En savoir plus</a>
+			<a
+				bind:this={lien}
+				href="/aide#terme-{ancre}"
+				data-sveltekit-reload
+				tabindex={lienAtteignable ? 0 : -1}
+				onkeydown={surToucheLien}>En savoir plus</a
+			>
 		</span>
 	{/if}</span
 >

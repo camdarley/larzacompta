@@ -23,6 +23,7 @@
 <style>
 	.etats {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--espace-5);
 		min-width: 0;
 	}

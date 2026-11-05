@@ -163,6 +163,8 @@ test('l’assistant et les états vides d’une instance neuve disent le texte p
 	await photographier(page, 'assistant-2', '/bienvenue?etape=2', ORIGINE_NEUVE);
 	await page.goto(`${ORIGINE_NEUVE}/bienvenue?etape=2`);
 	await page.locator('#solde-0').fill('1000');
+	await page.locator('#solde-1').fill('0');
+	await page.locator('#solde-2').fill('0');
 	await page.getByRole('button', { name: 'Continuer' }).click();
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Natures et Actions');
 	await photographier(page, 'assistant-3', '/bienvenue?etape=3', ORIGINE_NEUVE);

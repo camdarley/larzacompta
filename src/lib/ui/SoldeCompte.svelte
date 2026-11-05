@@ -16,9 +16,11 @@
 		href?: string | null;
 		/** Avant le jalon 2, une caisse se constate ici. Jour de ce constat. */
 		constatDu?: string | null;
+		/** Ce jour-là, l'étiquette dit « aujourd'hui » : ce n'est pas un Comptage enregistré. */
+		aujourdhui?: string | null;
 		erreur?: string;
 	};
-	let { carte, href = null, constatDu = null, erreur }: Props = $props();
+	let { carte, href = null, constatDu = null, aujourdhui = null, erreur }: Props = $props();
 
 	const c = $derived(carte);
 	const caisse = $derived(c.compte.type === 'caisse');
@@ -83,7 +85,9 @@
 			<input type="hidden" name="compteId" value={c.compte.id} />
 			<input type="hidden" name="date" value={constatDu} />
 			<ChampMontant
-				etiquette="Compté le {formaterJourMois(constatDu)}"
+				etiquette={constatDu === aujourdhui
+					? 'Solde compté aujourd’hui'
+					: `Solde compté au ${formaterJourMois(constatDu)}`}
 				name="solde"
 				valeur={c.constate === null ? '' : formaterSaisie(c.constate)}
 				{erreur}

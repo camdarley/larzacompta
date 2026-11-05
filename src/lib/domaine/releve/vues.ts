@@ -8,6 +8,7 @@ import { exerciceDeDate, soldeCompte, soldeDepart } from '../etats/soldes.ts';
 import type { GrandJournal, LigneReleveJ } from '../journal.ts';
 import { centimes, type Centimes } from '../montant.ts';
 import type { Compte } from '../parametrage.ts';
+import { dateDepuisLigne } from './pointage.ts';
 import { libelleDuCote, proposer, type Proposition } from './proposer.ts';
 import { trous, type Periode, type Trou } from './trous.ts';
 
@@ -26,6 +27,10 @@ export type LigneFile = Pick<LigneReleveJ, 'id' | 'date' | 'montant' | 'libelle'
 	pointageId: number | null;
 	relies: ElementRelie[];
 	propositions: Proposition[];
+	/** Une autre ligne du Compte a la même date, le même montant et le même libellé. */
+	jumelle: boolean;
+	/** Aucun Exercice n'accueille cette date : l'Opération attend qu'on ouvre le suivant. */
+	horsExercice: boolean;
 };
 
 export type BarreEcartVue = {
@@ -142,8 +147,8 @@ function causesVue(j: GrandJournal, c: Causes): CausesVue {
 
 /** Non pointées d'abord, chaque groupe par date. Pointées : seulement depuis `depuis`. */
 function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): LigneFile[] {
-	const lignes = j.lignesReleve
-		.filter((l) => l.compteId === compteId)
+	const duCompte = j.lignesReleve.filter((l) => l.compteId === compteId);
+	const lignes = duCompte
 		.map((l): LigneFile => {
 			const pointage = j.pointages.find((p) => p.ligneReleveIds.includes(l.id));
 			const etat = pointage ? 'pointe' : l.doublon === 'a_confirmer' ? 'a_regarder' : 'a_pointer';
@@ -157,7 +162,9 @@ function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): L
 				manuelle: l.importId === null,
 				pointageId: pointage?.id ?? null,
 				relies: pointage ? elementsRelies(j, pointage.coteIds) : [],
-				propositions: etat === 'a_pointer' ? proposer(j, l) : []
+				propositions: etat === 'a_pointer' ? proposer(j, l) : [],
+				jumelle: duCompte.some((x) => x.id !== l.id && x.empreinte === l.empreinte),
+				horsExercice: !dateDepuisLigne(j.exercices, l.date).ok
 			};
 		})
 		.filter((l) => l.etat !== 'pointe' || depuis === null || l.date >= depuis);

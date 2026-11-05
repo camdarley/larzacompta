@@ -27,6 +27,14 @@ function adresseDe(event: Parameters<Handle>[0]['event']) {
 	}
 }
 
+function cheminDecode(chemin: string) {
+	try {
+		return decodeURI(chemin);
+	} catch {
+		return chemin;
+	}
+}
+
 function refusJson(code: string, status: number) {
 	return json({ code, details: {} }, { status });
 }
@@ -52,7 +60,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Les écritures JSON ne sont pas couvertes par le contrôle CSRF de Kit (AD-19).
 	// `route.id` et non le chemin : Kit route sur le chemin décodé, `/%61pi/` mène au même endroit.
-	const api = event.route.id?.startsWith('/api/') === true;
+	// Une route inconnue sous `/api/` se refuse aussi : le chemin décodé la reconnaît.
+	const api =
+		event.route.id?.startsWith('/api/') === true || cheminDecode(url.pathname).startsWith('/api/');
 	if (api && request.method !== 'GET' && request.method !== 'HEAD') {
 		const attendue = process.env.ORIGIN ?? url.origin;
 		if (request.headers.get('origin') !== attendue) return refusJson('origine_refusee', 403);

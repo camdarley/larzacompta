@@ -49,7 +49,15 @@
 
 	const lecture = $derived(valeur.trim() === '' ? null : lireMontant(valeur));
 	const formule = $derived(/\d\s*[+\-−]\s*\d/.test(valeur) ? lecture : null);
-	const erreurAffichee = $derived(erreurLocale ?? erreur);
+	/** L'erreur venue du parent se corrige en direct, comme un champ texte (EXPERIENCE.md). */
+	let corrigee = $state(false);
+	$effect.pre(() => {
+		void erreur;
+		corrigee = false;
+	});
+	const erreurAffichee = $derived(
+		erreurLocale ?? (corrigee && valeur.trim() !== '' ? undefined : erreur)
+	);
 	const decrit = $derived(
 		[erreurAffichee && `${idAuto}-erreur`, aide && `${idAuto}-aide`].filter(Boolean).join(' ') ||
 			undefined
@@ -72,6 +80,7 @@
 		if (e.key === '=' && reste !== undefined) {
 			e.preventDefault();
 			valeur = formaterSaisie(reste);
+			corrigee = true;
 			oninput?.();
 		}
 	}
@@ -102,6 +111,7 @@
 			onkeydown={surTouche}
 			oninput={() => {
 				erreurLocale = undefined;
+				corrigee = true;
 				oninput?.();
 			}}
 		/>

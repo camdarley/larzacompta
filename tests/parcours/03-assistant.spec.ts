@@ -42,6 +42,10 @@ test('l’assistant prépare le cahier, étape par étape', async ({ page }) => 
 	await expect(page.getByLabel('Premier Exercice tenu dans l’outil')).toHaveValue('2026');
 	await expect(page.getByText('au 1er septembre 2026')).toBeVisible();
 	await axeSansViolation(page);
+	// Un solde vide n'est pas un zéro : le focus va au premier qui manque.
+	await page.getByRole('button', { name: 'Continuer' }).click();
+	await expect(page.locator('#solde-0')).toBeFocused();
+	await expect(page.getByText('Indiquez ce solde, même s’il vaut 0.').first()).toBeVisible();
 	await page.locator('#solde-0').fill('1200+300,5');
 	await page.locator('#solde-0').blur();
 	await expect(page.locator('#solde-0')).toHaveValue(/1.500,50/);

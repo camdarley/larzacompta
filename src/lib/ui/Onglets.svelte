@@ -42,6 +42,11 @@
 </nav>
 
 <style>
+	.onglets {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+	}
+
 	ul {
 		display: flex;
 		flex-wrap: wrap;
@@ -68,13 +73,22 @@
 		border-bottom-color: var(--primary);
 	}
 
+	/* Une seule rangée sur téléphone : elle défile, le trait actif reste sous son onglet. */
 	@media (max-width: 639.98px) {
 		ul {
+			flex-wrap: nowrap;
 			gap: 0 var(--espace-3);
+			overflow-x: auto;
+			scrollbar-width: none;
+		}
+
+		li {
+			flex: none;
 		}
 
 		a {
 			min-height: var(--espace-touch);
+			white-space: nowrap;
 		}
 	}
 

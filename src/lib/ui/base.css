@@ -155,7 +155,7 @@ h1:focus {
 
 /* Au doigt, cibles de 48 px : un téléphone en paysage a la largeur d'un ordinateur, pas la souris. */
 @media (max-width: 639.98px), (pointer: coarse) {
-	button:not(.mot),
+	button:not(.mot, .cible-etendue),
 	select,
 	[role='button'],
 	input:not([type='checkbox'], [type='radio']) {

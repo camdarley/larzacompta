@@ -15,5 +15,6 @@
 		comptes={p.comptes}
 		raccourcis={data.raccourcis}
 		aujourdhui={data.aujourdhui}
+		lectureSeule={data.exercice?.statut === 'cloture'}
 	/>
 {/key}

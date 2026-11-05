@@ -121,6 +121,11 @@ async function ciblesPetites(page: Page) {
 					const zone = parseFloat(getComputedStyle(e, '::after').height);
 					return r.width < 24 || zone < 44;
 				}
+				// La valeur de l'Écart reste alignée : sa cible déborde en transparence, dans `::after`.
+				if (e.matches('.cible-etendue')) {
+					const zone = getComputedStyle(e, '::after');
+					return parseFloat(zone.height) < 44 || parseFloat(zone.width) < 44;
+				}
 				return r.height < 44 || r.width < 44;
 			})
 			.map((e) => {

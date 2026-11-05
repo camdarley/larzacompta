@@ -174,7 +174,7 @@ export function cartesComptes(
 		.filter((c) => !muette(c));
 }
 
-export type TacheControle = 'lignes' | 'pieces' | 'anciennes';
+export type TacheControle = 'lignes' | 'pieces' | 'anciennes' | 'comptages';
 export type Tache = { id: TacheControle; compteur: number };
 
 /** Non pointées, jusqu'à la fin de l'Exercice regardé : une ligne d'avant ne s'oublie pas. */
@@ -209,16 +209,20 @@ export type Bilan =
 	| { type: 'ecart'; comptes: number }
 	| { type: 'taches'; nombre: number }
 	| { type: 'premier_releve' }
-	| { type: 'a_jour' };
+	| { type: 'a_jour' }
+	| { type: 'cloture'; comptes: number };
 
 /**
  * Ce qui reste à regarder sur un Compte et qu'aucune tuile ne compte déjà : un contrôle ancien,
  * un solde jamais constaté, un Écart sans aucun élément non pointé.
+ * Une caisse pas encore comptée a sa tuile : le compte de la phrase-bilan se retrouve à l'écran.
  */
 function aRegarderSeul(c: CarteCompte): boolean {
-	if (c.etat !== 'a_regarder') return false;
+	if (c.etat !== 'a_regarder' || caisseACompter(c)) return false;
 	return c.constate === null || c.ancien || c.nonPointees === 0;
 }
+
+export const caisseACompter = (c: CarteCompte) => c.compte.type === 'caisse' && c.constate === null;
 
 /** Sans relevé sur l'Exercice : aucun Compte pointable n'a ni ligne ni solde à comparer. */
 export function sansReleve(
@@ -256,7 +260,18 @@ export function bilan(
 	return premierReleve ? { type: 'premier_releve' } : { type: 'a_jour' };
 }
 
+/** Clôturé, plus rien n'est à faire : la phrase dit ce que l'Exercice garde. */
+export function bilanCloture(cartes: readonly CarteCompte[]): Bilan {
+	return { type: 'cloture', comptes: cartes.filter(avecEcart).length };
+}
+
 export function phraseBilan(b: Bilan): string {
+	if (b.type === 'cloture') {
+		if (b.comptes === 0) return 'Exercice clôturé, chaque solde tombe juste.';
+		return b.comptes === 1
+			? 'Exercice clôturé, 1 Compte garde un Écart.'
+			: `Exercice clôturé, ${b.comptes} Comptes gardent un Écart.`;
+	}
 	if (b.type === 'ecart') {
 		return b.comptes === 1
 			? '1 Compte ne tombe pas juste.'

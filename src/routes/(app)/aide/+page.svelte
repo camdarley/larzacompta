@@ -11,74 +11,178 @@
 	import Touche from '#lib/ui/Touche.svelte';
 
 	let { data } = $props();
+
+	const sommaire = $derived([
+		{ id: 'premiere-annee', titre: 'Votre première année' },
+		...[...ARTICLES, ...ARTICLES_ETATS].map((a) => ({ id: a.id, titre: a.titre })),
+		{ id: 'glossaire', titre: 'Glossaire' },
+		{ id: 'raccourcis', titre: 'Raccourcis du clavier' },
+		...(data.codeSource ? [{ id: 'code-source', titre: 'Code source' }] : [])
+	]);
 </script>
+
+{#snippet liens()}
+	<ol>
+		{#each sommaire as e (e.id)}
+			<li><a href="#{e.id}">{e.titre}</a></li>
+		{/each}
+	</ol>
+{/snippet}
 
 <EnTete
 	titre="Aide"
 	sousTitre="Tout ce qu’il faut pour tenir la trésorerie, sans formation. Cette aide reste sur votre instance."
 />
 
-<div class="lecture">
-	<section id="premiere-annee">
-		<h2 class="t-heading">Votre première année</h2>
-		<ol class="annee">
-			{#each PREMIERE_ANNEE as e (e.titre)}
-				<li><strong>{e.titre}.</strong> {e.texte}</li>
-			{/each}
-		</ol>
-	</section>
-
-	{#each [...ARTICLES, ...ARTICLES_ETATS] as a (a.id)}
-		<section id={a.id}>
-			<h2 class="t-heading">{a.titre}</h2>
-			{#each a.paragraphes as p (p)}<p>{p}</p>{/each}
+<div class="aide">
+	<details class="sommaire-replie">
+		<summary class="t-label">Sommaire</summary>
+		<nav aria-label="Sommaire de l’Aide">{@render liens()}</nav>
+	</details>
+	<nav class="sommaire-colonne" aria-label="Sommaire de l’Aide">
+		<p class="t-label">Sommaire</p>
+		{@render liens()}
+	</nav>
+	<div class="lecture">
+		<section id="premiere-annee">
+			<h2 class="t-heading">Votre première année</h2>
+			<ol class="annee">
+				{#each PREMIERE_ANNEE as e (e.titre)}
+					<li><strong>{e.titre}.</strong> {e.texte}</li>
+				{/each}
+			</ol>
 		</section>
-	{/each}
 
-	<section id="glossaire">
-		<h2 class="t-heading">Glossaire</h2>
-		<dl>
-			{#each GLOSSAIRE as t (t.terme)}
-				<div id="terme-{t.ancre}">
-					<dt>{t.terme}</dt>
-					<dd>{t.definition}</dd>
-				</div>
-			{/each}
-		</dl>
-	</section>
+		{#each [...ARTICLES, ...ARTICLES_ETATS] as a (a.id)}
+			<section id={a.id}>
+				<h2 class="t-heading">{a.titre}</h2>
+				{#each a.paragraphes as p (p)}<p>{p}</p>{/each}
+			</section>
+		{/each}
 
-	<section id="raccourcis">
-		<h2 class="t-heading">Raccourcis du clavier</h2>
-		<ul>
-			{#each RACCOURCIS as r (r.touche)}
-				<li><Touche contenu>{r.touche}</Touche> {r.effet}</li>
-			{/each}
-		</ul>
-		<h3 class="t-label">Dans le Pointage</h3>
-		<ul>
-			{#each RACCOURCIS_POINTAGE as r (r.touche)}
-				<li><Touche contenu>{r.touche}</Touche> {r.effet}</li>
-			{/each}
-		</ul>
-	</section>
-
-	{#if data.codeSource}
-		<section id="code-source">
-			<h2 class="t-heading">Code source</h2>
-			<p>
-				Cet outil est un logiciel libre, sous licence AGPL-3.0.
-				<a href="/code-source" data-sveltekit-reload>Télécharger le code de cette installation</a>.
-			</p>
+		<section id="glossaire">
+			<h2 class="t-heading">Glossaire</h2>
+			<dl>
+				{#each GLOSSAIRE as t (t.terme)}
+					<div id="terme-{t.ancre}">
+						<dt>{t.terme}</dt>
+						<dd>{t.definition}</dd>
+					</div>
+				{/each}
+			</dl>
 		</section>
-	{/if}
+
+		<section id="raccourcis">
+			<h2 class="t-heading">Raccourcis du clavier</h2>
+			<ul>
+				{#each RACCOURCIS as r (r.touche)}
+					<li><Touche contenu>{r.touche}</Touche> {r.effet}</li>
+				{/each}
+			</ul>
+			<h3 class="t-label">Dans le Pointage</h3>
+			<ul>
+				{#each RACCOURCIS_POINTAGE as r (r.touche)}
+					<li><Touche contenu>{r.touche}</Touche> {r.effet}</li>
+				{/each}
+			</ul>
+		</section>
+
+		{#if data.codeSource}
+			<section id="code-source">
+				<h2 class="t-heading">Code source</h2>
+				<p>
+					Cet outil est un logiciel libre, sous licence AGPL-3.0.
+					<a href="/code-source" data-sveltekit-reload>Télécharger le code de cette installation</a
+					>.
+				</p>
+			</section>
+		{/if}
+	</div>
 </div>
 
 <style>
+	.aide {
+		display: grid;
+		gap: var(--espace-4);
+		margin-top: var(--espace-6);
+	}
+
+	.aide section {
+		scroll-margin-top: var(--espace-6);
+	}
+
+	.sommaire-replie {
+		padding: var(--espace-2) var(--espace-3);
+		border: 1px solid var(--border);
+		border-radius: var(--rayon-md);
+		background: var(--surface-raised);
+	}
+
+	.sommaire-replie summary {
+		display: flex;
+		align-items: center;
+		min-height: var(--espace-touch);
+		cursor: pointer;
+	}
+
+	.sommaire-colonne {
+		display: none;
+	}
+
+	.aide ol {
+		display: grid;
+		gap: var(--espace-1);
+	}
+
+	.aide nav li {
+		display: block;
+		min-height: 0;
+	}
+
+	.aide nav a {
+		display: block;
+		padding: var(--espace-1) 0;
+		text-decoration: none;
+	}
+
+	.aide nav a:hover {
+		text-decoration: underline;
+	}
+
+	/* Assez de place : le sommaire suit la lecture, à droite. */
+	@media (min-width: 1024px) {
+		.aide {
+			grid-template-columns: minmax(0, var(--espace-reading-max)) minmax(200px, 280px);
+			align-items: start;
+			gap: var(--espace-7, 48px);
+		}
+
+		.sommaire-replie {
+			display: none;
+		}
+
+		.sommaire-colonne {
+			position: sticky;
+			top: var(--espace-4);
+			display: grid;
+			grid-column: 2;
+			grid-row: 1;
+			gap: var(--espace-2);
+			max-height: calc(100dvh - 2 * var(--espace-4));
+			overflow-y: auto;
+			font-size: var(--typo-label-taille);
+		}
+
+		.lecture {
+			grid-column: 1;
+			grid-row: 1;
+		}
+	}
+
 	.lecture {
 		display: grid;
 		gap: var(--espace-6);
 		max-width: var(--espace-reading-max);
-		margin-top: var(--espace-6);
 	}
 
 	section > :global(* + *) {

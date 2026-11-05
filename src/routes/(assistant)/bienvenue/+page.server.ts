@@ -67,6 +67,8 @@ function lireComptes(champs: Record<string, string>): Resultat<CompteDeDepart[]>
 		const libelle = champs[`libelle-${i}`] ?? '';
 		// Une rangée laissée vide n'est pas un Compte.
 		if (libelle.trim() === '' && !champs[`solde-${i}`]?.trim()) continue;
+		// Un solde vide n'est pas un zéro : 0 se tape, sinon le contrôle partirait d'un chiffre faux.
+		if (!champs[`solde-${i}`]?.trim()) erreurs[`solde-${i}`] = 'solde_depart_requis';
 		const r = valider(schemaLigneCompte, {
 			id: champs[`id-${i}`] || undefined,
 			libelle,
