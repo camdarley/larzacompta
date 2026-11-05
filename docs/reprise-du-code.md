@@ -59,11 +59,14 @@ Deux choix attendent la publication du projet, sans bloquer une installation dep
 
 ## Tests
 
-| Niveau                       | Commande          | Quand                                                    |
-| ---------------------------- | ----------------- | -------------------------------------------------------- |
-| Domaine, application, projet | `pnpm test`       | À chaque commit                                          |
-| Parcours                     | `pnpm test:e2e`   | Avant un commit qui touche l'interface                   |
-| Cycle                        | `pnpm test:cycle` | À chaque version. Docker requis, restic vient de l'image |
-| Données privées              | `pnpm test:prive` | Sur un poste qui a `.private/`                           |
+| Niveau                       | Commande                                                        | Quand                                                           |
+| ---------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
+| Domaine, application, projet | `pnpm test`                                                     | À chaque commit                                                 |
+| Parcours                     | `pnpm test:e2e`                                                 | Avant un commit qui touche l'interface                          |
+| Cycle                        | `pnpm test:cycle`                                               | À chaque version. Docker requis, restic vient de l'image        |
+| Montée de version            | `pnpm test:cycle:montee`                                        | Quand le cycle change. Clone jetable, migration fausse comprise |
+| Machine vierge               | `pnpm test:machine-vierge`                                      | Quand les guides ou le déploiement changent. Docker requis      |
+| Aperçu PDF dans Chrome       | `NAVIGATEUR_REEL=<dossier> pnpm exec playwright test 24-apercu` | Quand l'aperçu change. Regarder la capture                      |
+| Données privées              | `pnpm test:prive`                                               | Sur un poste qui a `.private/`                                  |
 
 `tests/jeux/charger.ts` charge un Exercice complet : `chargerDansDossier()` pour obtenir une instance à regarder, `chargerJeu()` dans un test d'application. Ses résultats attendus sont dans `ATTENDUS_COMPLET`.

@@ -90,7 +90,7 @@ describe('CI de version', () => {
 		const v = lire('.github/workflows/version.yml');
 		expect(v.slice(v.indexOf('  cycle:'))).toContain('needs: verifier');
 		expect(v.slice(v.indexOf('  image:'))).toContain('needs: cycle');
-		expect(v).toContain('pnpm test:cycle');
+		expect(v).toContain('node tests/cycle/cycle.ts');
 	});
 });
 
