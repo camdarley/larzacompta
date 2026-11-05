@@ -54,6 +54,8 @@ legend {
 	font-variation-settings:
 		'SOFT' 50,
 		'WONK' 0;
+	/* Un titre à la ligne garde ses mots ensemble : « 2026-001 » ne se coupe pas au tiret. */
+	text-wrap: balance;
 }
 
 .t-title {

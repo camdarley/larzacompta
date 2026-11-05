@@ -22,15 +22,13 @@
 			? `Brouillon pour ${f.tiersNom}`
 			: `${avoir ? 'Avoir' : 'Facture'} n° ${f.numero}`
 	);
-	const sousTitre = $derived(
-		[
-			f.dateEmission ? `Émise le ${formaterDateLongue(f.dateEmission)}` : 'Sans date',
-			`pour ${f.tiersNom}`
-		].join(', ')
-	);
+	const date = $derived.by(() => {
+		if (f.dateEmission === null) return 'Sans date';
+		const jour = formaterDateLongue(f.dateEmission);
+		return f.numero === null ? `Datée du ${jour}` : `Émise le ${jour}`;
+	});
+	const sousTitre = $derived(`${date}, pour ${f.tiersNom}`);
 </script>
-
-<ReserveOrdinateur />
 
 {#if f.numero === null}
 	<div class="seulement-ordinateur">
@@ -73,6 +71,7 @@
 		<h1 class="t-title titre-brouillon">{titre}</h1>
 		<p class="t-muted">{sousTitre}</p>
 	{/if}
+	<div class="reserve-telephone"><ReserveOrdinateur /></div>
 
 	<div class="consultation">
 		<div class="resume">
@@ -145,6 +144,10 @@
 </div>
 
 <style>
+	.reserve-telephone {
+		margin-top: var(--espace-3);
+	}
+
 	.retour {
 		display: inline-flex;
 		align-items: center;

@@ -628,7 +628,6 @@
 	.tete {
 		display: flex;
 		align-items: center;
-		flex-wrap: wrap;
 		gap: 0 var(--espace-2);
 		min-width: 0;
 	}

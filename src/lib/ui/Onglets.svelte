@@ -19,6 +19,15 @@
 		return ici === chemin || (o.sousPages === true && ici.startsWith(`${chemin}/`));
 	};
 
+	/** Sur téléphone la rangée défile : l'onglet actif ne doit pas rester coupé au bord. */
+	$effect(() => {
+		void page.url.pathname;
+		const courant = liste?.querySelector<HTMLElement>('[aria-current="page"]');
+		const rangee = liste?.querySelector('ul');
+		if (!courant || !rangee || rangee.scrollWidth <= rangee.clientWidth) return;
+		rangee.scrollLeft = courant.offsetLeft - (rangee.clientWidth - courant.offsetWidth) / 2;
+	});
+
 	/** Chaque onglet a son URL ; les flèches parcourent la liste (EXPERIENCE.md). */
 	function surTouche(e: KeyboardEvent) {
 		const suivant = e.key === 'ArrowRight' || (vertical && e.key === 'ArrowDown');
@@ -86,6 +95,7 @@
 	/* Une seule rangée sur téléphone : elle défile, le trait actif reste sous son onglet. */
 	@media (max-width: 639.98px) {
 		ul {
+			position: relative;
 			flex-wrap: nowrap;
 			gap: 0 var(--espace-3);
 			overflow-x: auto;

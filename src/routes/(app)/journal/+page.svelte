@@ -28,13 +28,19 @@
 		ligne_releve: 'Ligne de relevé',
 		constat_solde: 'Solde du relevé',
 		piece: 'Pièce',
-		creance_dette: 'Créance ou Dette'
+		creance_dette: 'Créance ou Dette',
+		session_caisse: 'Session de caisse',
+		comptage: 'Comptage',
+		cheque_emis: 'Chèque émis',
+		facture: 'Facture'
 	};
 	/** Ce que toute personne qui lit le Journal peut aussi ouvrir. */
 	const CHEMINS_CONSULTATION: Record<string, (id: number) => string> = {
 		operation: (id) => urlAvec({ op: String(id) }),
 		piece: (id) => `/pieces/toutes?piece=${id}`,
-		creance_dette: (id) => `/creances-dettes#somme-${id}`
+		creance_dette: (id) => `/creances-dettes#somme-${id}`,
+		session_caisse: (id) => `/sessions/${id}`,
+		cheque_emis: () => '/cheques/emis'
 	};
 	const CHEMINS: Record<string, (id: number) => string> = {
 		acces: () => '/reglages/acces',
@@ -44,6 +50,7 @@
 		exercice: () => '/reglages/exercices',
 		groupe: (id) => `/reglages/groupes?groupe=${id}`,
 		nature: (id) => `/reglages/natures?nature=${id}`,
+		facture: (id) => `/factures/${id}`,
 		pointage: () => '/pointage',
 		import_releve: () => '/pointage',
 		ligne_releve: () => '/pointage',
