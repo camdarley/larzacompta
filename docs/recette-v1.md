@@ -12,7 +12,7 @@ pnpm test:prive   # sauté si .private/ est absent
 
 ## Dernière recette
 
-Le 5 novembre 2026, sur la version candidate 1.0.0 : `check` et `lint` sans erreur, 1 574 tests sans navigateur, 390 parcours Playwright (Chromium), couverture du domaine au-dessus de 95 %, cycle de version et montée prouvés avec Docker, `test:prive` vert. La recherche des mots, IBAN et numéros de `.private/` dans les fichiers suivis par Git n'a trouvé aucun nom, IBAN ni n° de chèque réel.
+Le 5 novembre 2026, sur la version candidate 1.0.0 : `check` et `lint` sans erreur, 1 604 tests sans navigateur, 406 parcours Playwright sous Chromium et 406 sous WebKit, couverture du domaine au-dessus de 95 %, cycle de version et montée prouvés avec Docker, `test:prive` vert. La recherche des mots, IBAN et numéros de `.private/` dans les fichiers suivis par Git n'a trouvé aucun nom, IBAN ni n° de chèque réel.
 
 ## Critères de succès
 
