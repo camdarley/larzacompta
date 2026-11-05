@@ -4,8 +4,11 @@ import type { Base } from './connexion.ts';
 import { traduireErreurSqlite } from './erreurs.ts';
 
 class Annulation extends Error {
-	constructor(readonly resultat: Resultat<never>) {
+	resultat: Resultat<never>;
+
+	constructor(resultat: Resultat<never>) {
 		super('annulation');
+		this.resultat = resultat;
 	}
 }
 

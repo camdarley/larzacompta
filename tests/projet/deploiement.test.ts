@@ -85,6 +85,15 @@ describe('.dockerignore', () => {
 	});
 });
 
+describe('CI de version', () => {
+	it('ne produit l’image qu’après le cycle complet', () => {
+		const v = lire('.github/workflows/version.yml');
+		expect(v.slice(v.indexOf('  cycle:'))).toContain('needs: verifier');
+		expect(v.slice(v.indexOf('  image:'))).toContain('needs: cycle');
+		expect(v).toContain('pnpm test:cycle');
+	});
+});
+
 describe('télémétrie', () => {
 	it('aucune dépendance de mesure d’audience', () => {
 		const deps = Object.keys(JSON.parse(lire('package.json')).dependencies).join(' ');

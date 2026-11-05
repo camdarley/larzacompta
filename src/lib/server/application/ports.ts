@@ -247,6 +247,8 @@ export type NouveauConstat = {
 export type DepotPointage = {
 	periodes(compteId: number): (Periode & { id: number })[];
 	creerImport(i: NouvelImport): number;
+	/** Fichiers de relevé conservés : comme une Pièce, ils ne sont pas des orphelins. */
+	fichiersReleves(): string[];
 	creerLigne(
 		l: LignePlanifiee & { compteId: number; importId: number | null; creeLe: Instant }
 	): number;

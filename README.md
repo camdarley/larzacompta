@@ -20,5 +20,14 @@ Node 26.13 et pnpm 12.16 sont attendus (`.node-version`, champ `packageManager`)
 | `pnpm test`       | Domaine, application, garde-fous du projet                    |
 | `pnpm test:e2e`   | Parcours Playwright sur le serveur construit                  |
 | `pnpm test:prive` | Contrôle sur `.private/`, sauté si le dossier manque          |
+| `pnpm test:cycle` | Sauvegarde, restauration, montée de version, avec Docker      |
 
-La reprise du code est décrite dans [`docs/reprise-du-code.md`](docs/reprise-du-code.md). Les décisions prises sans arbitrage humain sont dans [`DECISIONS.md`](DECISIONS.md).
+## Documentation
+
+- [Installer](docs/installation.md)
+- [Mettre à jour](docs/mise-a-jour.md)
+- [Restaurer](docs/restauration.md)
+- [Transmettre l'instance](docs/transmission.md)
+- [Reprendre le code](docs/reprise-du-code.md)
+
+Les décisions prises sans arbitrage humain sont dans [`DECISIONS.md`](DECISIONS.md).

@@ -18,6 +18,9 @@ export function creerDepotPointage(base: Base): DepotPointage {
 				(@compteId, @source, @nomFichier, @fichierSha256, @dateMin, @dateMax,
 				 @lues, @nouvelles, @connues, @importeLe, @importePar)
 		`),
+		fichiersReleves: base
+			.prepare('SELECT fichier_sha256 FROM import_releve WHERE fichier_sha256 IS NOT NULL')
+			.pluck(),
 		creerLigne: base.prepare(`
 			INSERT INTO ligne_releve
 				(compte_id, import_id, date, montant_centimes, libelle, identifiant_source, empreinte, doublon, cree_le)
@@ -51,6 +54,8 @@ export function creerDepotPointage(base: Base): DepotPointage {
 			),
 
 		creerImport: (i) => Number(r.creerImport.run(i).lastInsertRowid),
+
+		fichiersReleves: () => r.fichiersReleves.all() as string[],
 
 		creerLigne: (l) =>
 			Number(

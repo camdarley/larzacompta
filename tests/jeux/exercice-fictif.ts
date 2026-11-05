@@ -186,3 +186,37 @@ export const ATTENDUS = {
 		'Spectacle de Noël': c(-400_00)
 	}
 };
+
+/**
+ * Ce que `charger.ts` ajoute aux saisies ci-dessus, en plus des opérations de tous les jours.
+ * Chaque cas de l'analyse d'origine couvert au jalon 1 s'y retrouve, avec ses chiffres au centime.
+ */
+export const JEU_COMPLET = {
+	caisse: { libelle: 'Caisse de la fête', type: 'caisse' as const, solde: c(80_00) },
+	/** Montant du dernier relevé de la Banque, un frais encore inconnu du cahier compris. */
+	soldeReleve: c(2337_00),
+	dateReleve: '2026-11-02',
+	/** Frais lu sur le relevé et pas encore saisi : c'est l'Écart que le Tableau de contrôle montre. */
+	ecartReleve: c(-3_50)
+};
+
+export const ATTENDUS_COMPLET = {
+	/** −359,50 de base, −150,00 tardif, +60,00 de dépôt d'espèces, +400,00 de Créance, +2 000,00 de subvention. */
+	soldeBanqueFin: c(1950_50),
+	soldeLivretFin: c(9_200_00),
+	/** 80,00 de départ, −60,00 déposés, +120,00 de buvette, −30,00 payés en espèces sur la recette. */
+	soldeCaisseFin: c(110_00),
+	/** 620,50 + 120,00 de buvette en espèces + 2 000,00 de subvention. */
+	recettes: c(2740_50),
+	/** 1 980,00 + 30,00 de fournitures payées en espèces. */
+	depenses: c(2010_00),
+	resultat: c(730_50),
+	/** +400,00 de Créance de 2025-2026 encaissée, −150,00 de facture tardive de 2025-2026. */
+	resultatAnterieurs: c(250_00),
+	/** Résultat + rattachements : 11 260,50 − 10 280,00. */
+	variation: c(980_50),
+	resultatKermesse: c(130_50),
+	/** Dette reprise de 2025-2026, toujours due. */
+	dettesRestantes: c(90_00),
+	creancesRestantes: c(0)
+};

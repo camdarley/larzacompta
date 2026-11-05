@@ -15,11 +15,11 @@ export type Restic = {
 const DEPOT_ABSENT = 10;
 
 class EchecRestic extends Error {
-	constructor(
-		message: string,
-		readonly code: number | null
-	) {
+	code: number | null;
+
+	constructor(message: string, code: number | null) {
 		super(message);
+		this.code = code;
 	}
 }
 

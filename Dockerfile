@@ -49,8 +49,9 @@ ENV NODE_ENV=production \
 	RESTIC_CACHE_DIR=/data/sauvegardes/cache \
 	APE_REVISION=${APE_REVISION}
 WORKDIR /app
+# `openssh-client` : restic passe par lui pour un dépôt `sftp:`.
 RUN apt-get update \
-	&& apt-get install --yes --no-install-recommends ca-certificates \
+	&& apt-get install --yes --no-install-recommends ca-certificates openssh-client \
 	&& rm -rf /var/lib/apt/lists/*
 COPY --from=restic /usr/local/bin/restic /usr/local/bin/restic
 COPY --from=construction /app/build ./build

@@ -41,3 +41,29 @@ Limites constatées :
 Derrière Caddy, adapter-node 6 lit `PROTOCOL_HEADER` et `HOST_HEADER`. Sans proxy, en http, il faut poser `PROTOCOL_HEADER=x-forwarded-proto` et envoyer cet en-tête, comme le fait `playwright.config.ts`. Sinon, Kit voit une origine en `https` et refuse les formulaires.
 
 Le lien initial s'écrit dans les logs au premier démarrage. `node build/cli/ape.js lien-initial` en réémet un.
+
+## Tâches de fond et exploitation
+
+- Le module `exploitation` possède `sauvegarde_execution` et `version_disponible`. Ses décisions sont pures, dans `src/lib/domaine/exploitation.ts`. Seul `infra/sauvegarde/restic.ts` parle à restic.
+- `hooks.server.ts` lance `demarrerTachesDeFond()` : un battement dans `/data/serveur-en-marche`, et un tour toutes les 10 minutes. `APE_SAUVEGARDE=1` est posé par l'image : hors de Docker, pas de restic, donc pas de minuteur.
+- Un fichier nouveau dans `fichiers/` doit être connu de `retirerOrphelins()`, sinon il disparaîtra à la sauvegarde suivante. Aujourd'hui : les Pièces et les relevés importés.
+- `.dockerignore` est une liste blanche, parce que l'image sert son propre code sur `/code-source`. Un fichier ajouté à la racine doit y entrer s'il fait partie du code.
+- Le projet tourne en deux modes. Vite transpile le serveur, mais `tests/cycle/` et `scripts/` passent par Node seul, en mode strip-only : pas de propriété de paramètre (`constructor(readonly x)`) ni d'`enum` dans `src/lib/server/`.
+
+## Avant la première version publique
+
+Deux choix attendent la publication du projet, sans bloquer une installation depuis les sources :
+
+- `URL_VERSIONS` dans `src/lib/produit.ts`. Vide, aucun appel n'est fait et le `bandeau` de version ne peut pas s'afficher.
+- L'image publiée : `.github/workflows/version.yml` la pousse sur le registre du dépôt, et `APE_IMAGE` la désigne dans `.env`.
+
+## Tests
+
+| Niveau                       | Commande          | Quand                                                    |
+| ---------------------------- | ----------------- | -------------------------------------------------------- |
+| Domaine, application, projet | `pnpm test`       | À chaque commit                                          |
+| Parcours                     | `pnpm test:e2e`   | Avant un commit qui touche l'interface                   |
+| Cycle                        | `pnpm test:cycle` | À chaque version. Docker requis, restic vient de l'image |
+| Données privées              | `pnpm test:prive` | Sur un poste qui a `.private/`                           |
+
+`tests/jeux/charger.ts` charge un Exercice complet : `chargerDansDossier()` pour obtenir une instance à regarder, `chargerJeu()` dans un test d'application. Ses résultats attendus sont dans `ATTENDUS_COMPLET`.
