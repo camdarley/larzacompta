@@ -34,6 +34,7 @@
 
 <EnTete
 	titre="Actions"
+	aide={{ ancre: 'action', texte: 'Qu’est-ce qu’une Action ?' }}
 	contexte="Réglages"
 	sousTitre="Une Action, c’est une activité dont vous voulez connaître le résultat."
 >

@@ -5,9 +5,11 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { test, type Page } from '@playwright/test';
-import { connecter } from './aides.ts';
+import { base, connecter } from './aides.ts';
 
 const dossier = process.env.CAPTURES;
+/** Restreint les captures aux écrans dont le nom correspond. */
+const filtre = new RegExp(process.env.CAPTURES_FILTRE ?? '.');
 
 const FORMATS = [
 	{ nom: 'ordinateur', largeur: 1280, hauteur: 800 },
@@ -22,6 +24,10 @@ const THEMES = [
 
 const ECRANS: [string, string][] = [
 	['tableau', '/'],
+	['operations', '/operations'],
+	['operations-recherche', '/operations?q=autocars'],
+	['operations-vide', '/operations?q=zzz'],
+	['operation-nouvelle', '/operations?op=nouvelle'],
 	['aide', '/aide'],
 	['journal', '/journal'],
 	['journal-filtre', '/journal?type=compte'],
@@ -44,6 +50,35 @@ const ECRANS: [string, string][] = [
 	['bienvenue-fin', '/bienvenue?etape=fin']
 ];
 
+function idDe(libelle: string) {
+	const b = base();
+	const id = b.prepare('SELECT id FROM operation WHERE libelle = ?').pluck().get(libelle);
+	b.close();
+	return id;
+}
+
+/** Écrans qui n'existent qu'une fois les parcours Opération joués. */
+function ecransOperation(): [string, string][] {
+	const op = (nom: string, libelle: string, avant = ''): [string, string] => [
+		nom,
+		`/operations?${avant}op=${idDe(libelle)}`
+	];
+	return [
+		op('op-repartie', 'Autocars du Sud'),
+		op('op-pointee', 'Pointée, libellé corrigé'),
+		op('op-cloturee', 'Autocars de mars', 'exercice=2025-2026&'),
+		op('op-annulee', 'Saisie par erreur'),
+		op('op-interne', 'Virement de Compte courant vers Livret'),
+		op('op-compensee', 'Photographe imaginaire'),
+		op('op-somme', 'Rendu : Trop-perçu famille fictive'),
+		['nouvelle-interne', '/operations?op=nouvelle&intention=interne'],
+		['nouvelle-compensee', '/operations?op=nouvelle&intention=compensee'],
+		['nouvelle-somme', '/operations?op=nouvelle&intention=somme'],
+		['nouvelle-remboursement', '/operations?op=nouvelle&intention=remboursement'],
+		['filtres-telephone', '/operations?filtres=1']
+	];
+}
+
 async function photographier(page: Page, nom: string) {
 	if (!dossier) return;
 	await page.waitForLoadState('networkidle');
@@ -63,12 +98,61 @@ test.describe('captures', () => {
 			for (const [theme, colorScheme] of THEMES) {
 				await page.emulateMedia({ colorScheme });
 				await page.setViewportSize({ width: format.largeur, height: format.hauteur });
-				for (const [nom, chemin] of ECRANS) {
+				const avecOperations = idDe('Autocars du Sud') ? ecransOperation() : [];
+				for (const [nom, chemin] of [...ECRANS, ...avecOperations].filter(([n]) =>
+					filtre.test(n)
+				)) {
 					await page.goto(chemin);
 					await photographier(page, `${nom}-${format.nom}-${theme}`);
 				}
 			}
 		}
+		// États qui ne s'atteignent que par un geste : liste ouverte, bulle, palette, reste.
+		for (const format of FORMATS.filter((f) => f.nom !== 'tablette')) {
+			for (const [theme, colorScheme] of THEMES) {
+				await page.emulateMedia({ colorScheme });
+				await page.setViewportSize({ width: format.largeur, height: format.hauteur });
+				const suffixe = `${format.nom}-${theme}`;
+
+				await page.goto('/operations?op=nouvelle', { waitUntil: 'networkidle' });
+				const d = page.getByRole('dialog');
+				await d.getByLabel('Montant', { exact: true }).fill('1000');
+				await d.getByLabel('Libellé').fill('Autocars Bleus');
+				await d.getByRole('combobox', { name: 'Nature de la ligne 1' }).waitFor();
+				await page.waitForTimeout(400);
+				await photographier(page, `geste-suggestion-${suffixe}`);
+				await d.getByLabel('Montant de la ligne 1').fill('600');
+				await d.getByLabel('Montant de la ligne 1').blur();
+				await photographier(page, `geste-reste-${suffixe}`);
+				await d.getByLabel('Montant de la ligne 1').fill('1050');
+				await d.getByLabel('Montant de la ligne 1').blur();
+				await photographier(page, `geste-trop-${suffixe}`);
+				await d.getByLabel('Montant de la ligne 1').fill('600');
+				await d.getByRole('button', { name: 'Actions de la ligne 1' }).click();
+				await photographier(page, `geste-menu-ligne-${suffixe}`);
+				await d.getByRole('button', { name: 'Dupliquer' }).click();
+				const action = d.getByRole('combobox', { name: 'Action de la ligne 2' });
+				await action.click();
+				await action.fill('o');
+				await photographier(page, `geste-liste-${suffixe}`);
+				await action.press('Escape');
+
+				await page.goto('/operations', { waitUntil: 'networkidle' });
+				await page.keyboard.press('Control+k');
+				await page.getByRole('dialog').getByRole('combobox').fill('250');
+				await page.waitForTimeout(400);
+				await photographier(page, `geste-palette-${suffixe}`);
+				await page.keyboard.press('Escape');
+				await page.getByRole('button', { name: 'Qu’est-ce qu’une Opération ?' }).focus();
+				await photographier(page, `geste-aide-terme-${suffixe}`);
+				await page.keyboard.press('Escape');
+				await page.getByRole('heading', { level: 1 }).click();
+				await page.keyboard.type('?');
+				await photographier(page, `geste-raccourcis-${suffixe}`);
+				await page.keyboard.press('Escape');
+			}
+		}
+		if (process.env.CAPTURES_FILTRE) return;
 		const invite = await browser.newContext({
 			baseURL: test.info().project.use.baseURL,
 			extraHTTPHeaders: { 'x-forwarded-proto': 'http' }

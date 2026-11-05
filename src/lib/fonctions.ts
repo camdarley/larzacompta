@@ -22,6 +22,7 @@ export type Fonction =
 
 const LIVREES: ReadonlySet<Fonction> = new Set<Fonction>([
 	'tableau_controle',
+	'operations',
 	'reglages',
 	'journal',
 	'aide'

@@ -46,6 +46,7 @@
 
 <EnTete
 	titre="Exercices"
+	aide={{ ancre: 'exercice', texte: 'Qu’est-ce qu’un Exercice ?' }}
 	contexte="Réglages"
 	sousTitre="Deux Exercices peuvent être ouverts en même temps, le temps de finir une année et de commencer la suivante."
 >

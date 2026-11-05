@@ -28,6 +28,62 @@ export const ARTICLES: readonly Article[] = [
 		]
 	},
 	{
+		id: 'operations',
+		titre: 'Saisir une Opération',
+		paragraphes: [
+			'Partez de ce que vous voulez faire : Dépense, Recette, Entre Comptes, ou Autre. Aucun signe à saisir, l’outil sait dans quel sens va l’argent.',
+			'Un montant accepte une addition : 220+180 donne 400,00 €. Dans une Ligne, la touche = insère ce qu’il reste à répartir.',
+			'« Enregistrer et continuer » rouvre un formulaire vide, avec la même date et le même Compte : pratique pour une pile de tickets.'
+		]
+	},
+	{
+		id: 'repartir',
+		titre: 'Répartir sur plusieurs Lignes',
+		paragraphes: [
+			'Une facture peut concerner plusieurs Actions : répartissez-la en Lignes. Tant que la somme des Lignes n’égale pas le montant, le reste s’affiche et rien ne s’enregistre.',
+			'Une Ligne de sens contraire réduit une dépense : c’est le cas d’un avoir sur une facture. Une Ligne sans Action est permise : le fonctionnement courant n’en a pas besoin.',
+			'Une Ligne peut se rattacher à un Exercice antérieur, par exemple un paiement tardif. Elle compte dans l’Exercice où l’argent a bougé, dans un bloc à part.'
+		]
+	},
+	{
+		id: 'autres-operations',
+		titre: 'Les cas particuliers',
+		paragraphes: [
+			'Entre Comptes : un virement vers le livret ou un dépôt d’espèces. L’argent change de place, sans recette ni dépense. Chaque côté a sa date.',
+			'Remboursement d’un fournisseur : retrouvez la dépense d’origine, indiquez le montant reçu. La dépense de l’Action diminue d’autant.',
+			'Somme à rendre : un trop-perçu reçu puis rendu. Le résultat ne bouge pas. « Rendre cette somme » prépare la sortie et relie les deux Opérations.',
+			'Opération compensée : le fournisseur a encaissé des ventes pour vous, et ne facture que la différence. L’Action voit la facture et les ventes, le Compte seulement le différentiel.',
+			'Paiement en plusieurs fois : reliez les Opérations avec « Relier à une autre Opération ». Chacune affiche le total. L’outil ne calcule et ne déclare aucune cotisation.'
+		]
+	},
+	{
+		id: 'retrouver',
+		titre: 'Retrouver une Opération',
+		paragraphes: [
+			'La recherche couvre le libellé, la référence, les notes et les montants, y compris ceux des Lignes. Les filtres se combinent et restent dans l’adresse de la page, à partager ou à recharger.',
+			'« Exporter en CSV » donne exactement le résultat affiché, une rangée par Ligne, lisible dans un tableur.'
+		]
+	},
+	{
+		id: 'corriger',
+		titre: 'Corriger ou annuler',
+		paragraphes: [
+			'Une Opération se corrige tant que son Exercice est ouvert. Son bloc Historique garde chaque modification.',
+			'« Annuler l’Opération » la sort des soldes et des états. Elle reste visible, avec son état, et le Journal en garde la trace.',
+			'Une Opération pointée garde son montant et son Compte. Son libellé et sa note restent modifiables.',
+			'Dans un Exercice clôturé, rien ne change plus. Pour corriger, créez une nouvelle Opération dans un Exercice ouvert.'
+		]
+	},
+	{
+		id: 'etats-operation',
+		titre: 'Ce que disent les pastilles',
+		paragraphes: [
+			'Pointé : l’Opération est reliée à une ligne de votre relevé. À pointer : pas encore.',
+			'Clôturé : l’Exercice de l’Opération est clôturé, elle ne change plus. « Sur 2025-2026 » : une Ligne est rattachée à cet Exercice antérieur.',
+			'Suggestion : l’outil propose une Nature et une Action d’après une Opération semblable. Tab accepte, taper remplace.'
+		]
+	},
+	{
 		id: 'journal',
 		titre: 'Journal des modifications',
 		paragraphes: [
@@ -194,5 +250,34 @@ export const GLOSSAIRE: readonly Terme[] = [
 
 /** Raccourcis livrés. Les autres arrivent avec leur fonction. */
 export const RACCOURCIS: readonly { touche: string; effet: string }[] = [
-	{ touche: 'Échap', effet: 'Ferme la couche du dessus' }
+	{ touche: 'Ctrl+K', effet: 'Recherche globale (⌘K sur Mac)' },
+	{ touche: 'n', effet: 'Nouvelle Opération' },
+	{ touche: '?', effet: 'Aide des raccourcis de l’écran' },
+	{ touche: 'Échap', effet: 'Ferme la couche du dessus' },
+	{ touche: 'Ctrl+Entrée', effet: 'Dans le panneau : enregistre (⌘Entrée sur Mac)' },
+	{ touche: '=', effet: 'Dans un montant de Ligne : insère le reste à répartir' }
+];
+
+/** Pour un·e successeur·e : l'année racontée dans l'ordre (UJ-4). */
+export const PREMIERE_ANNEE: readonly { titre: string; texte: string }[] = [
+	{
+		titre: 'En septembre',
+		texte:
+			'Regardez le Tableau de contrôle : il dit où en sont les Comptes. Le Journal raconte ce qui s’est passé avant vous.'
+	},
+	{
+		titre: 'Chaque mois',
+		texte:
+			'Saisissez les dépenses et les recettes au fil de l’eau, avec le relevé sous les yeux. Une Opération simple prend quelques secondes.'
+	},
+	{
+		titre: 'À chaque évènement',
+		texte:
+			'Créez une Action pour la Kermesse ou la sortie : son résultat se lira tout seul. Répartissez les factures communes entre Actions.'
+	},
+	{
+		titre: 'En fin d’année',
+		texte:
+			'Un paiement tardif se rattache à l’Exercice précédent. Deux Exercices peuvent rester ouverts le temps de finir l’année.'
+	}
 ];

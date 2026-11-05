@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { Plus } from '@lucide/svelte';
 	import type { Exercice } from '#lib/domaine/exercices.ts';
 	import type { Entree, Navigation } from '#lib/fonctions.ts';
+	import { urlAvec } from './url.ts';
 	import Icone from './Icone.svelte';
 	import MenuPersonnel from './MenuPersonnel.svelte';
 	import SelecteurExercice from './SelecteurExercice.svelte';
@@ -12,10 +14,11 @@
 		exercices: Exercice[];
 		exercice: Exercice | null;
 		nomAcces: string;
+		peutSaisir: boolean;
 		lien: (href: string) => string;
 	};
 
-	let { nomApe, nav, exercices, exercice, nomAcces, lien }: Props = $props();
+	let { nomApe, nav, exercices, exercice, nomAcces, peutSaisir, lien }: Props = $props();
 
 	const actif = (e: Entree) =>
 		e.href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(e.href);
@@ -35,6 +38,18 @@
 		<p class="t-heading nom">{nomApe}</p>
 		{#if exercice}<SelecteurExercice {exercices} {exercice} />{/if}
 	</div>
+
+	{#if peutSaisir && exercice}
+		<a
+			class="nouvelle"
+			href={urlAvec({ op: 'nouvelle', depuis: null, rendre: null })}
+			data-sveltekit-reset="false"
+			aria-label="Nouvelle Opération"
+		>
+			<Plus size={20} strokeWidth={1.75} aria-hidden="true" />
+			<span class="libelle">Nouvelle Opération</span>
+		</a>
+	{/if}
 
 	<nav aria-label="Navigation principale" class="principale">
 		{#each nav.groupes as g (g.titre)}
@@ -122,6 +137,18 @@
 		background: var(--primary-soft);
 		color: var(--primary);
 		font-weight: var(--typo-label-graisse);
+	}
+
+	a.nouvelle {
+		justify-content: center;
+		background: var(--primary);
+		color: var(--on-primary);
+		font-weight: var(--typo-label-graisse);
+	}
+
+	a.nouvelle:hover {
+		background: var(--primary-hover);
+		color: var(--on-primary);
 	}
 
 	.pied {

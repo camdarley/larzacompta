@@ -36,7 +36,7 @@ test.describe('points de rupture', () => {
 		await connecter(page);
 		const mobile = page.getByRole('navigation', { name: 'Navigation mobile' });
 		await expect(mobile).toBeVisible();
-		await expect(mobile.getByRole('link')).toHaveText(['Contrôle', 'Plus']);
+		await expect(mobile.getByRole('link')).toHaveText(['Contrôle', 'Opérations', 'Plus']);
 		await expect(page.locator('aside').first()).toBeHidden();
 		// Le thème sombre passe aussi au crible des contrastes.
 		await page.emulateMedia({ colorScheme: 'dark' });
@@ -64,7 +64,13 @@ test.describe('points de rupture', () => {
 test('seules les entrées livrées apparaissent, sans entrée grisée', async ({ page }) => {
 	await connecter(page);
 	const liens = page.locator('aside nav a');
-	await expect(liens).toHaveText(['Tableau de contrôle', 'Réglages', 'Journal', 'Aide']);
+	await expect(liens).toHaveText([
+		'Tableau de contrôle',
+		'Opérations',
+		'Réglages',
+		'Journal',
+		'Aide'
+	]);
 	await expect(page.getByText('bientôt', { exact: false })).toHaveCount(0);
 });
 
@@ -217,7 +223,7 @@ test('une URL interdite au rôle affiche une page calme', async ({ page, context
 	await expect(page).toHaveURL(/\/$/);
 
 	const liens = page.locator('aside nav a');
-	await expect(liens).toHaveText(['Tableau de contrôle', 'Journal', 'Aide']);
+	await expect(liens).toHaveText(['Tableau de contrôle', 'Opérations', 'Journal', 'Aide']);
 
 	const reponse = await page.goto('/reglages/comptes');
 	expect(reponse?.status()).toBe(403);

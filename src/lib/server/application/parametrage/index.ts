@@ -2,6 +2,7 @@ import type { Exercice } from '#lib/domaine/exercices.ts';
 import { deciderAncre } from '#lib/domaine/exercices.ts';
 import {
 	ACTIONS_TYPE,
+	GROUPE_ACTIONS,
 	GROUPE_SYSTEME,
 	GROUPES_TYPE,
 	NATURES_SYSTEME,
@@ -525,6 +526,11 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
+	function groupeParDefaut(libelle: string): number | null {
+		const groupes = depot.groupes();
+		return (groupes.find((g) => g.libelle === libelle) ?? groupes[0])?.id ?? null;
+	}
+
 	return {
 		/** Identité publique : le nom de l'APE figure sur la page de connexion. */
 		association: () => depot.association(),
@@ -587,6 +593,13 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 			);
 		},
 		creerNature: (ctx: Ctx, e: EntreeNature) => executer(casCreerNature, ctx, e),
+		/** Depuis `selecteur-recherche` : le Groupe se corrige ensuite dans Réglages. */
+		creerNatureVolee(ctx: Ctx, libelle: string): Resultat<{ id: number; libelle: string }> {
+			const groupe = groupeParDefaut(GROUPE_SYSTEME);
+			if (groupe === null) return echec('association_absente');
+			const r = executer(casCreerNature, ctx, { libelle, groupeId: groupe, neutre: false });
+			return r.ok ? succes({ id: r.valeur, libelle }) : r;
+		},
 		modifierNature: (ctx: Ctx, e: EntreeNature & { id: number }) =>
 			executer(casModifierNature, ctx, e),
 		activerNature: (ctx: Ctx, id: number, actif: boolean) =>
@@ -599,6 +612,12 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 			);
 		},
 		creerAction: (ctx: Ctx, e: EntreeAction) => executer(casCreerAction, ctx, e),
+		creerActionVolee(ctx: Ctx, libelle: string): Resultat<{ id: number; libelle: string }> {
+			const groupe = groupeParDefaut(GROUPE_ACTIONS);
+			if (groupe === null) return echec('association_absente');
+			const r = executer(casCreerAction, ctx, { libelle, groupeId: groupe, avecCaisse: false });
+			return r.ok ? succes({ id: r.valeur, libelle }) : r;
+		},
 		modifierAction: (ctx: Ctx, e: EntreeAction & { id: number }) =>
 			executer(casModifierAction, ctx, e),
 		activerAction: (ctx: Ctx, id: number, actif: boolean) =>

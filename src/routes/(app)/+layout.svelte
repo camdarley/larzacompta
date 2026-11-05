@@ -1,10 +1,16 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import { TEXTES } from '#lib/messages.ts';
+	import AideRaccourcis from '#lib/ui/AideRaccourcis.svelte';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import BarreLaterale from '#lib/ui/BarreLaterale.svelte';
 	import BarreMobile from '#lib/ui/BarreMobile.svelte';
+	import DialogueReconnexion from '#lib/ui/DialogueReconnexion.svelte';
 	import EnTeteCompact from '#lib/ui/EnTeteCompact.svelte';
+	import PanneauOperation from '#lib/ui/operation/PanneauOperation.svelte';
+	import Palette from '#lib/ui/Palette.svelte';
+	import { urlAvec } from '#lib/ui/url.ts';
 	import Squelette from '#lib/ui/Squelette.svelte';
 
 	let { data, children } = $props();
@@ -18,6 +24,34 @@
 	function lien(href: string) {
 		const choisi = page.url.searchParams.get('exercice');
 		return choisi ? `${href}?exercice=${encodeURIComponent(choisi)}` : href;
+	}
+
+	let paletteOuverte = $state(false);
+	let raccourcisOuverts = $state(false);
+
+	const entreesPalette = $derived([...data.nav.groupes.flatMap((g) => g.entrees), ...data.nav.bas]);
+
+	function dansUnChamp(cible: EventTarget | null) {
+		const e = cible as HTMLElement | null;
+		return e !== null && (e.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName));
+	}
+
+	/** Le caractère produit, pas la touche physique : juste sur un clavier AZERTY (AD-20). */
+	function surTouche(e: KeyboardEvent) {
+		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+			e.preventDefault();
+			paletteOuverte = true;
+			return;
+		}
+		// Une touche seule s'efface devant une saisie, une couche ou la préférence (WCAG 2.1.4).
+		if (!data.raccourcis || e.ctrlKey || e.metaKey || e.altKey) return;
+		if (dansUnChamp(e.target) || data.panneau || paletteOuverte || raccourcisOuverts) return;
+		if (e.key === 'n' && data.peutSaisir) {
+			goto(urlAvec({ op: 'nouvelle' }), { reset: false });
+		} else if (e.key === '?') {
+			e.preventDefault();
+			raccourcisOuverts = true;
+		}
 	}
 
 	// `squelette` après 300 ms seulement, et pour un changement d'écran.
@@ -34,6 +68,8 @@
 	});
 </script>
 
+<svelte:window onkeydown={surTouche} />
+
 <a class="evitement" href="#contenu">Aller au contenu</a>
 
 <div class="coquille">
@@ -43,10 +79,16 @@
 		exercices={data.exercices}
 		exercice={data.exercice}
 		nomAcces={data.acces.nomAffiche}
+		peutSaisir={data.peutSaisir}
 		{lien}
 	/>
 	<div class="colonne">
-		<EnTeteCompact nomApe={data.nomApe} exercices={data.exercices} exercice={data.exercice} />
+		<EnTeteCompact
+			nomApe={data.nomApe}
+			exercices={data.exercices}
+			exercice={data.exercice}
+			peutSaisir={data.peutSaisir}
+		/>
 		<main id="contenu" tabindex="-1">
 			{#if data.exercice?.statut === 'cloture'}
 				<div class="bandeau-exercice">
@@ -62,6 +104,21 @@
 	</div>
 	<BarreMobile entrees={data.entreesMobile} {lien} />
 </div>
+
+<PanneauOperation
+	donnees={data.panneau}
+	exerciceRegarde={data.exercice}
+	peutSaisir={data.peutSaisir}
+/>
+<DialogueReconnexion identifiant={data.acces.identifiant} />
+<Palette
+	bind:ouvert={paletteOuverte}
+	entrees={entreesPalette}
+	peutSaisir={data.peutSaisir}
+	{lien}
+	ouvrirRaccourcis={() => (raccourcisOuverts = true)}
+/>
+<AideRaccourcis bind:ouvert={raccourcisOuverts} />
 
 <style>
 	.evitement {

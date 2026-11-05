@@ -1,9 +1,25 @@
 <script lang="ts">
 	import { reprendreToast, retirerToast, suspendreToast, toasts } from './toasts.svelte.ts';
+
+	/**
+	 * Un `panneau` piège le focus et rend le reste de la page inerte : la pile s'y installe,
+	 * pour que « Annuler » reste atteignable, à la souris comme au clavier.
+	 */
+	let { dansPanneau = false }: { dansPanneau?: boolean } = $props();
+
+	$effect(() => {
+		if (!dansPanneau) return;
+		toasts.panneaux += 1;
+		return () => {
+			toasts.panneaux -= 1;
+		};
+	});
+
+	const visible = $derived(dansPanneau || toasts.panneaux === 0);
 </script>
 
 <div class="pile" aria-live="polite" role="status">
-	{#each toasts.liste as t (t.id)}
+	{#each visible ? toasts.liste : [] as t (t.id)}
 		<div
 			class="toast"
 			role="presentation"

@@ -14,6 +14,8 @@
 		revenir: () => void;
 		libelleRevenir?: string;
 		children: Snippet;
+		/** Le focus va au premier champ : ce dialogue demande une saisie, pas une confirmation. */
+		saisie?: boolean;
 		/** Si l'action est un envoi de formulaire, il fournit son propre bouton. */
 		actionPerso?: Snippet;
 	};
@@ -28,10 +30,12 @@
 		revenir,
 		libelleRevenir = 'Revenir',
 		children,
+		saisie = false,
 		actionPerso
 	}: Props = $props();
 
 	let boutonRevenir = $state<HTMLElement | null>(null);
+	let contenu = $state<HTMLElement | null>(null);
 </script>
 
 <Dialog.Root
@@ -49,11 +53,14 @@
 			onOpenAutoFocus={(e) => {
 				// Le focus initial reste sur « Revenir » pour une action qui engage.
 				e.preventDefault();
-				boutonRevenir?.querySelector('button')?.focus();
+				const champ = saisie ? contenu?.querySelector('input') : null;
+				(champ ?? boutonRevenir?.querySelector('button'))?.focus();
 			}}
 		>
 			<Dialog.Title class="t-title ape-dialogue-titre">{titre}</Dialog.Title>
-			<Dialog.Description class="ape-dialogue-texte">{@render children()}</Dialog.Description>
+			<div bind:this={contenu}>
+				<Dialog.Description class="ape-dialogue-texte">{@render children()}</Dialog.Description>
+			</div>
 			<div class="ape-dialogue-actions">
 				<span bind:this={boutonRevenir}>
 					<Bouton variante="secondaire" onclick={revenir}>{libelleRevenir}</Bouton>

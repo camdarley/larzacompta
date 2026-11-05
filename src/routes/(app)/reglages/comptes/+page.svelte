@@ -52,6 +52,7 @@
 
 <EnTete
 	titre="Comptes"
+	aide={{ ancre: 'compte', texte: 'Qu’est-ce qu’un Compte ?' }}
 	contexte="Réglages"
 	sousTitre="Les lieux où se trouve votre trésorerie : banque, livret, caisses."
 >

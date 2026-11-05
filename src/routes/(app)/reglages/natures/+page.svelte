@@ -35,6 +35,7 @@
 
 <EnTete
 	titre="Natures"
+	aide={{ ancre: 'nature', texte: 'Qu’est-ce qu’une Nature ?' }}
 	contexte="Réglages"
 	sousTitre="La catégorie de chaque recette ou dépense. Une Nature n’a pas de sens : la même peut servir aux deux."
 >

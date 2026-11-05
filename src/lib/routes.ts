@@ -18,11 +18,25 @@ export const ROUTES: Readonly<Record<string, RegleRoute>> = {
 	'/(app)/aide': 'etre_connecte',
 	'/(app)/preferences': 'etre_connecte',
 	'/(app)/journal': 'consulter',
+	'/(app)/operations': 'consulter',
+	'/(app)/operations/export': 'consulter',
 	'/(app)/reglages': 'parametrer',
 	'/(app)/reglages/comptes': 'parametrer',
 	'/(app)/reglages/natures': 'parametrer',
 	'/(app)/reglages/actions': 'parametrer',
 	'/(app)/reglages/groupes': 'parametrer',
 	'/(app)/reglages/acces': 'parametrer',
-	'/(app)/reglages/exercices': 'parametrer'
+	'/(app)/reglages/exercices': 'parametrer',
+
+	'/api/operations': 'saisir',
+	'/api/operations/[id]': 'saisir',
+	'/api/operations/[id]/annuler': 'saisir',
+	'/api/operations/[id]/relier': 'saisir',
+	'/api/operations/[id]/delier': 'saisir',
+	'/api/operations/candidats': 'saisir',
+	'/api/suggestions': 'saisir',
+	'/api/natures': 'parametrer',
+	'/api/actions': 'parametrer',
+	'/api/palette': 'consulter',
+	'/api/reconnexion': 'publique'
 };

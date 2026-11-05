@@ -17,6 +17,8 @@ export const GROUPES_TYPE = [
 export type GroupeType = (typeof GROUPES_TYPE)[number];
 
 export const GROUPE_SYSTEME: GroupeType = 'Fonctionnement';
+/** Groupe d'une Action créée à la volée. */
+export const GROUPE_ACTIONS: GroupeType = 'Évènements';
 
 export type NatureSysteme = { code: CodeSysteme; libelle: string; neutre: boolean };
 

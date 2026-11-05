@@ -30,6 +30,7 @@
 
 <EnTete
 	titre="Groupes"
+	aide={{ ancre: 'groupe', texte: 'Qu’est-ce qu’un Groupe ?' }}
 	contexte="Réglages"
 	sousTitre="Les blocs du Compte de résultat. Leur ordre est celui des états."
 >

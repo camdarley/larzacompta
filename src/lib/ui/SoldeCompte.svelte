@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { LIBELLES_TYPE_COMPTE, type Compte } from '#lib/domaine/parametrage.ts';
-	import { sommeCentimes, type Centimes } from '#lib/domaine/montant.ts';
-	import { centimes } from '#lib/domaine/montant.ts';
+	import { centimes, type Centimes } from '#lib/domaine/montant.ts';
 	import CalculPose from './CalculPose.svelte';
 
-	let { compte, depart }: { compte: Compte; depart: Centimes } = $props();
-
-	const mouvements = centimes(0);
-	const total = $derived(sommeCentimes([depart, mouvements]));
+	type Props = { compte: Compte; depart: Centimes; mouvements: Centimes; solde: Centimes };
+	let { compte, depart, mouvements, solde }: Props = $props();
 </script>
 
 <article class="solde-compte">
@@ -18,10 +15,14 @@
 	<CalculPose
 		termes={[
 			{ libelle: 'Solde de départ', montant: depart },
-			{ libelle: 'Mouvements', montant: mouvements, signe: '+' }
+			{
+				libelle: 'Mouvements',
+				montant: centimes(Math.abs(mouvements)),
+				signe: mouvements < 0 ? '−' : '+'
+			}
 		]}
 		totalLibelle="Solde calculé"
-		{total}
+		total={solde}
 	/>
 </article>
 

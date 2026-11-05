@@ -29,7 +29,7 @@ import {
 	resteARendre,
 	resumeLiaison
 } from '#lib/domaine/operations/liaisons.ts';
-import { recents, type Recents } from '#lib/domaine/operations/recents.ts';
+import { recents } from '#lib/domaine/operations/recents.ts';
 import { noteSuggestion, suggerer, type Suggestion } from '#lib/domaine/operations/suggestions.ts';
 import {
 	validerOperation,
@@ -39,16 +39,15 @@ import {
 	type ReferencesSaisie
 } from '#lib/domaine/operations/validation.ts';
 import type { DateCivile } from '#lib/domaine/dates.ts';
-import { exerciceDeDate } from '#lib/domaine/etats/soldes.ts';
+import { exerciceDeDate, soldeCompte, soldeDepart } from '#lib/domaine/etats/soldes.ts';
 import type { Exercice } from '#lib/domaine/exercices.ts';
 import {
 	LIBELLES_MODE_PAIEMENT,
 	type GrandJournal,
-	type LigneReleveJ,
 	type ModePaiement,
 	type OperationJ
 } from '#lib/domaine/journal.ts';
-import type { Action, Compte, Groupe, Nature } from '#lib/domaine/parametrage.ts';
+import type { Action, Compte, Nature } from '#lib/domaine/parametrage.ts';
 import {
 	chercherPalette,
 	phraseLigneTrouvee,
@@ -60,7 +59,12 @@ import {
 } from '#lib/domaine/recherche/index.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
-import type { EntreeJournal } from '../ports.ts';
+import type {
+	ContexteSaisie,
+	DetailOperation,
+	PageOperations,
+	RangeeOperation
+} from '#lib/domaine/operations/vues.ts';
 
 export const TAILLE_PAGE_OPERATIONS = 50;
 
@@ -204,33 +208,6 @@ function modifierOperation(o: Outils, e: EntreeModification): Resultat<{ id: num
 	return succes({ id: e.id });
 }
 
-/** Rangée de la liste `/operations`. */
-export type RangeeOperation = {
-	id: number;
-	date: DateCivile;
-	libelle: string;
-	reference: string | null;
-	genre: OperationJ['genre'];
-	compte: string;
-	natures: string;
-	actions: string;
-	montant: Centimes;
-	annulee: boolean;
-	cloture: boolean;
-	pieces: number;
-	/** Pointé si un Côté l'est, À pointer pour une banque ou un livret. */
-	etat: 'pointe' | 'a_pointer' | null;
-	rattachements: string[];
-	ligneTrouvee: string | null;
-};
-
-export type PageOperations = {
-	rangees: RangeeOperation[];
-	total: number;
-	page: number;
-	pages: number;
-};
-
 type Noms = { comptes: Compte[]; natures: Nature[]; actions: Action[] };
 
 function rangee(j: GrandJournal, noms: Noms, t: Trouvee): RangeeOperation {
@@ -264,43 +241,11 @@ function rangee(j: GrandJournal, noms: Noms, t: Trouvee): RangeeOperation {
 	};
 }
 
-export type ContexteSaisie = {
-	comptes: Compte[];
-	natures: Nature[];
-	actions: Action[];
-	groupes: Groupe[];
-	exercices: Exercice[];
-	recents: Recents;
-	natureSommeARendre: number | null;
-	aujourdhui: DateCivile;
-};
-
-export type MouvementBancaire = Pick<LigneReleveJ, 'id' | 'date' | 'montant' | 'libelle'>;
-
-export type LiaisonVue = {
-	id: number;
-	type: 'paiement_multiple' | 'somme_a_rendre';
-	phrase: string;
-	libelle: string;
-	total: Centimes;
-	operations: { id: number; libelle: string; date: DateCivile; montant: Centimes }[];
-};
-
-export type DetailOperation = {
-	operation: OperationJ;
-	intention: Intention;
-	annulee: boolean;
-	pointee: boolean;
-	/** Rangs des Côtés pointés : ces Côtés gardent montant et Compte. */
-	rangsPointes: number[];
-	/** Libellé de l'Exercice clôturé qui fige l'Opération. */
-	figeePar: string | null;
-	specialisee: boolean;
-	liaison: LiaisonVue | null;
-	/** Ce qu'il reste à rendre, pour une somme reçue. */
-	resteARendre: Centimes | null;
-	mouvements: MouvementBancaire[];
-	historique: EntreeJournal[];
+export type SoldeVue = {
+	compte: Compte;
+	depart: Centimes;
+	mouvements: Centimes;
+	solde: Centimes;
 };
 
 const nomMode = (m: ModePaiement | null) => (m ? LIBELLES_MODE_PAIEMENT[m] : '');
@@ -528,6 +473,22 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 					]);
 				});
 				return socle.exporteurs.csv(entetes, lignes);
+			});
+		},
+
+		/** `calcul-pose` de chaque Compte : départ, mouvements, solde calculé (AD-4). */
+		soldes(ctx: Ctx, exercice: Exercice): Resultat<SoldeVue[]> {
+			return lire(ctx, 'consulter', () => {
+				const j = depots.operations.journal();
+				const debut = (id: number | undefined) =>
+					j.exercices.find((e) => e.id === id)?.anneeDebut ?? exercice.anneeDebut;
+				return j.comptes.flatMap((compte) => {
+					const ancre = j.ancres.find((a) => a.compteId === compte.id);
+					if (!compte.actif || debut(ancre?.exerciceId) > exercice.anneeDebut) return [];
+					const depart = soldeDepart(j, compte.id, exercice);
+					const solde = exercice.fin === null ? depart : soldeCompte(j, compte.id, exercice.fin);
+					return [{ compte, depart, mouvements: centimes(solde - depart), solde }];
+				});
 			});
 		},
 

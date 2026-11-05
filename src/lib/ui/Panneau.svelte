@@ -4,6 +4,7 @@
 	import type { Snippet } from 'svelte';
 	import { TEXTES } from '#lib/messages.ts';
 	import Dialogue from './Dialogue.svelte';
+	import Toasts from './Toasts.svelte';
 
 	type Props = {
 		ouvert: boolean;
@@ -11,12 +12,31 @@
 		fermer: () => void;
 		children: Snippet;
 		pied?: Snippet;
+		/** Barre collante au-dessus du pied. */
+		avantPied?: Snippet;
+		/** Menu ou action, à côté de la croix. */
+		actionsTete?: Snippet;
+		/** Vrai dès qu'une saisie commence. */
+		modifie?: boolean;
+		surTouche?: (e: KeyboardEvent) => void;
+		/** Rien à perdre en fermant : des filtres, déjà écrits dans l'URL. */
+		sansConfirmation?: boolean;
 	};
 
-	let { ouvert, titre, fermer, children, pied }: Props = $props();
+	let {
+		ouvert,
+		titre,
+		fermer,
+		children,
+		pied,
+		avantPied,
+		actionsTete,
+		modifie = $bindable(false),
+		surTouche,
+		sansConfirmation = false
+	}: Props = $props();
 
 	/** Une saisie commencée ne se perd pas sur un geste malheureux (EXPERIENCE.md). */
-	let modifie = $state(false);
 	let confirmation = $state(false);
 	let corps = $state<HTMLElement | null>(null);
 
@@ -46,6 +66,7 @@
 		<Dialog.Overlay class="ape-voile" />
 		<Dialog.Content
 			class="ape-panneau"
+			onkeydown={surTouche}
 			onOpenAutoFocus={(e) => {
 				// Le premier champ plutôt que la croix : on ouvre un panneau pour y saisir.
 				const champ = corps?.querySelector<HTMLElement>(
@@ -59,14 +80,19 @@
 		>
 			<header class="tete">
 				<Dialog.Title class="t-title">{titre}</Dialog.Title>
-				<button class="croix" type="button" aria-label="Fermer" onclick={demanderFermeture}>
-					<X size={20} strokeWidth={1.75} aria-hidden="true" />
-				</button>
+				<div class="outils">
+					{@render actionsTete?.()}
+					<button class="croix" type="button" aria-label="Fermer" onclick={demanderFermeture}>
+						<X size={20} strokeWidth={1.75} aria-hidden="true" />
+					</button>
+				</div>
 			</header>
-			<div class="corps" bind:this={corps} oninput={() => (modifie = true)}>
+			<div class="corps" bind:this={corps} oninput={() => (modifie = !sansConfirmation)}>
 				{@render children()}
 			</div>
+			{@render avantPied?.()}
 			{#if pied}<footer class="pied">{@render pied()}</footer>{/if}
+			<Toasts dansPanneau />
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
@@ -100,6 +126,8 @@
 		background: var(--surface-raised);
 		box-shadow: var(--elevation-superpose);
 		animation: glisse var(--mouvement-panneau) ease-out;
+		/* Bits UI pose `contain: layout` : les listes flottantes se placeraient par rapport au panneau. */
+		contain: none !important;
 	}
 
 	@keyframes glisse {
@@ -116,6 +144,13 @@
 		gap: var(--espace-3);
 		padding: var(--espace-4) var(--espace-5);
 		border-bottom: 1px solid var(--border);
+	}
+
+	.outils {
+		display: flex;
+		align-items: center;
+		gap: var(--espace-1);
+		flex: none;
 	}
 
 	.croix {

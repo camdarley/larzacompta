@@ -38,6 +38,7 @@
 
 <EnTete
 	titre="Accès"
+	aide={{ ancre: 'acces', texte: 'Qu’est-ce qu’un Accès ?' }}
 	contexte="Réglages"
 	sousTitre="Chaque personne a son Accès. Pour transmettre la trésorerie, créez-en un : aucun mot de passe ne se partage."
 >

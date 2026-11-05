@@ -2,6 +2,7 @@
 	import { BookOpenCheck, Sprout } from '@lucide/svelte';
 	import { peut } from '#lib/domaine/droits.ts';
 	import { TEXTES } from '#lib/messages.ts';
+	import AideTerme from '#lib/ui/AideTerme.svelte';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import EnTete from '#lib/ui/EnTete.svelte';
 	import EtatVide from '#lib/ui/EtatVide.svelte';
@@ -30,13 +31,16 @@
 		<BookOpenCheck size={32} strokeWidth={1.75} aria-hidden="true" />
 		<div>
 			<h1 class="t-display" tabindex="-1">{TEXTES.cahier_pret}</h1>
-			<p class="t-muted">Soldes de départ de {data.exercice?.libelle}.</p>
+			<p class="t-muted">
+				Soldes de <AideTerme ancre="exercice">l’Exercice</AideTerme>
+				{data.exercice?.libelle}.
+			</p>
 		</div>
 	</header>
 
 	<ul class="soldes">
 		{#each data.soldes as s (s.compte.id)}
-			<li><SoldeCompte compte={s.compte} depart={s.solde} /></li>
+			<li><SoldeCompte {...s} /></li>
 		{/each}
 	</ul>
 {/if}

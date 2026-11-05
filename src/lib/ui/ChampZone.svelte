@@ -7,6 +7,7 @@
 		erreur?: string;
 		lignes?: number;
 		autocomplete?: 'street-address' | 'off';
+		id?: string;
 	};
 
 	let {
@@ -16,9 +17,10 @@
 		aide,
 		erreur,
 		lignes = 3,
-		autocomplete
+		autocomplete,
+		id: idDonne
 	}: Props = $props();
-	const id = $derived(`champ-${name}`);
+	const id = $derived(idDonne ?? `champ-${name}`);
 </script>
 
 <div class="champ" class:en-erreur={erreur}>

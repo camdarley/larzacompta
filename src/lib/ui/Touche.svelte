@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	let { children }: { children: Snippet } = $props();
+	/** `contenu` : la touche est l'information, et non un rappel masqué sur téléphone. */
+	let { children, contenu = false }: { children: Snippet; contenu?: boolean } = $props();
 </script>
 
-<kbd>{@render children()}</kbd>
+<kbd class:contenu>{@render children()}</kbd>
 
 <style>
 	kbd {
@@ -20,7 +21,7 @@
 	}
 
 	@media (max-width: 639.98px) {
-		kbd {
+		kbd:not(.contenu) {
 			display: none;
 		}
 	}

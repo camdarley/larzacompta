@@ -1,15 +1,33 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { Plus } from '@lucide/svelte';
 	import type { Exercice } from '#lib/domaine/exercices.ts';
+	import { urlAvec } from './url.ts';
 	import SelecteurExercice from './SelecteurExercice.svelte';
 
-	type Props = { nomApe: string; exercices: Exercice[]; exercice: Exercice | null };
-	let { nomApe, exercices, exercice }: Props = $props();
+	type Props = {
+		nomApe: string;
+		exercices: Exercice[];
+		exercice: Exercice | null;
+		peutSaisir: boolean;
+	};
+	let { nomApe, exercices, exercice, peutSaisir }: Props = $props();
 </script>
 
 <header class="compact">
 	<p class="t-label nom">{nomApe}</p>
 	{#if exercice}
 		<div class="exercice"><SelecteurExercice {exercices} {exercice} /></div>
+		{#if peutSaisir && page.url.pathname !== '/operations'}
+			<a
+				class="nouvelle seulement-telephone"
+				href={urlAvec({ op: 'nouvelle', depuis: null, rendre: null })}
+				data-sveltekit-reset="false"
+				aria-label="Nouvelle Opération"
+			>
+				<Plus size={24} strokeWidth={1.75} aria-hidden="true" />
+			</a>
+		{/if}
 	{/if}
 </header>
 
@@ -38,6 +56,22 @@
 
 		.exercice {
 			flex: none;
+		}
+
+		.nouvelle {
+			display: grid;
+			flex: none;
+			place-items: center;
+			width: var(--espace-touch);
+			height: var(--espace-touch);
+			border-radius: var(--rayon-md);
+			background: var(--primary);
+			color: var(--on-primary);
+		}
+
+		.nouvelle:hover {
+			background: var(--primary-hover);
+			color: var(--on-primary);
 		}
 	}
 

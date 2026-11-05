@@ -8,7 +8,9 @@ import {
 	lectureMontant,
 	lireMontant,
 	sommeCentimes,
-	type Centimes
+	type Centimes,
+	formaterCsv,
+	formaterTerme
 } from '#lib/domaine/montant.ts';
 
 const INS = ' ';
@@ -161,5 +163,20 @@ describe('propriétés du parseur et du formateur', () => {
 				expect(formaterMontant(x as Centimes)).toMatch(/,\d{2} €$/);
 			})
 		);
+	});
+});
+
+describe('formats d’addition et d’export', () => {
+	it('écrit un terme court', () => {
+		expect(formaterTerme(centimes(22000))).toBe('220');
+		expect(formaterTerme(centimes(18050))).toBe('180,50');
+		expect(formaterTerme(centimes(-5000))).toContain('50');
+		expect(formaterTerme(centimes(-5000)).startsWith('−')).toBe(true);
+	});
+
+	it('écrit un montant d’export, relu comme un nombre par Excel', () => {
+		expect(formaterCsv(centimes(123456))).toBe('1234,56');
+		expect(formaterCsv(centimes(-1050))).toBe('-10,50');
+		expect(formaterCsv(centimes(0))).toBe('0,00');
 	});
 });

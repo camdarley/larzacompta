@@ -9,13 +9,31 @@
 		classe?: string;
 		/** Sens d'ouverture : vers le bas, ou vers le haut en pied de barre. */
 		sens?: 'bas' | 'haut';
+		/** Dans une zone qui défile : la liste flotte au-dessus, alignée à droite du bouton. */
+		flottant?: boolean;
 	};
 
-	let { nom, bouton, children, classe = '', sens = 'bas' }: Props = $props();
+	let { nom, bouton, children, classe = '', sens = 'bas', flottant = false }: Props = $props();
 
 	let ouvert = $state(false);
 	let racine = $state<HTMLElement | null>(null);
 	let declencheur = $state<HTMLButtonElement | null>(null);
+
+	let position = $state<{ top?: string; bottom?: string; right: string } | null>(null);
+
+	function basculer() {
+		ouvert = !ouvert;
+		if (!ouvert || !flottant || !declencheur) return;
+		const r = declencheur.getBoundingClientRect();
+		const marge = 4;
+		const enHaut = r.bottom + 240 > window.innerHeight;
+		position = {
+			right: `${window.innerWidth - r.right}px`,
+			...(enHaut
+				? { bottom: `${window.innerHeight - r.top + marge}px` }
+				: { top: `${r.bottom + marge}px` })
+		};
+	}
 
 	function fermer(rendreFocus = false) {
 		ouvert = false;
@@ -50,14 +68,21 @@
 		type="button"
 		aria-label={nom}
 		aria-expanded={ouvert}
-		onclick={() => (ouvert = !ouvert)}
+		onclick={basculer}
 	>
 		{@render bouton()}
 	</button>
 	{#if ouvert}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="liste {sens}" onclick={() => setTimeout(fermer)}>
+		<div
+			class="liste {sens}"
+			class:flottant
+			style:top={position?.top}
+			style:bottom={position?.bottom}
+			style:right={position?.right}
+			onclick={() => setTimeout(fermer)}
+		>
 			{@render children()}
 		</div>
 	{/if}
@@ -97,6 +122,14 @@
 		border-radius: var(--rayon-md);
 		background: var(--surface-raised);
 		box-shadow: var(--elevation-flottant);
+	}
+
+	.liste.flottant {
+		position: fixed;
+		left: auto;
+		top: auto;
+		bottom: auto;
+		min-width: 220px;
 	}
 
 	.bas {

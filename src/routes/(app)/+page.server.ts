@@ -10,6 +10,6 @@ export async function load({ locals, parent }) {
 	const pret = (association?.etapeAssistant ?? 0) >= ETAPE_ASSISTANT_TERMINE && exercice !== null;
 	return {
 		pret,
-		soldes: pret && exercice ? exiger(app.parametrage.soldesDepart(ctx, exercice.id)) : []
+		soldes: pret && exercice ? exiger(app.operations.soldes(ctx, exercice)) : []
 	};
 }

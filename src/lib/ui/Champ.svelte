@@ -17,6 +17,7 @@
 		oninput?: (valeur: string) => void;
 		onblur?: (e: FocusEvent) => void;
 		apres?: Snippet;
+		terme?: Snippet;
 	};
 
 	let {
@@ -33,6 +34,7 @@
 		oninput,
 		onblur,
 		apres,
+		terme,
 		...reste
 	}: Props = $props();
 
@@ -69,7 +71,10 @@
 </script>
 
 <div class="champ" class:en-erreur={erreurAffichee} class:lecture={lectureSeule}>
-	<label class="t-label" for={idAuto}>{etiquette}</label>
+	<div class="tete t-label">
+		<label class="t-label" class:visuellement-cache={terme} for={idAuto}>{etiquette}</label>
+		{@render terme?.()}
+	</div>
 	<div class="cadre">
 		<input
 			{...reste}
@@ -101,6 +106,12 @@
 		display: grid;
 		gap: var(--espace-1);
 		min-width: 0;
+	}
+
+	.tete {
+		display: flex;
+		align-items: center;
+		gap: var(--espace-1);
 	}
 
 	.cadre {

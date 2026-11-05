@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ARTICLES, GLOSSAIRE, RACCOURCIS } from '#lib/aide.ts';
+	import { ARTICLES, GLOSSAIRE, PREMIERE_ANNEE, RACCOURCIS } from '#lib/aide.ts';
 	import EnTete from '#lib/ui/EnTete.svelte';
 	import Touche from '#lib/ui/Touche.svelte';
 </script>
@@ -10,6 +10,15 @@
 />
 
 <div class="lecture">
+	<section id="premiere-annee">
+		<h2 class="t-heading">Votre première année</h2>
+		<ol class="annee">
+			{#each PREMIERE_ANNEE as e (e.titre)}
+				<li><strong>{e.titre}.</strong> {e.texte}</li>
+			{/each}
+		</ol>
+	</section>
+
 	{#each ARTICLES as a (a.id)}
 		<section id={a.id}>
 			<h2 class="t-heading">{a.titre}</h2>
@@ -33,7 +42,7 @@
 		<h2 class="t-heading">Raccourcis du clavier</h2>
 		<ul>
 			{#each RACCOURCIS as r (r.touche)}
-				<li><Touche>{r.touche}</Touche> {r.effet}</li>
+				<li><Touche contenu>{r.touche}</Touche> {r.effet}</li>
 			{/each}
 		</ul>
 	</section>
@@ -49,6 +58,16 @@
 
 	section > :global(* + *) {
 		margin-top: var(--espace-2);
+	}
+
+	.annee {
+		display: grid;
+		gap: var(--espace-2);
+	}
+
+	.annee li {
+		display: block;
+		min-height: 0;
 	}
 
 	dl {

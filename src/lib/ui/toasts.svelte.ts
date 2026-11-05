@@ -10,7 +10,7 @@ const DUREE = 6000;
 let suivant = 1;
 const minuteries: Record<number, ReturnType<typeof setTimeout>> = {};
 
-export const toasts = $state<{ liste: Toast[] }>({ liste: [] });
+export const toasts = $state<{ liste: Toast[]; panneaux: number }>({ liste: [], panneaux: 0 });
 
 export function retirerToast(id: number) {
 	suspendreToast(id);

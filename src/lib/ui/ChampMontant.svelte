@@ -5,7 +5,7 @@
 		lireMontant,
 		type Centimes
 	} from '#lib/domaine/montant.ts';
-	import { CircleAlert } from '@lucide/svelte';
+	import { CircleAlert, Lock } from '@lucide/svelte';
 	import { message } from '#lib/messages.ts';
 
 	type Props = {
@@ -20,6 +20,10 @@
 		lectureSeule?: boolean;
 		masquerEtiquette?: boolean;
 		required?: boolean;
+		placeholder?: string;
+		oninput?: () => void;
+		onsortie?: () => void;
+		terme?: import('svelte').Snippet;
 	};
 
 	let {
@@ -32,7 +36,11 @@
 		reste,
 		lectureSeule = false,
 		masquerEtiquette = false,
-		required = false
+		required = false,
+		placeholder,
+		oninput,
+		onsortie,
+		terme
 	}: Props = $props();
 
 	const idAuto = $derived(id ?? `champ-${name}`);
@@ -57,19 +65,25 @@
 		} else {
 			erreurLocale = message('montant_invalide');
 		}
+		onsortie?.();
 	}
 
 	function surTouche(e: KeyboardEvent) {
 		if (e.key === '=' && reste !== undefined) {
 			e.preventDefault();
 			valeur = formaterSaisie(reste);
+			oninput?.();
 		}
 	}
 </script>
 
 <div class="champ" class:en-erreur={erreurAffichee}>
-	<label class="t-label" class:visuellement-cache={masquerEtiquette} for={idAuto}>{etiquette}</label
-	>
+	<div class="tete t-label">
+		<label class="t-label" class:visuellement-cache={masquerEtiquette || terme} for={idAuto}
+			>{etiquette}</label
+		>
+		{@render terme?.()}
+	</div>
 	<div class="cadre" class:lecture={lectureSeule}>
 		<input
 			id={idAuto}
@@ -80,14 +94,22 @@
 			bind:value={valeur}
 			readonly={lectureSeule}
 			{required}
+			{placeholder}
 			aria-invalid={erreurAffichee ? 'true' : undefined}
 			aria-describedby={decrit}
 			onfocus={() => (enCours = true)}
 			onblur={surSortie}
 			onkeydown={surTouche}
-			oninput={() => (erreurLocale = undefined)}
+			oninput={() => {
+				erreurLocale = undefined;
+				oninput?.();
+			}}
 		/>
-		<span class="symbole" aria-hidden="true">€</span>
+		{#if lectureSeule}
+			<Lock size={16} strokeWidth={1.75} aria-hidden="true" />
+		{:else}
+			<span class="symbole" aria-hidden="true">€</span>
+		{/if}
 	</div>
 	{#if enCours && formule?.ok}
 		<p class="t-caption t-muted" aria-live="polite">= {formaterMontant(formule.valeur)}</p>
@@ -106,6 +128,18 @@
 		display: grid;
 		gap: var(--espace-1);
 		min-width: 0;
+	}
+
+	.tete {
+		display: flex;
+		align-items: center;
+		gap: var(--espace-1);
+	}
+
+	.cadre :global(svg) {
+		position: absolute;
+		right: var(--espace-3);
+		color: var(--ink-muted);
 	}
 
 	.cadre {
@@ -127,6 +161,11 @@
 		font-weight: var(--typo-amount-graisse);
 		font-variant-numeric: tabular-nums lining-nums;
 		text-align: right;
+	}
+
+	input::placeholder {
+		color: var(--ink-muted);
+		opacity: 1;
 	}
 
 	.lecture input {

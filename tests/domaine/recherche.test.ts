@@ -242,6 +242,66 @@ describe('corrections', () => {
 		expect(r.ok && r.valeur.sansPiece).toBe(true);
 	});
 
+	it('O10 : refuse une version périmée, avant tout le reste', () => {
+		const r = deciderModification(operationJ({ version: 2 }), brouillonStandard(), ctx);
+		expect(!r.ok && r.erreur.code).toBe('modification_concurrente');
+	});
+
+	it('refuse de modifier une Opération annulée', () => {
+		const op = operationJ({ annuleeLe: '2026-10-06T08:00:00.000Z' });
+		const r = deciderModification(op, brouillonStandard(), ctx);
+		expect(!r.ok && r.erreur.code).toBe('operation_annulee');
+	});
+
+	it('nomme l’Exercice clôturé qui fige l’Opération', () => {
+		const r = deciderModification(operationJ({ date: '2026-03-12' }), brouillonStandard(), ctx);
+		expect(!r.ok && r.erreur.details?.exercice).toBe('2025-2026');
+		const a = deciderAnnulation(operationJ({ date: '2026-03-12' }), ctx);
+		expect(!a.ok && a.erreur.code).toBe('exercice_cloture');
+	});
+
+	it('O9 : seule la saisie générique touche à l’analytique', () => {
+		const op = operationJ({
+			origine: 'remise',
+			date: '2026-10-05',
+			montant: -1000,
+			cotes: [{ id: 1, operationId: 1, compteId: 1, date: '2026-10-05', montant: c(-1000) }]
+		});
+		const texte = { ...brouillonStandard(), modePaiement: null, libelle: 'Autre', note: 'Note' };
+		expect(deciderModification(op, texte, ctx).ok).toBe(true);
+		const r = deciderModification(op, { ...texte, date: '2026-10-06' }, ctx);
+		expect(!r.ok && r.erreur.code).toBe('operation_geree_ailleurs');
+		const a = deciderAnnulation(op, ctx);
+		expect(!a.ok && a.erreur.code).toBe('operation_geree_ailleurs');
+	});
+
+	it('Côté pointé : montant et Compte figés, libellé libre', () => {
+		const op = operationJ({
+			modePaiement: 'virement',
+			cotes: [{ id: 7, operationId: 1, compteId: 1, date: '2026-10-05', montant: c(-1000) }]
+		});
+		const pointe = { ...ctx, coteIdsPointes: [7] };
+		const b = brouillonStandard();
+		expect(deciderModification(op, { ...b, libelle: 'Nouveau' }, pointe).ok).toBe(true);
+		const r = deciderModification(op, { ...b, cotes: [{ ...b.cotes[0]!, compteId: 2 }] }, pointe);
+		expect(!r.ok && r.erreur.code).toBe('cote_pointe');
+		const a = deciderAnnulation(op, pointe);
+		expect(!a.ok && a.erreur.code).toBe('cote_pointe');
+		expect(deciderAnnulation(op, ctx).ok).toBe(true);
+	});
+
+	it('O7 : le déplacement suit la date de l’Opération', () => {
+		const ouverts = [{ ...E2025, statut: 'ouvert' as const }, E2026];
+		const op = operationJ({ date: '2026-03-12', modePaiement: 'virement' });
+		const b = brouillonStandard();
+		const r = deciderModification(
+			op,
+			{ ...b, lignes: [{ ...b.lignes[0]!, exerciceRattachementId: 1 }] },
+			{ ...ctx, exercices: ouverts }
+		);
+		expect(r.ok && r.valeur.lignes[0]?.exerciceRattachementId).toBe(2);
+	});
+
 	it('refuse d’annuler deux fois', () => {
 		const op = operationJ({ annuleeLe: '2026-10-06T08:00:00.000Z' });
 		expect(deciderAnnulation(op, ctx).ok).toBe(false);

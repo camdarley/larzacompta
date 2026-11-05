@@ -12,6 +12,7 @@
 		id?: string;
 		masquerEtiquette?: boolean;
 		onchange?: (valeur: string) => void;
+		terme?: import('svelte').Snippet;
 	};
 
 	let {
@@ -23,15 +24,20 @@
 		erreur,
 		id,
 		masquerEtiquette = false,
-		onchange
+		onchange,
+		terme
 	}: Props = $props();
 
 	const idAuto = $derived(id ?? `champ-${name}`);
 </script>
 
 <div class="champ" class:en-erreur={erreur}>
-	<label class="t-label" class:visuellement-cache={masquerEtiquette} for={idAuto}>{etiquette}</label
-	>
+	<div class="tete t-label">
+		<label class="t-label" class:visuellement-cache={masquerEtiquette || terme} for={idAuto}
+			>{etiquette}</label
+		>
+		{@render terme?.()}
+	</div>
 	<div class="cadre">
 		<select
 			id={idAuto}
@@ -56,6 +62,12 @@
 		display: grid;
 		gap: var(--espace-1);
 		min-width: 0;
+	}
+
+	.tete {
+		display: flex;
+		align-items: center;
+		gap: var(--espace-1);
 	}
 
 	.cadre {

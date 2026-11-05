@@ -10,6 +10,8 @@
 		pleineLargeur?: boolean;
 		/** Lien qui ouvre un `panneau` : le focus et le défilement ne bougent pas. */
 		conserverFocus?: boolean;
+		/** Lien hors de l'application, un téléchargement par exemple. */
+		rechargement?: boolean;
 		children: Snippet;
 	};
 
@@ -19,6 +21,7 @@
 		href,
 		pleineLargeur = false,
 		conserverFocus = false,
+		rechargement = false,
 		type = 'button',
 		children,
 		onclick,
@@ -40,7 +43,8 @@
 		class="bouton {variante}"
 		class:pleine={pleineLargeur}
 		{href}
-		data-sveltekit-reset={conserverFocus ? 'false' : undefined}>{@render children()}</a
+		data-sveltekit-reset={conserverFocus ? 'false' : undefined}
+		data-sveltekit-reload={rechargement ? '' : undefined}>{@render children()}</a
 	>
 {:else}
 	<button

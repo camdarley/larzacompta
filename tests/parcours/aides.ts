@@ -49,6 +49,8 @@ export async function connecter(
 }
 
 export async function axeSansViolation(page: Page) {
+	// Une transition en cours fausserait les contrastes mesurés.
+	await page.evaluate(() => Promise.allSettled(document.getAnimations().map((a) => a.finished)));
 	const r = await new AxeBuilder({ page })
 		.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
 		.analyze();
