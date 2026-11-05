@@ -451,11 +451,15 @@ test('5.7 : un ZIP lisible sans l’outil', async ({ page }) => {
 	const archive = unzipSync(await octets(d));
 	expect(Object.keys(archive).sort()).toEqual([
 		'LISEZMOI.txt',
+		'cheques-emis.csv',
+		'cheques-recus.csv',
 		'comptages.csv',
 		'lignes.csv',
 		'operations.csv',
 		'pieces/0001-facture-autocars-fictive.pdf',
-		'pointages.csv'
+		'pointages.csv',
+		'remises.csv',
+		'sessions.csv'
 	]);
 	for (const csv of ['operations.csv', 'lignes.csv', 'pointages.csv']) {
 		expect([...(archive[csv] as Uint8Array).slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);

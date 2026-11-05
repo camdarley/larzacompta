@@ -6,7 +6,7 @@
 	import { ETAPE_ASSISTANT_SOMMES, ETAPES_ASSISTANT } from '#lib/domaine/assistant.ts';
 	import { capitaliser, formaterDateLongue, nomDuMois } from '#lib/domaine/dates.ts';
 	import { bornesExercice, libelleExercice } from '#lib/domaine/exercices.ts';
-	import { formaterMontant, formaterSaisie } from '#lib/domaine/montant.ts';
+	import { centimes, formaterMontant, formaterSaisie } from '#lib/domaine/montant.ts';
 	import { LIBELLES_TYPE_COMPTE } from '#lib/domaine/parametrage.ts';
 	import { TEXTES } from '#lib/messages.ts';
 	import { envoyer } from '#lib/ui/api.ts';
@@ -278,6 +278,16 @@
 							</li>
 						{/each}
 					</ul>
+					<div class="compte-cheques">
+						<p>
+							<span class="t-label">Chèques à remettre</span>
+							<span class="montant">{formaterMontant(centimes(0))}</span>
+						</p>
+						<p class="t-caption t-muted">
+							Ce Compte reçoit chaque chèque avant sa Remise, et part de zéro. Un chèque pas encore
+							déposé à cette date s’enregistrera dans Chèques, rattaché à l’Exercice précédent.
+						</p>
+					</div>
 					<div>
 						<Bouton variante="secondaire" onclick={ajouterRangee}>
 							<Plus size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -432,6 +442,21 @@
 
 	.comptes {
 		display: grid;
+		gap: var(--espace-3);
+	}
+
+	.compte-cheques {
+		display: grid;
+		gap: var(--espace-1);
+		padding: var(--espace-3);
+		border: 1px solid var(--border);
+		border-radius: var(--rayon-md);
+		background: var(--surface-sunken);
+	}
+
+	.compte-cheques p:first-child {
+		display: flex;
+		justify-content: space-between;
 		gap: var(--espace-3);
 	}
 

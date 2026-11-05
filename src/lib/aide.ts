@@ -172,6 +172,49 @@ export const ARTICLES: readonly Article[] = [
 		]
 	},
 	{
+		id: 'cheques-recus',
+		titre: 'Chèques reçus',
+		paragraphes: [
+			'Un Chèque reçu compte en recette dès sa réception, sur le Compte Chèques à remettre. Il attend là sa Remise : le solde de ce Compte égale toujours le total des chèques en attente, sans rien à constater.',
+			'Pour une pile, restez dans la rangée de saisie : Entrée enregistre le chèque et repart, en gardant la date et l’Action. Pour un chèque qui couvre plusieurs Actions, ouvrez « Plusieurs Actions » : la répartition se contrôle au centime.',
+			'Un chèque en attente se corrige ou s’annule. Une fois remis, il ne bouge plus. Son état se lit tout seul : En attente, Remis, Pointé ou Rejeté.'
+		]
+	},
+	{
+		id: 'remises',
+		titre: 'Remises et bordereau',
+		paragraphes: [
+			'Nouvelle Remise coche tous les chèques en attente. Décochez ce qui ne part pas au guichet, contrôlez le total avec le paquet en main, choisissez le Compte, puis créez la Remise et téléchargez le bordereau.',
+			'Le relevé venu, la Remise est proposée avec ses chèques. Si la banque l’a scindée autrement que le bordereau, cochez les lignes et les Remises, puis pointez : le total est contrôlé, et chaque Remise garde la répartition de la banque.',
+			'Une Remise non pointée s’annule : ses chèques redeviennent en attente. Son numéro ne resservira pas.'
+		]
+	},
+	{
+		id: 'cheque-rejete',
+		titre: 'Un chèque rejeté',
+		paragraphes: [
+			'« Marquer comme rejeté » annule la recette par une nouvelle Opération, sur le Compte où se trouve le chèque. Rien ne s’efface : le chèque reste au registre, état Rejeté, et le résultat retombe juste.',
+			'La ligne de rejet du relevé se pointe avec cette Opération. Si le chèque date d’un Exercice clôturé, le rejet s’enregistre dans l’Exercice ouvert.'
+		]
+	},
+	{
+		id: 'cheques-emis',
+		titre: 'Chèques émis',
+		paragraphes: [
+			'Le registre se remplit à la saisie : une Dépense en mode Chèque demande le numéro et le bénéficiaire. Pointé veut dire que le chèque est passé en banque. Un n° déjà utilisé est refusé.',
+			'Une formule abîmée ou perdue s’annule sans paiement : elle reste au registre, état Annulé.',
+			'Un chèque vu au relevé et absent du registre porte la pastille À regarder, et remonte au Tableau de contrôle. Créez son Opération depuis la ligne : le signalement disparaît.'
+		]
+	},
+	{
+		id: 'sumup',
+		titre: 'Versements SumUp',
+		paragraphes: [
+			'SumUp verse le net, après ses frais. Depuis la ligne du relevé, « Répartir brut et frais » montre la vraie recette et le vrai coût : le brut est une recette, les frais une dépense, et le net se contrôle au centime.',
+			'Sans détail dans l’export SumUp, indiquez seulement les frais : le brut se calcule. L’Opération se pointe à l’enregistrement, et n’attend aucune Pièce.'
+		]
+	},
+	{
 		id: 'journal',
 		titre: 'Journal des modifications',
 		paragraphes: [
@@ -360,6 +403,11 @@ export const GLOSSAIRE: readonly Terme[] = [
 		terme: 'Chèque émis',
 		ancre: 'cheque-emis',
 		definition: 'Chèque payé par l’APE. États : émis, annulé, pointé.'
+	},
+	{
+		terme: 'Bordereau',
+		ancre: 'bordereau',
+		definition: 'Liste des Chèques reçus d’une Remise, à déposer au guichet avec le paquet.'
 	},
 	{
 		terme: 'Créance, Dette',

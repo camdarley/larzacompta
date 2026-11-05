@@ -1,13 +1,23 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
-	type Onglet = { libelle: string; href: string; compteur?: number };
+	type Onglet = {
+		libelle: string;
+		href: string;
+		compteur?: number;
+		/** Une page fille garde son onglet actif : Remise n° 3 reste dans Remises. */
+		sousPages?: boolean;
+	};
 	type Props = { nom: string; onglets: readonly Onglet[]; vertical?: boolean };
 
 	let { nom, onglets, vertical = false }: Props = $props();
 	let liste = $state<HTMLElement | null>(null);
 
-	const actif = (o: Onglet) => page.url.pathname === o.href.split('?')[0];
+	const actif = (o: Onglet) => {
+		const chemin = o.href.split('?')[0] as string;
+		const ici = page.url.pathname;
+		return ici === chemin || (o.sousPages === true && ici.startsWith(`${chemin}/`));
+	};
 
 	/** Chaque onglet a son URL ; les flèches parcourent la liste (EXPERIENCE.md). */
 	function surTouche(e: KeyboardEvent) {

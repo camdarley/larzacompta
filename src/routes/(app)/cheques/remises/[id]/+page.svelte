@@ -23,6 +23,7 @@
 
 	const r = $derived(data.remise);
 	const saisir = $derived(data.peutSaisir);
+	const avecNumero = $derived(r.cheques.some((c) => c.numero !== null));
 	let confirmer = $state(false);
 	let occupe = $state(false);
 	let alerte = $state<string | null>(null);
@@ -92,7 +93,7 @@
 			<tr>
 				<th scope="col">Émetteur</th>
 				<th scope="col">Banque</th>
-				<th scope="col">N°</th>
+				{#if avecNumero}<th scope="col">N°</th>{/if}
 				<th scope="col">Actions</th>
 				<th scope="col">État</th>
 				<th scope="col" class="droite">Montant</th>
@@ -103,7 +104,7 @@
 				<tr>
 					<td class="principale">{c.emetteur}</td>
 					<td>{c.banque ?? ''}</td>
-					<td>{c.numero ?? ''}</td>
+					{#if avecNumero}<td>{c.numero ?? ''}</td>{/if}
 					<td>{c.actions.join(', ')}</td>
 					<td class="etat t-caption">{LIBELLES_ETAT_RECU[c.etat]}</td>
 					<td class="montant">{formaterMontant(c.montant)}</td>

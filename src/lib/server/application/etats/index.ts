@@ -29,10 +29,14 @@ import {
 } from '#lib/domaine/etats/documents.ts';
 import {
 	cheminPiece,
+	csvChequesEmis,
+	csvChequesRecus,
 	csvComptages,
 	csvLignes,
 	csvOperations,
 	csvPointages,
+	csvRemises,
+	csvSessions,
 	lisezMoi
 } from '#lib/domaine/etats/export-complet.ts';
 import {
@@ -298,7 +302,11 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 					'operations.csv': csv(csvOperations(j, p)),
 					'lignes.csv': csv(csvLignes(j, p, parExercice)),
 					'pointages.csv': csv(csvPointages(j, p)),
-					'comptages.csv': csv(csvComptages(j, p))
+					'comptages.csv': csv(csvComptages(j, p)),
+					'sessions.csv': csv(csvSessions(j, p)),
+					'cheques-recus.csv': csv(csvChequesRecus(j, p)),
+					'remises.csv': csv(csvRemises(j, p)),
+					'cheques-emis.csv': csv(csvChequesEmis(j, p))
 				};
 				const fichiers: EntreeArchive[] = [
 					...Object.entries(textes).map(([nom, texte]) => ({ nom, lire: () => texte })),

@@ -30,6 +30,7 @@ test('l’assistant prépare le cahier, étape par étape', async ({ page }) => 
 
 	// Quitter puis revenir reprend à l'étape atteinte.
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Vos Comptes');
+	await expect(page.getByText('Chèques à remettre', { exact: true })).toBeVisible();
 	await page.goto('/');
 	await page.goto('/bienvenue');
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Vos Comptes');

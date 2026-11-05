@@ -191,6 +191,15 @@
 				{#each banques as b (b)}<option value={b}></option>{/each}
 			</datalist>
 		</div>
+		<div class="montant-rafale">
+			<ChampMontant
+				etiquette="Montant"
+				id="rafale-montant"
+				name="montant"
+				bind:valeur={rafale.montant}
+				erreur={erreurs.montant}
+			/>
+		</div>
 		<div class="date">
 			<Champ
 				etiquette="Date"
@@ -199,15 +208,6 @@
 				type="date"
 				bind:valeur={rafale.date}
 				erreur={erreurs.date}
-			/>
-		</div>
-		<div class="montant-rafale">
-			<ChampMontant
-				etiquette="Montant"
-				id="rafale-montant"
-				name="montant"
-				bind:valeur={rafale.montant}
-				erreur={erreurs.montant}
 			/>
 		</div>
 		<div class="action">
@@ -265,7 +265,7 @@
 	.champs {
 		display: grid;
 		grid-template-columns:
-			minmax(9rem, 1.5fr) minmax(6rem, 1fr) 9.5rem 7rem minmax(8rem, 1fr) minmax(8rem, 1fr)
+			minmax(9rem, 1.5fr) minmax(6rem, 1fr) 7rem 9.5rem minmax(8rem, 1fr) minmax(8rem, 1fr)
 			auto;
 		align-items: start;
 		gap: var(--espace-2);

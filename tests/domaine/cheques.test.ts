@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+	brouillonChequeRecu,
 	brouillonRejet,
+	brouillonRemise,
 	chequesEnAttente,
 	compteDuCheque,
+	deciderAnnulationRemise,
 	deciderModificationCheque,
 	deciderRejet,
+	deciderRemise,
 	estPaiementCheque,
 	etatChequeEmis,
 	etatChequeRecu,
@@ -12,17 +16,26 @@ import {
 	memeNumero,
 	numeroInscrit,
 	numeroReutilisable,
+	rejetDe,
 	sansZeros,
 	totalEnAttente
 } from '#lib/domaine/cheques/index.ts';
+import { modeleBordereau } from '#lib/domaine/cheques/bordereau.ts';
 import { violationsCheques } from '#lib/domaine/cheques/verification.ts';
 import {
+	vueChequeRecu,
 	vueEmis,
 	vueRecus,
 	vueNouvelleRemise,
 	vueRemise,
 	vueRemises
 } from '#lib/domaine/cheques/vues.ts';
+import {
+	csvChequesEmis,
+	csvChequesRecus,
+	csvRemises,
+	csvSessions
+} from '#lib/domaine/etats/export-complet.ts';
 import type { Exercice } from '#lib/domaine/exercices.ts';
 import { journalVide, type GrandJournal, type OperationJ } from '#lib/domaine/journal.ts';
 import { centimes as c } from '#lib/domaine/montant.ts';
@@ -263,6 +276,109 @@ describe('décisions', () => {
 	});
 });
 
+describe('Remise : décisions', () => {
+	const code = (r: { ok: boolean; erreur?: { code: string } }) => (r.ok ? null : r.erreur?.code);
+	const demande = {
+		chequeIds: [3],
+		compteId: BANQUE,
+		date: '2026-10-10',
+		total: c(50_00)
+	};
+
+	it('accepte un chèque en attente, pour le total annoncé', () => {
+		const j = complet();
+		expect(deciderRemise(j, demande)).toEqual({ ok: true, valeur: [j.chequesRecus[2]] });
+	});
+
+	it('refuse tout le reste, chaque fois avec son motif', () => {
+		const j = complet();
+		expect(code(deciderRemise(j, { ...demande, compteId: CHEQUES }))).toBe(
+			'remise_compte_invalide'
+		);
+		expect(code(deciderRemise(j, { ...demande, compteId: 99 }))).toBe('remise_compte_invalide');
+		expect(code(deciderRemise(j, { ...demande, chequeIds: [] }))).toBe('remise_vide');
+		expect(code(deciderRemise(j, { ...demande, chequeIds: [99] }))).toBe('remise_desequilibree');
+		expect(code(deciderRemise(j, { ...demande, chequeIds: [1] }))).toBe('remise_desequilibree');
+		expect(code(deciderRemise(j, { ...demande, total: c(1) }))).toBe('remise_desequilibree');
+		expect(code(deciderRemise(j, { ...demande, date: '2026-09-30' }))).toBe(
+			'remise_date_anterieure'
+		);
+	});
+
+	it('Q2 : un Mouvement interne des chèques à remettre vers le Compte choisi', () => {
+		const b = brouillonRemise({
+			numero: 3,
+			nombre: 2,
+			depuisId: CHEQUES,
+			versId: BANQUE,
+			date: '2026-10-10',
+			total: c(70_00)
+		});
+		expect(b).toMatchObject({ genre: 'interne', origine: 'remise', lignes: [] });
+		expect(b.libelle).toBe('Remise n° 3, 2 chèques');
+		expect(b.cotes.map((x) => [x.compteId, x.montant])).toEqual([
+			[CHEQUES, -70_00],
+			[BANQUE, 70_00]
+		]);
+	});
+
+	it('Q1 : une Recette sur les chèques à remettre, au nom de l’émetteur', () => {
+		const b = brouillonChequeRecu(
+			{
+				emetteur: 'Famille Imaginaire',
+				banque: null,
+				numero: '123',
+				date: '2026-10-10',
+				montant: c(10_00),
+				lignes: [
+					{
+						montant: c(10_00),
+						contraire: false,
+						reduction: false,
+						natureId: 1,
+						actionId: null,
+						exerciceRattachementId: null,
+						note: null
+					}
+				]
+			},
+			CHEQUES
+		);
+		expect(b).toMatchObject({
+			origine: 'cheque_recu',
+			libelle: 'Chèque de Famille Imaginaire',
+			reference: '123',
+			tiers: 'Famille Imaginaire',
+			sansPiece: true
+		});
+		expect(b.cotes).toEqual([{ compteId: CHEQUES, date: '2026-10-10', montant: 10_00 }]);
+	});
+
+	it('Q4 : l’annulation bute sur un rejet, ou sur une Remise déjà annulée', () => {
+		const j = complet();
+		const r = j.remises[0]!;
+		expect(deciderAnnulationRemise(j, r).ok).toBe(true);
+		const rejete = { ...j, chequesRecus: [cheque(1, { remiseId: 1, operationRejetId: 5 })] };
+		expect(code(deciderAnnulationRemise(rejete, r))).toBe('remise_avec_rejet');
+		expect(code(deciderAnnulationRemise({ ...j, operations: [] }, r))).toBe('operation_annulee');
+	});
+
+	it('retrouve le rejet d’un chèque', () => {
+		const j = complet();
+		expect(rejetDe(j, j.chequesRecus[1]!)?.id).toBe(5);
+		expect(rejetDe(j, j.chequesRecus[2]!)).toBeUndefined();
+	});
+
+	it('la fiche d’un chèque reprend son Opération', () => {
+		const j = complet();
+		expect(vueChequeRecu(j, j.chequesRecus[2]!)).toMatchObject({
+			emetteur: 'Famille 3',
+			etat: 'en_attente',
+			operation: { id: 3 }
+		});
+	});
+});
+
 describe('lecture d’un n° de chèque', () => {
 	it.each([
 		['CHEQUE 1234567', '1234567'],
@@ -455,7 +571,7 @@ describe('vues', () => {
 		expect(d.annulable).toBe(false);
 	});
 
-	it('Nouvelle Remise : banques et livrets, la dernière destination d’abord', () => {
+	it('Nouvelle Remise : banques et livrets, la banque d’abord', () => {
 		const v = vueNouvelleRemise(complet(), noms);
 		expect(v.comptes.map((x) => x.libelle)).toEqual(['CCP', 'Livret']);
 		expect(v.compteId).toBe(BANQUE);
@@ -488,5 +604,74 @@ describe('vues', () => {
 		expect(v.rangees.map((r) => r.numero)).toEqual(['222', '111', '223']);
 		expect(v.rangees[1]).toMatchObject({ id: null, beneficiaire: 'Ancien', montant: 40_00 });
 		expect(v.compteurs).toEqual({ emis: 2, pointe: 0, annule: 1 });
+	});
+});
+
+describe('bordereau et exports', () => {
+	const noms = {
+		association: 'APE des Tilleuls',
+		exercice: '2026-2027',
+		comptes: [compte(BANQUE, 'banque', 'CCP')]
+	};
+
+	it('liste les chèques et leur total, annoncés sans vocabulaire comptable', () => {
+		const j = complet();
+		const m = modeleBordereau(j, j.remises[0]!, noms);
+		expect(m.nomFichier).toBe('bordereau-remise-1');
+		expect(m.provisoire).toBe(false);
+		expect(m.sections[0]?.phrases).toEqual(['1 chèque à déposer sur le Compte CCP.']);
+		expect(m.sections[0]?.tableau?.rangees).toHaveLength(2);
+	});
+
+	it('sort chèques, Remises, registre et Sessions en CSV', () => {
+		const j = complet();
+		const p = {
+			groupes: [],
+			natures: [],
+			actions: [{ id: 1, libelle: 'Agrumes', groupeId: 1 }],
+			comptes: [{ ...compte(BANQUE, 'banque', 'CCP'), ordre: 1 }]
+		} as never;
+		expect(csvChequesRecus(j, p).lignes.map((l) => l[6])).toContain('Rejeté');
+		expect(csvRemises(j, p).lignes[0]).toEqual([
+			'1',
+			'2026-10-05',
+			'CCP',
+			'1',
+			'100,00',
+			'Pointée'
+		]);
+		expect(csvChequesEmis({ ...j, chequesEmis: [] }, p).lignes).toEqual([]);
+		const s = {
+			id: 1,
+			compteId: BANQUE,
+			actionId: 1,
+			ouverteLe: '2026-10-05T08:00:00.000Z',
+			ouvertePar: 1,
+			clotureeLe: null,
+			clotureePar: null,
+			operationRecetteId: null
+		};
+		const ligne = csvSessions({ sessions: [s], comptages: [], operations: [] }, p).lignes[0];
+		expect(ligne?.slice(0, 3)).toEqual(['1', 'CCP', 'Agrumes']);
+		expect(ligne?.at(-1)).toBe('');
+	});
+
+	it('reprend les Natures du dernier versement SumUp', () => {
+		const versement = op({
+			id: 7,
+			montant: 95_00,
+			origine: 'saisie',
+			modePaiement: 'sumup',
+			lignes: [
+				{ ...op({ id: 7, montant: 100_00 }).lignes[0]! },
+				{ ...op({ id: 7, montant: -5_00 }).lignes[0]!, natureId: 2, actionId: null }
+			]
+		});
+		expect(sumupPrecedent({ operations: [versement] })).toEqual({
+			natureBrutId: 1,
+			actionBrutId: 1,
+			natureFraisId: 2,
+			actionFraisId: null
+		});
 	});
 });

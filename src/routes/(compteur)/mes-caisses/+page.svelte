@@ -40,7 +40,10 @@
 					{:else}
 						<div class="suite">
 							<Bouton href="/sessions/{r.sessionId}/comptage">Compter</Bouton>
-							<a class="t-caption" href="/sessions/{r.sessionId}/comptage?corriger=ouverture">
+							<a
+								class="corriger t-caption"
+								href="/sessions/{r.sessionId}/comptage?corriger=ouverture"
+							>
 								Corriger l’ouverture
 							</a>
 						</div>
@@ -65,6 +68,13 @@
 </div>
 
 <style>
+	/* Au pouce, debout : un lien discret garde une cible de 48 px. */
+	.corriger {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--espace-touch);
+	}
+
 	.page {
 		display: flex;
 		flex-direction: column;

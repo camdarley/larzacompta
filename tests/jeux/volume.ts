@@ -24,6 +24,8 @@ function exiger<T>(r: { ok: true; valeur: T } | { ok: false; erreur: { code: str
 	return r.valeur;
 }
 
+const CHEQUES_PAR_AN = 80;
+
 export function chargerVolume(dossier: string) {
 	mkdirSync(dossier, { recursive: true });
 	const base = ouvrirBase(join(dossier, 'base.sqlite'));
@@ -108,6 +110,41 @@ export function chargerVolume(dossier: string) {
 				} as EntreeCreation)
 			);
 		}
+		// 80 Chèques reçus par an (PRD §5.1), déposés en une Remise : Q3 se rejoue sur toutes les dates.
+		const cheques = Array.from({ length: CHEQUES_PAR_AN }, (_, i) => {
+			const montant = c(10_00 + i);
+			return {
+				id: exiger(
+					app.cheques.enregistrerRecu(ctx, {
+						emetteur: `Famille fictive ${i}`,
+						banque: null,
+						numero: null,
+						date: `${annee}-11-20`,
+						montant,
+						lignes: [
+							{
+								montant,
+								contraire: false,
+								reduction: false,
+								natureId: nature,
+								actionId: null,
+								exerciceRattachementId: null,
+								note: null
+							}
+						]
+					})
+				).id,
+				montant
+			};
+		});
+		exiger(
+			app.cheques.creerRemise(ctx, {
+				chequeIds: cheques.map((x) => x.id),
+				compteId,
+				date: `${annee}-11-25`,
+				total: c(cheques.reduce((t, x) => t + x.montant, 0))
+			})
+		);
 		if (n < ANNEES) {
 			exiger(app.exercices.ouvrirSuivant(ctx));
 			exiger(app.exercices.cloturer(ctx, courant.id));

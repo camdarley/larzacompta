@@ -178,7 +178,11 @@
 				<th scope="col">Actions</th>
 				<th scope="col">État</th>
 				<th scope="col" class="droite">Montant</th>
-				{#if saisir}<th scope="col"><span class="visuellement-cache">Gestes</span></th>{/if}
+				{#if saisir}
+					<th scope="col" class="seulement-ordinateur">
+						<span class="visuellement-cache">Gestes</span>
+					</th>
+				{/if}
 			</tr>
 		</thead>
 		<tbody>
@@ -198,7 +202,7 @@
 					</td>
 					<td class="montant">{formaterMontant(r.montant)}</td>
 					{#if saisir}
-						<td class="gestes">
+						<td class="gestes seulement-ordinateur">
 							<Menu nom="Gestes sur le chèque de {r.emetteur}" flottant classe="bouton-rangee">
 								{#snippet bouton()}
 									<Ellipsis size={20} strokeWidth={1.75} aria-hidden="true" />

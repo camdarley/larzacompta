@@ -779,15 +779,17 @@
 						Rendre cette somme
 					</button>
 				{/if}
-				<button
-					type="button"
-					onclick={() =>
-						goto(urlAvec({ op: 'nouvelle', depuis: String(detail?.operation.id) }), {
-							reset: false
-						})}
-				>
-					Dupliquer
-				</button>
+				{#if !detail.specialisee}
+					<button
+						type="button"
+						onclick={() =>
+							goto(urlAvec({ op: 'nouvelle', depuis: String(detail?.operation.id) }), {
+								reset: false
+							})}
+					>
+						Dupliquer
+					</button>
+				{/if}
 				<button type="button" onclick={() => (relierOuvert = true)}>
 					Relier à une autre Opération
 				</button>

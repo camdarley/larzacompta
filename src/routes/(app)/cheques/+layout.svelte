@@ -5,7 +5,7 @@
 
 	const onglets = [
 		{ libelle: 'Reçus', href: '/cheques' },
-		{ libelle: 'Remises', href: '/cheques/remises' },
+		{ libelle: 'Remises', href: '/cheques/remises', sousPages: true },
 		{ libelle: 'Émis', href: '/cheques/emis' }
 	];
 </script>

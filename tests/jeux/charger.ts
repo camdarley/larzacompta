@@ -291,25 +291,25 @@ function chargerChequesEtSumup(
 						: [ligne(e.montant)]
 			})
 		).id;
-	const ids = JEU_COMPLET.cheques.map((x) => recu(x, '2027-01-12'));
+	const ids = JEU_COMPLET.cheques.map((x) => recu(x, '2026-11-03'));
 	const remis = ids.slice(0, 4);
 	exiger(
 		app.cheques.creerRemise(ctx, {
 			chequeIds: remis,
 			compteId: r.banque,
-			date: '2027-01-15',
+			date: '2026-11-03',
 			total: c(157_50)
 		})
 	);
-	exiger(app.cheques.rejeter(ctx, { id: ids[1]!, date: '2027-01-25' }));
+	exiger(app.cheques.rejeter(ctx, { id: ids[1]!, date: '2026-11-05' }));
 
 	exiger(
 		app.operations.creer(ctx, {
 			...standard({
 				intention: 'depense',
 				compteId: r.banque,
-				date: '2027-01-20',
-				libelle: 'Location de la salle imaginaire',
+				date: '2026-11-04',
+				libelle: 'Location de la salle du bourg',
 				lignes: [
 					{
 						montant: c(75_00),
@@ -320,7 +320,7 @@ function chargerChequesEtSumup(
 			}),
 			modePaiement: 'cheque',
 			reference: JEU_COMPLET.numeroChequeEmis,
-			tiers: 'Salle imaginaire'
+			tiers: 'Salle du bourg'
 		} as EntreeCreation)
 	);
 	exiger(
@@ -334,7 +334,7 @@ function chargerChequesEtSumup(
 	const ligneSumup = exiger(
 		app.pointage.saisirLigne(ctx, {
 			compteId: r.banque,
-			date: '2027-01-31',
+			date: '2026-11-04',
 			montant: net,
 			libelle: 'VIREMENT SUMUP PAYOUT'
 		})
@@ -346,7 +346,7 @@ function chargerChequesEtSumup(
 				...standard({
 					intention: 'recette',
 					compteId: r.banque,
-					date: '2027-01-31',
+					date: '2026-11-04',
 					libelle: 'Versement SumUp',
 					lignes: []
 				}),
@@ -362,13 +362,13 @@ function chargerChequesEtSumup(
 
 	const livre = recu(
 		{ emetteur: 'Famille Figue', banque: 'Banque des Prés', montant: c(120_00) },
-		'2027-02-01'
+		'2026-11-04'
 	);
 	exiger(
 		app.cheques.creerRemise(ctx, {
 			chequeIds: [livre],
 			compteId: r.livret,
-			date: '2027-02-01',
+			date: '2026-11-04',
 			total: c(120_00)
 		})
 	);
@@ -381,14 +381,14 @@ function chargerChequesEtSumup(
 			deId: r.caisse,
 			versId: r.livret,
 			montant: c(20_00),
-			parti: '2027-02-02',
-			arrive: '2027-02-02'
+			parti: '2026-11-05',
+			arrive: '2026-11-05'
 		} as EntreeCreation)
 	);
 	exiger(
 		app.pointage.saisirLigne(ctx, {
 			compteId: r.banque,
-			date: '2027-02-03',
+			date: '2026-11-05',
 			montant: c(-35_00),
 			libelle: `CHEQUE N ${JEU_COMPLET.numeroChequeAbsent}`
 		})

@@ -103,13 +103,16 @@ test('UJ-1 : Camille pointe le mois jusqu’à l’Écart nul', async ({ page })
 					id: 'FICTIF0100',
 					libelle: 'PHOTOGRAPHE IMAGINAIRE'
 				},
-				{ date: '20261104', montant: '65.00', id: 'FICTIF0101', libelle: 'VIR FAMILLE IMAGINAIRE' }
+				{ date: '20261104', montant: '65.00', id: 'FICTIF0101', libelle: 'VIR FAMILLE IMAGINAIRE' },
+				{ date: '20261103', montant: '157.50', id: 'FICTIF0102', libelle: 'REMISE CHEQUES' },
+				{ date: '20261104', montant: '-75.00', id: 'FICTIF0103', libelle: 'CHEQUE 5000101' },
+				{ date: '20261104', montant: '47.50', id: 'FICTIF0104', libelle: 'SUMUP PAYOUT' }
 			],
-			{ montant: '2202.00', date: '20261104' },
+			{ montant: '2522.00', date: '20261104' },
 			'novembre.ofx'
 		)
 	);
-	await expect(page.getByText('3 lignes lues, 2 nouvelles, 1 déjà connue.')).toBeVisible();
+	await expect(page.getByText('6 lignes lues, 5 nouvelles, 1 déjà connue.')).toBeVisible();
 
 	// La proposition dit pourquoi, Camille valide.
 	await ligne(page, 'PHOTOGRAPHE IMAGINAIRE').click();
@@ -117,6 +120,25 @@ test('UJ-1 : Camille pointe le mois jusqu’à l’Écart nul', async ({ page })
 	await expect(volet.locator('.proposition')).toContainText('Photographe imaginaire');
 	await page.keyboard.press('Enter');
 	await expect(page.getByText('Pointé.')).toBeVisible();
+
+	// Une Remise : proposée avec son total et ses chèques. Le chèque émis se lit à son n°.
+	await ligne(page, 'REMISE CHEQUES').click();
+	await expect(volet.getByText('Même montant, Remise de 4 chèques')).toBeVisible();
+	await page.keyboard.press('Enter');
+	await expect(ligne(page, 'REMISE CHEQUES')).toContainText('Pointé');
+	await ligne(page, 'CHEQUE 5000101').click();
+	await expect(volet.getByText('Même montant, n° de chèque lu dans le libellé')).toBeVisible();
+	await page.keyboard.press('Enter');
+	await expect(ligne(page, 'CHEQUE 5000101')).toContainText('Pointé');
+
+	// Un versement SumUp : Camille entre les frais, le net se contrôle.
+	await ligne(page, 'SUMUP PAYOUT').click();
+	await volet.getByRole('button', { name: 'Répartir brut et frais' }).click();
+	const sumup = panneau(page);
+	await sumup.getByLabel('Montant de la ligne 2').fill('2,50');
+	await expect(sumup.getByTestId('reste')).toContainText('Tout est réparti');
+	await sumup.getByLabel('Libellé').press('Control+Enter');
+	await expect(page.getByRole('dialog')).toHaveCount(0);
 
 	// Le frais et le virement inconnu se créent depuis leur Ligne, et se ventilent.
 	for (const [libelle, nature] of [
@@ -134,9 +156,9 @@ test('UJ-1 : Camille pointe le mois jusqu’à l’Écart nul', async ({ page })
 	}
 
 	// Le solde calculé égale celui du relevé : le mois est pointé.
-	await expect(barre(page)).toContainText('2 202,00'.replace(' ', ' '));
+	await expect(barre(page)).toContainText('2 522,00'.replace(' ', ' '));
 	await expect(barre(page)).toContainText('Écart nul');
-	await expect(barre(page)).toContainText('10 sur 10');
+	await expect(barre(page)).toContainText('14 sur 15');
 	await page.goto('/');
 	await expect(page.getByRole('main')).toContainText('Égal au relevé');
 });

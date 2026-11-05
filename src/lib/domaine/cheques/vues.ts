@@ -20,7 +20,10 @@ import {
 	type EtatRemise
 } from './index.ts';
 
-export type Noms = { actions: readonly Action[]; comptes: readonly Compte[] };
+export type Noms = {
+	actions: readonly Pick<Action, 'id' | 'libelle'>[];
+	comptes: readonly (Pick<Compte, 'id' | 'libelle' | 'type'> & { actif?: boolean })[];
+};
 
 type JournalVue = GrandJournal;
 
@@ -214,7 +217,7 @@ export function vueRemise(j: JournalVue, r: RemiseJ, noms: Noms): DetailRemise {
 export type VueNouvelleRemise = {
 	cheques: RangeeRecu[];
 	comptes: { id: number; libelle: string }[];
-	/** Le Compte de la dernière Remise, sinon la première banque. */
+	/** La première banque : un dépôt sur le livret reste un choix. */
 	compteId: number | null;
 };
 
@@ -222,12 +225,7 @@ export function vueNouvelleRemise(j: JournalVue, noms: Noms): VueNouvelleRemise 
 	const comptes = noms.comptes.filter(
 		(c) => c.actif && (c.type === 'banque' || c.type === 'epargne')
 	);
-	const derniere = j.remises.filter((r) => etatRemise(j, r) !== 'annulee').at(-1);
-	const dernierCompte = derniere && entree(operationDe(j, derniere.operationId))?.compteId;
-	const parDefaut =
-		comptes.find((c) => c.id === dernierCompte) ??
-		comptes.find((c) => c.type === 'banque') ??
-		comptes[0];
+	const parDefaut = comptes.find((c) => c.type === 'banque') ?? comptes[0];
 	return {
 		cheques: chequesEnAttente(j)
 			.map((c) => rangeeRecu(j, c, noms))

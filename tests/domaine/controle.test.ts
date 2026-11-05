@@ -3,6 +3,7 @@ import {
 	bilan,
 	carteCompte,
 	cartesComptes,
+	chequesARemettre,
 	dernierPointage,
 	lignesNonPointees,
 	operationsAnciennes,
@@ -11,7 +12,12 @@ import {
 	sansReleve,
 	type CarteCompte
 } from '#lib/domaine/etats/controle.ts';
-import type { Constat, GrandJournal, LigneReleveJ } from '#lib/domaine/journal.ts';
+import {
+	journalVide,
+	type Constat,
+	type GrandJournal,
+	type LigneReleveJ
+} from '#lib/domaine/journal.ts';
 import { centimes } from '#lib/domaine/montant.ts';
 import type { Compte } from '#lib/domaine/parametrage.ts';
 import { CCP, E2025, E2026, journal, LIVRET, operationJ } from './aides/journal.ts';
@@ -282,5 +288,37 @@ describe('cartesComptes', () => {
 		});
 		expect(cartesComptes(j, E2025, AUJOURDHUI).map((x) => x.compte.id)).toEqual([1]);
 		expect(cartesComptes(j, E2026, AUJOURDHUI).map((x) => x.compte.id)).toEqual([1, 2]);
+	});
+});
+
+describe('Compte des chèques à remettre (FR-32)', () => {
+	const compte: Compte = { ...CCP, id: 9, type: 'cheques_a_remettre' };
+
+	it('n’a pas de solde constaté, et ne compte pas comme une chose à regarder', () => {
+		const carte = carteCompte({ ...journalVide(), comptes: [compte] }, compte, E2026, '2026-11-05');
+		expect(carte.constate).toBeNull();
+		expect(carte.etat).toBe('juste');
+	});
+
+	it('compte les chèques en attente, jusqu’à la fin de l’Exercice', () => {
+		const op = operationJ({ id: 501, montant: 1000, date: '2026-10-01' });
+		const j = {
+			...journalVide(),
+			operations: [op],
+			chequesRecus: [
+				{
+					id: 1,
+					operationId: 501,
+					emetteur: 'X',
+					banque: null,
+					numero: null,
+					dateCheque: null,
+					remiseId: null,
+					operationRejetId: null
+				}
+			]
+		};
+		expect(chequesARemettre(j, E2026)).toBe(1);
+		expect(chequesARemettre(j, E2025)).toBe(0);
 	});
 });

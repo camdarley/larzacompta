@@ -2,7 +2,9 @@
  * Export complet (FR-35) : des rangées de texte, lisibles sans l'outil.
  * Une Ligne dit à quel résultat elle compte : la somme d'une colonne se refait dans un tableur.
  */
-import { totalComptage } from '../caisse/index.ts';
+import { fondDeCaisse, termesRecette, totalComptage } from '../caisse/index.ts';
+import { LIBELLES_ETAT_EMIS, LIBELLES_ETAT_RECU, LIBELLES_ETAT_REMISE } from '../cheques/index.ts';
+import { vueEmis, vueRecus, vueRemises } from '../cheques/vues.ts';
 import { LIBELLES_COMPTAGE } from '../caisse/vues.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, OperationJ } from '../journal.ts';
@@ -186,6 +188,107 @@ export function csvComptages(
 	};
 }
 
+export function csvChequesRecus(j: GrandJournal, p: ParametrageEtats): TableCsv {
+	return {
+		entetes: [
+			'Reçu le',
+			'Émetteur',
+			'Banque',
+			'N° de chèque',
+			'Montant',
+			'Actions',
+			'État',
+			'N° de Remise',
+			'N° d’Opération'
+		],
+		lignes: [...vueRecus(j, p).rangees]
+			.reverse()
+			.map((r) => [
+				r.date,
+				r.emetteur,
+				r.banque ?? '',
+				r.numero ?? '',
+				formaterCsv(r.montant),
+				r.actions.join(' | '),
+				LIBELLES_ETAT_RECU[r.etat],
+				r.remise === null ? '' : String(r.remise.numero),
+				String(r.operationId)
+			])
+	};
+}
+
+export function csvRemises(j: GrandJournal, p: ParametrageEtats): TableCsv {
+	return {
+		entetes: ['N° de Remise', 'Date', 'Compte', 'Nombre de chèques', 'Total', 'État'],
+		lignes: [...vueRemises(j, p).rangees]
+			.reverse()
+			.map((r) => [
+				String(r.numero),
+				r.date,
+				r.compte,
+				String(r.nombre),
+				formaterCsv(r.total),
+				LIBELLES_ETAT_REMISE[r.etat]
+			])
+	};
+}
+
+export function csvChequesEmis(j: GrandJournal, p: ParametrageEtats): TableCsv {
+	return {
+		entetes: [
+			'N° de chèque',
+			'Bénéficiaire',
+			'Date',
+			'Montant',
+			'Actions',
+			'État',
+			'N° d’Opération'
+		],
+		lignes: [...vueEmis(j, p).rangees]
+			.reverse()
+			.map((r) => [
+				r.numero,
+				r.beneficiaire,
+				r.date ?? '',
+				r.montant === null ? '' : formaterCsv(r.montant),
+				r.actions.join(' | '),
+				LIBELLES_ETAT_EMIS[r.etat],
+				r.operationId === null ? '' : String(r.operationId)
+			])
+	};
+}
+
+export function csvSessions(
+	j: Pick<GrandJournal, 'sessions' | 'comptages' | 'operations'>,
+	p: Pick<ParametrageEtats, 'comptes' | 'actions'>
+): TableCsv {
+	return {
+		entetes: [
+			'N° de Session',
+			'Caisse',
+			'Action',
+			'Ouverte le',
+			'Clôturée le',
+			'Fond de caisse',
+			'Comptage final',
+			'Recette d’espèces'
+		],
+		lignes: j.sessions.map((s) => {
+			const termes = termesRecette(j, s.id);
+			return [
+				String(s.id),
+				nomDe(p.comptes, s.compteId),
+				nomDe(p.actions, s.actionId),
+				s.ouverteLe,
+				s.clotureeLe ?? '',
+				formaterCsv(fondDeCaisse(j, s.id)),
+				termes === null ? '' : formaterCsv(termes.comptageFinal),
+				termes === null || s.clotureeLe === null ? '' : formaterCsv(termes.recette)
+			];
+		})
+	};
+}
+
 /** Texte de `LISEZMOI.txt`, sans vocabulaire de logiciel comptable. */
 export function lisezMoi(
 	association: string,
@@ -206,6 +309,10 @@ export function lisezMoi(
 		'  Filtrez « Compte dans le résultat de » sur un Exercice : la somme des montants égale son résultat.',
 		'pointages.csv : les Opérations et les Lignes de relevé reliées, une rangée par élément.',
 		'comptages.csv : chaque Comptage de caisse, avec son total et ses coupures.',
+		'sessions.csv : chaque Session de caisse, avec son Fond de caisse et sa Recette d’espèces.',
+		'cheques-recus.csv : chaque Chèque reçu, avec son état et sa Remise.',
+		'remises.csv : chaque Remise, avec son Compte et son total.',
+		'cheques-emis.csv : le registre des Chèques émis, formules annulées comprises.',
 		'pieces/ : les Pièces, telles qu’elles ont été déposées.',
 		''
 	].join('\r\n');

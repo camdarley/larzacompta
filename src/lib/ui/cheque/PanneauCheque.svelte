@@ -304,6 +304,7 @@
 	.deux {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+		align-items: start;
 		gap: var(--espace-3);
 	}
 
@@ -315,6 +316,7 @@
 	.touches {
 		display: inline-flex;
 		gap: 2px;
+		color: var(--ink);
 	}
 
 	@media (max-width: 639.98px) {

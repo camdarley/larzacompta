@@ -20,8 +20,15 @@ export function modeleBordereau(
 	) as OperationJ;
 	const compte = o.comptes.find((c) => c.id === op.cotes.find((x) => x.montant > 0)?.compteId);
 	const { cheques, total } = chequesDeRemise(j, r.id);
+	// Le n° est facultatif : une colonne vide n'apporterait rien au guichet.
+	const avecNumero = cheques.some((c) => c.numero !== null);
 	const rangees: RangeeDocument[] = cheques.map((c) => ({
-		cellules: [c.emetteur, c.banque ?? '', c.numero ?? '', { montant: montantRecu(j, c) }],
+		cellules: [
+			c.emetteur,
+			c.banque ?? '',
+			...(avecNumero ? [c.numero ?? ''] : []),
+			{ montant: montantRecu(j, c) }
+		],
 		niveau: 0
 	}));
 	return {
@@ -41,13 +48,13 @@ export function modeleBordereau(
 					colonnes: [
 						{ libelle: 'Émetteur', montant: false },
 						{ libelle: 'Banque', montant: false },
-						{ libelle: 'N°', montant: false },
+						...(avecNumero ? [{ libelle: 'N°', montant: false }] : []),
 						{ libelle: 'Montant', montant: true }
 					],
 					rangees: [
 						...rangees,
 						{
-							cellules: ['Total', null, null, { montant: total }],
+							cellules: ['Total', null, ...(avecNumero ? [null] : []), { montant: total }],
 							niveau: 0,
 							fort: true,
 							total: true

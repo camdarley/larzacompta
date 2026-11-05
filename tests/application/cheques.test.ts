@@ -267,8 +267,8 @@ describe('Remise', () => {
 		const m = valeur(app().cheques.bordereau(i.ctx(), id));
 		expect(m.titre).toBe('Bordereau de Remise n° 1');
 		const t = m.sections[0]?.tableau;
-		expect(t?.colonnes.map((x) => x.libelle)).toEqual(['Émetteur', 'Banque', 'N°', 'Montant']);
-		expect(t?.rangees.at(-1)?.cellules).toEqual(['Total', null, null, { montant: 150_00 }]);
+		expect(t?.colonnes.map((x) => x.libelle)).toEqual(['Émetteur', 'Banque', 'Montant']);
+		expect(t?.rangees.at(-1)?.cellules).toEqual(['Total', null, { montant: 150_00 }]);
 		const pdf = await i.app.socle.exporteurs.pdf(m);
 		expect(new TextDecoder().decode(pdf.slice(0, 5))).toBe('%PDF-');
 	});

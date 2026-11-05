@@ -198,7 +198,7 @@ export const JEU_COMPLET = {
 	dateReleve: '2026-11-02',
 	/** Frais lu sur le relevé et pas encore saisi : c'est l'Écart que le Tableau de contrôle montre. */
 	ecartReleve: c(-3_50),
-	/** La pile des Agrumes, reçue en janvier. Le dernier chèque attend encore sa Remise. */
+	/** La pile des Agrumes, reçue en novembre. Le dernier chèque attend encore sa Remise. */
 	cheques: [
 		{ emetteur: 'Famille Abricot', banque: 'Banque des Prés', montant: c(30_00) },
 		{ emetteur: 'Famille Bergamote', banque: 'Banque des Prés', montant: c(45_00) },

@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { strFromU8, unzipSync } from 'fflate';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Exercice } from '#lib/domaine/exercices.ts';
 import { composer } from '#lib/server/composition.ts';
@@ -11,8 +12,8 @@ import { ATTENDUS_COMPLET, JEU_COMPLET } from '../jeux/exercice-fictif.ts';
 import { banc } from './aides/app.ts';
 import { valeur } from './aides/instance.ts';
 
-function charge(instant = '2026-12-31T10:00:00.000Z') {
-	const b = banc(instant);
+function charge() {
+	const b = banc('2026-12-31T10:00:00.000Z');
 	const jeu = chargerJeu(b.app, b.ctx());
 	const e = b.app.socle.depots.exercices
 		.lister()
@@ -22,7 +23,7 @@ function charge(instant = '2026-12-31T10:00:00.000Z') {
 
 describe('Exercice fictif complet (6.7, 8.9)', () => {
 	it('couvre chèques, Remises, rejet, registre et SumUp, Q1 à Q6 tenus', () => {
-		const { b, e } = charge('2027-03-01T10:00:00.000Z');
+		const { b, e } = charge();
 		const tableau = valeur(b.app.etats.tableau(b.ctx(), e));
 		const tache = (id: string) => tableau.taches.find((t) => t.id === id)?.compteur;
 		expect(tache('cheques')).toBe(1);
@@ -82,6 +83,19 @@ describe('Exercice fictif complet (6.7, 8.9)', () => {
 		const banque = tableau.cartes[0];
 		expect(banque?.ecart).toBe(JEU_COMPLET.ecartReleve);
 		expect(tableau.bilan.type).toBe('taches');
+	});
+
+	it('sort chèques, Remises et Sessions dans l’export complet', async () => {
+		const { b } = charge();
+		const { flux } = valeur(b.app.etats.exportComplet(b.ctx()));
+		const archive = unzipSync(new Uint8Array(await new Response(flux).arrayBuffer()));
+		const texte = (nom: string) => strFromU8(archive[nom]!);
+		expect(texte('cheques-recus.csv')).toContain('Famille Bergamote');
+		expect(texte('cheques-recus.csv')).toContain('Rejeté');
+		expect(texte('remises.csv').trim().split('\r\n')).toHaveLength(3);
+		expect(texte('cheques-emis.csv')).toContain(JEU_COMPLET.numeroChequeEmis);
+		expect(texte('sessions.csv')).toContain('Fond de caisse');
+		expect(texte('LISEZMOI.txt')).toContain('cheques-recus.csv');
 	});
 
 	it('se relit sans aucune violation', () => {

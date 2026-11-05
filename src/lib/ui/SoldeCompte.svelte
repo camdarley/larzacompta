@@ -41,13 +41,20 @@
 	});
 </script>
 
-<article class="solde-compte" class:juste={juste && !cheques} class:lien={href}>
+<article
+	class="solde-compte"
+	class:juste={juste && !cheques}
+	class:neutre={cheques}
+	class:lien={href}
+>
 	<header>
 		<div>
 			<h2 class="t-heading">
 				{#if href}<a {href}>{c.compte.libelle}</a>{:else}{c.compte.libelle}{/if}
 			</h2>
-			<p class="t-caption t-muted">{LIBELLES_TYPE_COMPTE[c.compte.type]}</p>
+			{#if !cheques}
+				<p class="t-caption t-muted">{LIBELLES_TYPE_COMPTE[c.compte.type]}</p>
+			{/if}
 		</div>
 		{#if !cheques}<Pastille {...pastille} />{/if}
 	</header>
@@ -99,6 +106,11 @@
 
 	.juste {
 		border-left-color: var(--success);
+	}
+
+	/* Rien à regarder ici : la barre ne dit ni juste, ni à vérifier. */
+	.neutre {
+		border-left-color: var(--border-strong);
 	}
 
 	header {

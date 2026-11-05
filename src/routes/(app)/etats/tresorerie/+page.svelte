@@ -102,7 +102,7 @@
 				</div>
 			</dl>
 			<a class="lien-cible" href={lien('/creances-dettes')}>Voir le détail</a>
-			<h2 id="titre-cheques" class="t-heading">
+			<h2 id="titre-cheques" class="t-heading suite">
 				<AideTerme ancre="cheque-recu">Chèques à remettre</AideTerme>
 			</h2>
 			<p class="t-muted">Reçus et comptés dans la trésorerie, pas encore déposés.</p>
@@ -141,6 +141,10 @@
 {/if}
 
 <style>
+	.suite {
+		margin-top: var(--espace-5);
+	}
+
 	.chiffre {
 		font-variant-numeric: tabular-nums lining-nums;
 		text-align: right;
