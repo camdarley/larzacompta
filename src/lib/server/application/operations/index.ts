@@ -75,6 +75,7 @@ import { porteUneDepense, vuesPieces } from '#lib/domaine/pieces/index.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
 import { inscrireChequeEmis, retirerChequeEmis, suivreChequeEmis } from '../cheques/registre.ts';
 import { rattacherPieces } from '../pieces/index.ts';
+import { reajusterEcartOuverture } from '../caisses/ecart.ts';
 import type {
 	ContexteSaisie,
 	DetailOperation,
@@ -175,7 +176,10 @@ export function ecrireOperation(
 	});
 	// Q6 : le registre s'écrit dans la transaction de l'Opération.
 	const registre = inscrireChequeEmis(o, id, decision.valeur);
-	return registre.ok ? succes({ id }) : registre;
+	if (!registre.ok) return registre;
+	if (brouillon.origine === 'ecart_caisse') return succes({ id });
+	const ecart = reajusterEcartOuverture(o, decision.valeur.cotes);
+	return ecart.ok ? succes({ id }) : ecart;
 }
 
 function existantDe(op: OperationJ): ExistantLignes {
@@ -259,7 +263,9 @@ export function ecrireModification(
 		apres: { ...validation.valeur, cle: e.cle }
 	});
 	const registre = suivreChequeEmis(o, e.id, validation.valeur);
-	return registre.ok ? succes({ id: e.id }) : registre;
+	if (!registre.ok) return registre;
+	const ecart = reajusterEcartOuverture(o, [...avant.cotes, ...validation.valeur.cotes]);
+	return ecart.ok ? succes({ id: e.id }) : ecart;
 }
 
 /**
@@ -290,7 +296,8 @@ export function annulerOperation(
 		avant: brouillonDe(op)
 	});
 	retirerChequeEmis(o, id);
-	return succes({ id });
+	const ecart = reajusterEcartOuverture(o, op.cotes);
+	return ecart.ok ? succes({ id }) : ecart;
 }
 
 type Noms = { comptes: Compte[]; natures: Nature[]; actions: Action[] };

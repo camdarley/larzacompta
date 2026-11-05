@@ -73,6 +73,26 @@ export function deciderCreance(
 	return succes(e);
 }
 
+export type ExerciceClos = Exercice & { clotureLe: Instant };
+
+/**
+ * Une annulation qu'une clôture a vue fait partie de l'état clos : si cet état la montre à 0, la
+ * rétablir le changerait (FR-3). Annulée après la clôture ou après sa fin, rien n'y paraît.
+ */
+export function deciderRetablissement(
+	c: Pick<CreanceDetteJ, 'date' | 'annuleeLe'>,
+	closes: readonly ExerciceClos[]
+): Resultat<true> {
+	const annuleeLe = c.annuleeLe;
+	if (annuleeLe === null) return succes(true);
+	const jour = instantVersDate(annuleeLe);
+	const exercice = closes.find((x) => {
+		const fin = x.fin as DateCivile;
+		return c.date <= fin && jour <= fin && annuleeLe <= x.clotureLe;
+	});
+	return exercice ? echec('exercice_cloture', { exercice: exercice.libelle }) : succes(true);
+}
+
 export type PartReglement = { creanceId: number; montant: Centimes };
 
 /**

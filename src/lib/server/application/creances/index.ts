@@ -5,9 +5,11 @@
 import {
 	deciderCreance,
 	deciderReglements,
+	deciderRetablissement,
 	sommeASolder,
 	suivi,
 	type EntreeCreance,
+	type ExerciceClos,
 	type PartReglement,
 	type SommeASolder,
 	type SuiviCreances
@@ -26,6 +28,14 @@ export type EntreeSolder = {
 	pieces?: number[];
 	cle?: string;
 };
+
+/** Exercices clôturés, avec l'instant de leur clôture. */
+function closes(depot: Socle['depots']['exercices']): ExerciceClos[] {
+	return depot.lister().flatMap((e) => {
+		const clotureLe = e.statut === 'cloture' ? depot.cloture(e.id)?.clotureLe : undefined;
+		return clotureLe === undefined ? [] : [{ ...e, clotureLe }];
+	});
+}
 
 const nomSomme = (sens: EntreeCreance['sens']) => (sens === 'creance' ? 'la Créance' : 'la Dette');
 
@@ -82,6 +92,8 @@ export function creerCreances(socle: Socle, executer: Executer, lire: Lire) {
 			const c = trouver(id);
 			if (c === undefined) return echec('element_introuvable');
 			if (c.annuleeLe === null) return succes(true);
+			const permis = deciderRetablissement(c, closes(o.depots.exercices));
+			if (!permis.ok) return permis;
 			o.depots.creances.retablir(id);
 			o.noter({
 				evenement: 'creance.retablie',

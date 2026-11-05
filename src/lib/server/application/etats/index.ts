@@ -37,7 +37,8 @@ import {
 	csvPointages,
 	csvRemises,
 	csvSessions,
-	lisezMoi
+	lisezMoi,
+	listePiecesManquantes
 } from '#lib/domaine/etats/export-complet.ts';
 import {
 	anomaliesEquation,
@@ -169,7 +170,11 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 		sansJournal: true,
 		faire(o) {
 			const j = o.depots.operations.journal();
-			const violations = verifierJournal(j, (e) => parametrageDe(o.depots, e));
+			const violations = verifierJournal(
+				j,
+				(e) => parametrageDe(o.depots, e),
+				new Set(o.depots.journal.entitesDe('session.rouverte'))
+			);
 			for (const e of j.exercices.filter((x) => x.statut === 'cloture')) {
 				const cloture = o.depots.exercices.cloture(e.id);
 				if (cloture === null) {
@@ -308,12 +313,19 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 					'remises.csv': csv(csvRemises(j, p)),
 					'cheques-emis.csv': csv(csvChequesEmis(j, p))
 				};
+				// Lu après les Pièces, en dernier : le flux n'apprend qu'en route ce qui manque.
+				const manquantes: string[] = [];
 				const fichiers: EntreeArchive[] = [
 					...Object.entries(textes).map(([nom, texte]) => ({ nom, lire: () => texte })),
 					...depots.pieces.lister().map((piece) => ({
 						nom: cheminPiece(piece),
-						lire: () => socle.fichiers.lire(piece.sha256)
-					}))
+						lire() {
+							const contenu = socle.fichiers.lire(piece.sha256);
+							if (contenu === null) manquantes.push(cheminPiece(piece));
+							return contenu;
+						}
+					})),
+					{ nom: 'PIECES-MANQUANTES.txt', lire: () => listePiecesManquantes(manquantes) }
 				];
 				return {
 					nom: `export-complet-${ctx.aujourdhui}.zip`,

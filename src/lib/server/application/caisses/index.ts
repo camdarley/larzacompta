@@ -4,6 +4,7 @@ import {
 	comptageDe,
 	controlerDateComptage,
 	dernierComptageSession,
+	phasesARecaler,
 	prefillOuverture,
 	sessionDe,
 	sessionOuverte,
@@ -24,11 +25,11 @@ import type { DateCivile } from '#lib/domaine/dates.ts';
 import type { Exercice } from '#lib/domaine/exercices.ts';
 import type { ComptageJ, CoupureJ, GrandJournal } from '#lib/domaine/journal.ts';
 import { centimes, formaterMontant, type Centimes } from '#lib/domaine/montant.ts';
-import type { Brouillon } from '#lib/domaine/operations/validation.ts';
 import type { Compte } from '#lib/domaine/parametrage.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
 import { annulerOperation, ecrireOperation } from '../operations/index.ts';
+import { brouillonCaisse, ecrireEcart, natureSysteme } from './ecart.ts';
 
 type SaisieComptage = {
 	coupures: CoupureJ[];
@@ -59,62 +60,6 @@ function debutAncre(j: Pick<GrandJournal, 'ancres' | 'exercices'>, compteId: num
 	return j.exercices.find((e) => e.id === ancre?.exerciceId)?.debut ?? null;
 }
 
-function natureSysteme(o: Outils, code: 'ecart_caisse' | 'recette_especes'): number {
-	const nature = o.depots.parametrage.natures().find((n) => n.codeSysteme === code);
-	if (nature === undefined) throw new Error(`Nature système absente : ${code}.`);
-	return nature.id;
-}
-
-function brouillonCaisse(
-	compteId: number,
-	date: DateCivile,
-	montant: Centimes,
-	o: { origine: Brouillon['origine']; libelle: string; natureId: number; actionId: number | null }
-): Brouillon {
-	return {
-		genre: 'standard',
-		origine: o.origine,
-		date,
-		libelle: o.libelle,
-		reference: null,
-		modePaiement: 'especes',
-		note: null,
-		tiers: null,
-		sansPiece: true,
-		cotes: [{ compteId, date, montant }],
-		lignes: [
-			{
-				montant,
-				estReduction: false,
-				natureId: o.natureId,
-				actionId: o.actionId,
-				exerciceRattachementId: null,
-				note: null
-			}
-		]
-	};
-}
-
-/** C8 : Opération d'origine `ecart_caisse`, Nature système, datée du Comptage. */
-function ecrireEcart(
-	o: Outils,
-	compte: Compte,
-	date: DateCivile,
-	ecart: Centimes
-): Resultat<number | null> {
-	if (ecart === 0) return succes(null);
-	const cree = ecrireOperation(
-		o,
-		brouillonCaisse(compte.id, date, ecart, {
-			origine: 'ecart_caisse',
-			libelle: `Écart de caisse, ${compte.libelle}`,
-			natureId: natureSysteme(o, 'ecart_caisse'),
-			actionId: null
-		})
-	);
-	return cree.ok ? succes(cree.valeur.id) : cree;
-}
-
 function controlerDate(
 	o: Outils,
 	compteId: number,
@@ -131,9 +76,19 @@ function controlerDate(
 }
 
 /** Un Comptage ne remonte pas avant le précédent : le repère de la caisse perdrait son sens. */
-function dernierComptageDate(j: GrandJournal, compteId: number) {
-	const dates = j.comptages.filter((c) => c.compteId === compteId).map((c) => c.date);
+function dernierComptageDate(j: GrandJournal, compteId: number, sauf?: number) {
+	const dates = j.comptages
+		.filter((c) => c.compteId === compteId && c.id !== sauf)
+		.map((c) => c.date);
 	return dates.sort().at(-1) ?? null;
+}
+
+/** La date du Comptage final vient de changer : la phase des Côtés d'un autre jour la suit. */
+function recalerPhases(o: Outils, sessionId: number, dateFinale: DateCivile) {
+	const j = o.depots.operations.journal();
+	for (const { coteId, phase } of phasesARecaler(j, sessionId, dateFinale)) {
+		o.depots.operations.definirPhaseCote(coteId, phase);
+	}
 }
 
 function noterComptage(
@@ -308,12 +263,16 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 					saisiPar: acteur(o),
 					coupures: e.coupures
 				});
+				recalerPhases(o, session.id, e.date);
 				noterComptage(o, compte, id, total, 'comptage.enregistre');
 				return succes({ sessionId: session.id, ecart: centimes(0) });
 			}
 
 			if (dernier === undefined) return echec('comptage_manquant');
-			const auPlusTot = dernier.type === 'fin' ? (ouverture?.date ?? null) : null;
+			const auPlusTot =
+				dernier.type === 'fin'
+					? (ouverture?.date ?? null)
+					: dernierComptageDate(j, compte.id, dernier.id);
 			const date = controlerDate(o, compte.id, e.date, auPlusTot);
 			if (!date.ok) return date;
 			let ecart = centimes(0);
@@ -328,6 +287,7 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 				saisiPar: acteur(o),
 				coupures: e.coupures
 			});
+			if (dernier.type === 'fin') recalerPhases(o, session.id, e.date);
 			noterComptage(o, compte, dernier.id, total, 'comptage.corrige');
 			return succes({ sessionId: session.id, ecart });
 		}
@@ -355,7 +315,14 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 						libelle: `Recette d’espèces, ${compte.libelle}`,
 						natureId: natureSysteme(o, 'recette_especes'),
 						actionId: session.actionId
-					})
+					}),
+					// O11 ne vise qu'une Ligne nouvelle : l'Action de la Session a pu être désactivée depuis.
+					{
+						existant: {
+							natureIds: [],
+							actionIds: session.actionId === null ? [] : [session.actionId]
+						}
+					}
 				);
 				if (!cree.ok) return cree;
 				operationId = cree.valeur.id;

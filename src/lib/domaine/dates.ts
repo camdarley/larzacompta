@@ -123,6 +123,12 @@ export function formaterHorodatage(instant: Instant): string {
 	return `${formaterDateCourte(instantVersDate(instant))} à ${heure}`;
 }
 
+/** En texte, comme une date longue : `5 novembre 2026 à 15:19`. */
+export function formaterDateHeure(instant: Instant): string {
+	const heure = formaterHorodatage(instant).split(' à ')[1];
+	return `${formaterDateLongue(instantVersDate(instant))} à ${heure}`;
+}
+
 /** Lit `12/03/2026` ou `2026-03-12`. */
 export function lireDate(texte: string): Resultat<DateCivile> {
 	const net = texte.trim();

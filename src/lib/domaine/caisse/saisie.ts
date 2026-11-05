@@ -23,6 +23,15 @@ function lienConserve(existant: CoteJ | undefined, c: CoteSaisi) {
 		: { sessionCaisseId: null, sessionPhase: null };
 }
 
+/** Le texte d'une Opération se corrige sans toucher à la caisse : rien ne la rattache alors. */
+const memeMouvement = (existant: CoteJ | undefined, c: CoteSaisi) =>
+	existant?.compteId === c.compteId && existant.date === c.date && existant.montant === c.montant;
+
+/**
+ * Un Côté neuf, ou dont le Compte, la date ou le montant change, suit la Session ouverte. Sauf s'il
+ * est daté avant son Comptage d'ouverture : cette somme était déjà sortie quand on a compté le
+ * Fond, elle n'entre pas dans C5. `reajusterEcartOuverture` en tire la conséquence.
+ */
 export function rattacherCotes<C extends CoteSaisi>(
 	j: Pick<GrandJournal, 'sessions' | 'comptages'>,
 	b: Pick<Brouillon, 'origine' | 'genre'> & { cotes: readonly C[] },
@@ -33,7 +42,12 @@ export function rattacherCotes<C extends CoteSaisi>(
 		const existant = avant?.cotes[i];
 		if (horsSession(b.origine)) return { ...c, sessionCaisseId: null, sessionPhase: null };
 		const session = sessionOuverte(j, c.compteId);
-		if (session === undefined) return { ...c, ...lienConserve(existant, c) };
+		const horsDeLaSession = memeMouvement(existant, c) && existant?.sessionCaisseId !== session?.id;
+		if (session === undefined || horsDeLaSession) return { ...c, ...lienConserve(existant, c) };
+		const ouverture = comptageDe(j, session.id, 'ouverture')?.date;
+		if (ouverture !== undefined && c.date < ouverture) {
+			return { ...c, sessionCaisseId: null, sessionPhase: null };
+		}
 		const finale = comptageDe(j, session.id, 'fin')?.date ?? null;
 		const lue = existant?.compteId === c.compteId ? existant.sessionPhase : undefined;
 		return {

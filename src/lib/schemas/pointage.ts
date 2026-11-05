@@ -1,11 +1,10 @@
 /** Entrées du Pointage, partagées par l'interface et les endpoints JSON (AD-19). */
 import { z } from 'zod';
 import { dateValide } from '#lib/domaine/dates.ts';
-import { centimes } from '#lib/domaine/montant.ts';
+import { MONTANT_MAX, centimes } from '#lib/domaine/montant.ts';
 import { saisieOperation, cleSaisie, piecesDeposees } from './operations.ts';
 import { montantFacultatif } from './parametrage.ts';
 
-const MONTANT_MAX = 100_000_000_00;
 const identifiant = z.number({ message: 'champ_requis' }).int().positive();
 const date = z.string({ message: 'champ_requis' }).refine(dateValide, 'date_invalide');
 const signe = z

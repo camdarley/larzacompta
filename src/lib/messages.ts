@@ -106,6 +106,8 @@ const MESSAGES = {
 		'Cette date précède l’arrivée du chèque sur son Compte. Choisissez le jour du rejet.',
 	cheque_absent:
 		'Le chèque n° {numero} est passé en banque, mais il n’est pas au registre. Créez son Opération pour l’y inscrire.',
+	cheque_annule_en_banque:
+		'Le chèque n° {numero} est passé en banque, alors qu’il est annulé au registre. Vérifiez auprès de la banque, puis reliez ou créez l’Opération.',
 	versement_sumup:
 		'Versement SumUp : répartissez le brut et les frais pour voir la vraie recette et le vrai coût.',
 	numero_cheque_utilise:

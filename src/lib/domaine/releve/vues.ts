@@ -8,6 +8,7 @@ import { exerciceDeDate, soldeCompte, soldeDepart } from '../etats/soldes.ts';
 import type { GrandJournal, LigneReleveJ } from '../journal.ts';
 import { centimes, type Centimes } from '../montant.ts';
 import type { Compte } from '../parametrage.ts';
+import { numeroInscrit } from '../cheques/index.ts';
 import { chequeAbsent, sumupPrecedent, type ModeleSumup } from './cheques.ts';
 import { dateDepuisLigne } from './pointage.ts';
 import { libelleDuCote, proposer, type Proposition } from './proposer.ts';
@@ -35,6 +36,8 @@ export type LigneFile = Pick<LigneReleveJ, 'id' | 'date' | 'montant' | 'libelle'
 	horsExercice: boolean;
 	/** N° d'un chèque payé, absent du registre (FR-23). */
 	chequeAbsent: string | null;
+	/** Ce n° figure bien au registre, mais comme annulé. */
+	chequeAnnule: boolean;
 	/** Versement SumUp : se répartit en brut et frais (FR-24). */
 	sumup: boolean;
 };
@@ -182,6 +185,7 @@ function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): L
 		.map((l): LigneFile => {
 			const pointage = j.pointages.find((p) => p.ligneReleveIds.includes(l.id));
 			const etat = pointage ? 'pointe' : l.doublon === 'a_confirmer' ? 'a_regarder' : 'a_pointer';
+			const absent = pointage ? null : chequeAbsent(j, l);
 			return {
 				id: l.id,
 				date: l.date,
@@ -195,7 +199,8 @@ function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): L
 				propositions: etat === 'a_pointer' ? proposer(j, l) : [],
 				jumelle: duCompte.some((x) => x.id !== l.id && x.empreinte === l.empreinte),
 				horsExercice: !dateDepuisLigne(j.exercices, l.date).ok,
-				chequeAbsent: pointage ? null : chequeAbsent(j, l),
+				chequeAbsent: absent,
+				chequeAnnule: absent !== null && numeroInscrit(j, absent),
 				sumup: !pointage && estVersementSumup(l)
 			};
 		})

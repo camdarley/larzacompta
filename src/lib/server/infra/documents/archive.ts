@@ -20,19 +20,23 @@ export function genererZip(entrees: Iterable<EntreeArchive>): ReadableStream<Uin
 			});
 		},
 		pull() {
-			const { done, value } = suite.next();
-			if (done) {
-				zip.end();
+			// Une entrée vide n'écrit rien : on passe à la suivante, sinon le flux n'avance plus.
+			for (;;) {
+				const { done, value } = suite.next();
+				if (done) {
+					zip.end();
+					return;
+				}
+				const contenu = value.lire();
+				if (contenu === null) continue;
+				const fichier =
+					typeof contenu === 'string'
+						? new ZipDeflate(value.nom, { level: 6 })
+						: new ZipPassThrough(value.nom);
+				zip.add(fichier);
+				fichier.push(typeof contenu === 'string' ? strToU8(contenu) : contenu, true);
 				return;
 			}
-			const contenu = value.lire();
-			if (contenu === null) return;
-			const fichier =
-				typeof contenu === 'string'
-					? new ZipDeflate(value.nom, { level: 6 })
-					: new ZipPassThrough(value.nom);
-			zip.add(fichier);
-			fichier.push(typeof contenu === 'string' ? strToU8(contenu) : contenu, true);
 		}
 	});
 }

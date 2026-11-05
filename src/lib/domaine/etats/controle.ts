@@ -3,7 +3,7 @@
  * l'Écart et ses causes, puis la `phrase-bilan`. Jamais rassurante si un Écart existe.
  */
 import { dateSession, repereCaisse, sessionOuverteLe } from '../caisse/index.ts';
-import { etatChequeRecu } from '../cheques/index.ts';
+import { chequesEnAttenteLe } from '../cheques/index.ts';
 import { joursEntre, type DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal } from '../journal.ts';
@@ -197,7 +197,7 @@ export function cartesComptes(
 		: j.comptes;
 	const jour = cloture ? (e.fin as DateCivile) : aujourdhui;
 	return comptes
-		.filter((c) => estControle(c) && anneeAncre(c.id) <= e.anneeDebut)
+		.filter((c) => estControle(c) && (cloture || anneeAncre(c.id) <= e.anneeDebut))
 		.map((c) => carteCompte(j, c, e, jour))
 		.filter((c) => !muette(c));
 }
@@ -227,7 +227,7 @@ export function sessionsNonCloturees(
 	}).length;
 }
 
-/** Chèques en attente, reçus jusqu'à la fin de l'Exercice regardé. */
+/** Chèques en attente à la fin de l'Exercice regardé, comme l'État de trésorerie (Q3). */
 export function chequesARemettre(
 	j: Pick<
 		GrandJournal,
@@ -235,11 +235,7 @@ export function chequesARemettre(
 	>,
 	e: Exercice
 ): number {
-	const fin = e.fin as DateCivile;
-	return j.chequesRecus.filter((c) => {
-		const op = j.operations.find((o) => o.id === c.operationId);
-		return etatChequeRecu(j, c) === 'en_attente' && op !== undefined && op.date <= fin;
-	}).length;
+	return chequesEnAttenteLe(j, e.fin as DateCivile).length;
 }
 
 /** Côtés non pointés, antérieurs au début du dernier relevé de leur Compte (FR-15). */

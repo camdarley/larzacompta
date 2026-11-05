@@ -3,7 +3,7 @@
  * Pure : l'aperçu de l'écran de correspondance appelle le même code que l'import.
  */
 import { dateValide, type DateCivile } from '../dates.ts';
-import { centimes, type Centimes } from '../montant.ts';
+import { centimes, MONTANT_MAX, type Centimes } from '../montant.ts';
 import { echec, succes, type Resultat } from '../resultat.ts';
 import type { LigneNormalisee, ReleveNormalise } from './types.ts';
 
@@ -36,7 +36,8 @@ export function lireMontantCsv(texte: string): Centimes | null {
 	if (groupes.length > 1 && groupes.slice(1).some((g) => g.length !== 3)) return null;
 	if (virgule !== '' && entier.includes(virgule)) return null;
 	const valeur = Number(groupes.join('')) * 100 + Number(decimales.padEnd(2, '0'));
-	if (!Number.isSafeInteger(valeur)) return null;
+	// Au-delà du plafond de la saisie, la colonne choisie n'est pas celle des montants.
+	if (!Number.isSafeInteger(valeur) || valeur > MONTANT_MAX) return null;
 	return centimes(avant === '-' || apres === '-' ? -valeur : valeur);
 }
 
@@ -51,7 +52,10 @@ export function lireDateCsv(texte: string): DateCivile | null {
 	return dateValide(date) ? date : null;
 }
 
-/** Index de chaque colonne du réglage : une colonne disparue refuse tout le fichier. */
+/**
+ * Index de chaque colonne du réglage : une colonne disparue refuse tout le fichier.
+ * `complete` : la rangée va jusqu'à la dernière colonne dont le réglage a besoin.
+ */
 function colonnes(t: TableauCsv, r: ReglageCsv): Resultat<(ligne: string[]) => LigneBrute> {
 	const noms = [
 		r.date,
@@ -64,7 +68,9 @@ function colonnes(t: TableauCsv, r: ReglageCsv): Resultat<(ligne: string[]) => L
 
 	const lire = (ligne: string[], nom: string) => (ligne[t.entetes.indexOf(nom)] ?? '').trim();
 	const montant = r.montant;
+	const derniere = Math.max(...noms.map((n) => t.entetes.indexOf(n)));
 	return succes((ligne) => ({
+		complete: ligne.length > derniere,
 		date: lire(ligne, r.date),
 		libelle: lire(ligne, r.libelle).replace(/\s+/g, ' '),
 		identifiant: r.identifiant === null ? '' : lire(ligne, r.identifiant),
@@ -75,6 +81,7 @@ function colonnes(t: TableauCsv, r: ReglageCsv): Resultat<(ligne: string[]) => L
 }
 
 type LigneBrute = {
+	complete: boolean;
 	date: string;
 	libelle: string;
 	identifiant: string;
@@ -92,13 +99,41 @@ function montantDe(b: LigneBrute): Centimes | null {
 	return centimes(Math.abs(entree) - Math.abs(sortie));
 }
 
+/** Les chiffres d'une date coupée en plein milieu, à ne pas confondre avec un mot de pied de page. */
+const debutDeDate = (texte: string) => /^\d[\d/.-]*$/.test(texte);
+
+/**
+ * Une rangée à laquelle il manque une colonne du réglage ne se lit pas. Avant la première donnée,
+ * ou en pied de fichier, elle ne compte pas. Partout ailleurs, c'est une ligne perdue : le fichier
+ * entier se refuse (AD-9, FR-12), car un trou de lignes fausse le contrôle de solde.
+ */
+function courtesIgnorees(
+	rangs: readonly { date: string; complete: boolean }[]
+): Set<number> | null {
+	const lisible = (b: { date: string }) => lireDateCsv(b.date) !== null;
+	const premiere = rangs.findIndex(lisible);
+	const derniere = rangs.findLastIndex(lisible);
+	const ignorees = new Set<number>();
+	for (const [i, b] of rangs.entries()) {
+		if (b.complete) continue;
+		const coupee = lisible(b) || debutDeDate(b.date);
+		if (coupee || (i > premiere && i < derniere)) return null;
+		ignorees.add(i);
+	}
+	return ignorees;
+}
+
 export function appliquerReglage(t: TableauCsv, r: ReglageCsv): Resultat<ReleveNormalise> {
 	const lecteur = colonnes(t, r);
 	if (!lecteur.ok) return lecteur;
 
+	const rangs = t.lignes.map((l) => lecteur.valeur(l));
+	const ignorees = courtesIgnorees(rangs);
+	if (ignorees === null) return echec('fichier_illisible');
+
 	const lignes: LigneNormalisee[] = [];
-	for (const brute of t.lignes) {
-		const b = lecteur.valeur(brute);
+	for (const [i, b] of rangs.entries()) {
+		if (ignorees.has(i)) continue;
 		// Une rangée de total ou une rangée vide n'est pas un mouvement.
 		if (b.date === '') continue;
 		const date = lireDateCsv(b.date);

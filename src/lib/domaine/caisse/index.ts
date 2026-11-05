@@ -132,7 +132,10 @@ export function termesRecette(
 export type LectureCaisse = {
 	/** Lecture en fin de ce jour. */
 	jour: DateCivile;
-	/** Rejoue un instant passé : ce qui a été écrit après n'existait pas encore. */
+	/**
+	 * Rejoue un instant passé : ce qui a été écrit après n'existait pas encore. Sauf un Côté hors
+	 * Session daté d'avant ce jour : saisi en retard, il avait bien déjà bougé la caisse.
+	 */
 	jusqua?: Instant;
 	/** Comptage en cours de correction : il ne se sert pas de repère à lui-même. */
 	sauf?: number;
@@ -221,12 +224,14 @@ function cotesPosterieurs(
 	m: LectureCaisse
 ): CoteDeSession[] {
 	return j.operations.flatMap((operation) => {
-		if (m.jusqua !== undefined && operation.creeLe > m.jusqua) return [];
+		const ecriteApres = m.jusqua !== undefined && operation.creeLe > m.jusqua;
+		const enRetard = (c: CoteJ) => (c.sessionCaisseId ?? null) === null && c.date < m.jour;
 		return operation.cotes
 			.filter(
 				(c) =>
 					c.compteId === compteId &&
 					c.date <= m.jour &&
+					(!ecriteApres || enRetard(c)) &&
 					(r === undefined || posterieur(j, r, operation, c))
 			)
 			.map((cote) => ({ cote, operation }));
@@ -310,6 +315,22 @@ export function phaseDuCote(
 	if (dateFinale === null || dateCote < dateFinale) return 'pendant';
 	if (dateCote > dateFinale) return 'apres_comptage';
 	return choisie ?? parDefaut;
+}
+
+/**
+ * C12, AD-10 : l'arrivée ou la correction du Comptage final réécrit la phase de tout Côté dont la
+ * date tranche seule. Le même jour, la phase reste celle de la réponse donnée au formulaire.
+ */
+export function phasesARecaler(
+	j: Pick<GrandJournal, 'operations'>,
+	sessionId: number,
+	dateFinale: DateCivile
+): { coteId: number; phase: PhaseSession }[] {
+	return cotesDeSession(j, sessionId).flatMap(({ cote }) => {
+		if (cote.date === dateFinale) return [];
+		const phase = phaseDuCote(cote.date, dateFinale, undefined, 'pendant');
+		return phase === cote.sessionPhase ? [] : [{ coteId: cote.id, phase }];
+	});
 }
 
 /** C7 : la dernière Session de la caisse, dans un Exercice ouvert. */

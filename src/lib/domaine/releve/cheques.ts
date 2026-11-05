@@ -1,5 +1,5 @@
 /** Ce que le relevé dit des chèques et de SumUp (AD-11, FR-23, FR-24). */
-import { numeroInscrit } from '../cheques/index.ts';
+import { numeroValable } from '../cheques/index.ts';
 import type { DateCivile } from '../dates.ts';
 import type { GrandJournal, LigneReleveJ } from '../journal.ts';
 import { numeroChequeLu } from './references.ts';
@@ -16,7 +16,7 @@ export function chequeAbsent(
 ): string | null {
 	if (l.montant >= 0) return null;
 	const numero = numeroChequeLu(l.libelle);
-	return numero !== null && !numeroInscrit(j, numero) ? numero : null;
+	return numero !== null && !numeroValable(j, numero) ? numero : null;
 }
 
 export type ChequeAbsent = Pick<LigneReleveJ, 'id' | 'compteId' | 'libelle' | 'montant'> & {

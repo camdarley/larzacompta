@@ -290,6 +290,18 @@ export function csvSessions(
 }
 
 /** Texte de `LISEZMOI.txt`, sans vocabulaire de logiciel comptable. */
+/** Rien à dire si tout y est : le fichier n'existe alors pas. */
+export function listePiecesManquantes(chemins: readonly string[]): string | null {
+	if (chemins.length === 0) return null;
+	return [
+		`${chemins.length === 1 ? 'Cette Pièce manque' : 'Ces Pièces manquent'} à l’export : son fichier est absent du serveur.`,
+		'operations.csv garde leur chemin. La commande « ape verifier » dit la même chose.',
+		'',
+		...chemins,
+		''
+	].join('\n');
+}
+
 export function lisezMoi(
 	association: string,
 	date: string,
@@ -314,6 +326,7 @@ export function lisezMoi(
 		'remises.csv : chaque Remise, avec son Compte et son total.',
 		'cheques-emis.csv : le registre des Chèques émis, formules annulées comprises.',
 		'pieces/ : les Pièces, telles qu’elles ont été déposées.',
+		'PIECES-MANQUANTES.txt : présent seulement si le fichier d’une Pièce manquait à l’export.',
 		''
 	].join('\r\n');
 }

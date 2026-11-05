@@ -3,7 +3,7 @@
  * et un fichier ne sert jamais à moitié. Toute anomalie refuse le fichier entier.
  */
 import { dateValide, type DateCivile } from '#lib/domaine/dates.ts';
-import { centimes, type Centimes } from '#lib/domaine/montant.ts';
+import { centimes, MONTANT_MAX, type Centimes } from '#lib/domaine/montant.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { LigneNormalisee, ReleveNormalise, SoldeLu } from '#lib/domaine/releve/types.ts';
 import type { SourceReleve } from '../../application/ports.ts';
@@ -65,7 +65,7 @@ function montantOfx(brut: string | null): Centimes | null {
 	if (m === null) return null;
 	const [, signe = '', euros = '', decimales = ''] = m;
 	const valeurAbsolue = Number(euros) * 100 + Number(decimales.padEnd(2, '0'));
-	if (!Number.isSafeInteger(valeurAbsolue)) return null;
+	if (!Number.isSafeInteger(valeurAbsolue) || valeurAbsolue > MONTANT_MAX) return null;
 	return centimes(signe === '-' ? -valeurAbsolue : valeurAbsolue);
 }
 

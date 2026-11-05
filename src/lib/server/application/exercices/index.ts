@@ -8,6 +8,7 @@ import {
 	type Exercice,
 	type NouvelExercice
 } from '#lib/domaine/exercices.ts';
+import type { DateCivile } from '#lib/domaine/dates.ts';
 import { centimes, type Centimes } from '#lib/domaine/montant.ts';
 import { libelleDisponible, prochainOrdre, type TypeCompte } from '#lib/domaine/parametrage.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
@@ -210,7 +211,11 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 			if (!decision.ok) return decision;
 			const e = decision.valeur;
 			const courant = parametrageCourant(o.depots);
-			const presentes = etatTresorerie(j, e, courant).comptes.map((c) => c.compteId);
+			// Un Compte désactivé qui garde un Écart reste au Document d'AG (SM-2).
+			const presentes = [
+				...etatTresorerie(j, e, courant).comptes.map((c) => c.compteId),
+				...cartesComptes(j, e, e.fin as DateCivile).map((c) => c.compte.id)
+			];
 			const fige = figerParametrage(courant, presentes);
 			const empreinte = socle.jetons.empreinte(serialiserCloture(j, e, fige));
 			o.depots.exercices.cloturer({

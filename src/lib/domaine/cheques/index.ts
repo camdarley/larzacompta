@@ -120,13 +120,16 @@ function sortiLe(j: JournalCheques, c: ChequeRecuJ, d: DateCivile): boolean {
 	return (operationDe(j, c.operationRejetId)?.date ?? '9999-12-31') <= d;
 }
 
+/** Chèques déjà reçus et pas encore sortis à cette date. */
+export function chequesEnAttenteLe(j: JournalCheques, d: DateCivile): ChequeRecuJ[] {
+	return j.chequesRecus.filter(
+		(c) => (operationDe(j, c.operationId)?.date ?? d) <= d && !sortiLe(j, c, d)
+	);
+}
+
 /** Q3 : ce que le solde de `cheques_a_remettre` doit valoir à cette date. */
 export function totalEnAttente(j: JournalCheques, d: DateCivile): Centimes {
-	return sommeCentimes(
-		j.chequesRecus
-			.filter((c) => (operationDe(j, c.operationId)?.date ?? d) <= d && !sortiLe(j, c, d))
-			.map((c) => montantRecu(j, c))
-	);
+	return sommeCentimes(chequesEnAttenteLe(j, d).map((c) => montantRecu(j, c)));
 }
 
 export type RemiseVue = { cheques: ChequeRecuJ[]; total: Centimes };
@@ -319,6 +322,14 @@ function porteLeNumero(op: OperationJ, numero: string): boolean {
 		op.modePaiement === 'cheque' &&
 		op.reference !== null &&
 		memeNumero(op.reference, numero)
+	);
+}
+
+/** Encore valable : un chèque annulé au registre qui passe en banque n'est pas en règle (FR-23). */
+export function numeroValable(j: JournalRegistre, numero: string): boolean {
+	return (
+		j.chequesEmis.some((c) => c.annuleLe === null && memeNumero(c.numero, numero)) ||
+		j.operations.some((op) => porteLeNumero(op, numero))
 	);
 }
 

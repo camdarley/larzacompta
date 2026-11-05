@@ -15,9 +15,13 @@ const FINE_INSECABLE = ' ';
 /** Espaces admises à la saisie, y compris celles que le formateur écrit. */
 const ESPACES = /[\s   ]/;
 
+/** Plafond d'une saisie comme d'un relevé : 100 millions d'euros, en centimes. */
+export const MONTANT_MAX = 100_000_000_00;
+
 export function centimes(valeur: number): Centimes {
 	if (!Number.isSafeInteger(valeur)) {
-		throw new Error(`Montant non entier ou hors limites : ${valeur}`);
+		// Sans la valeur : ce message finit dans les logs, qui ne portent aucun montant (AD-21).
+		throw new Error('Montant non entier ou hors limites.');
 	}
 	return valeur as Centimes;
 }

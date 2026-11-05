@@ -4,7 +4,7 @@
  * recette attendue n'est jamais écrite. Leur preuve est dans les tests d'application.
  */
 import type { GrandJournal, OperationJ } from '../journal.ts';
-import { comptageDe, termesRecette } from './index.ts';
+import { comptageDe, dateSession, phaseDuCote, termesRecette } from './index.ts';
 
 type Violation = { invariant: string; message: string };
 
@@ -64,25 +64,53 @@ function violationsEcarts(j: GrandJournal): Violation[] {
 	});
 }
 
-function violationsCotes(j: GrandJournal): Violation[] {
+/**
+ * Une Session rouverte a eu une pause dont aucune date ne reste : ce qui s'y est saisi est hors
+ * Session à juste titre, C12 ne se juge plus. Un Côté daté avant l'ouverture n'y entre jamais.
+ */
+function couverteParUneSession(
+	j: GrandJournal,
+	op: OperationJ,
+	c: OperationJ['cotes'][number],
+	rouvertes: ReadonlySet<number>
+): boolean {
+	return j.sessions.some((s) => {
+		const ouverture = dateSession(j, s.id);
+		return (
+			s.compteId === c.compteId &&
+			op.origine === 'saisie' &&
+			!rouvertes.has(s.id) &&
+			op.creeLe > s.ouverteLe &&
+			(s.clotureeLe === null || op.creeLe < s.clotureeLe) &&
+			ouverture !== null &&
+			c.date >= ouverture
+		);
+	});
+}
+
+function phaseContraire(j: GrandJournal, sessionId: number, c: OperationJ['cotes'][number]) {
+	const lue = c.sessionPhase ?? undefined;
+	if (lue === undefined) return false;
+	const finale = comptageDe(j, sessionId, 'fin')?.date ?? null;
+	return phaseDuCote(c.date, finale, lue, lue) !== lue;
+}
+
+function violationsCotes(j: GrandJournal, rouvertes: ReadonlySet<number>): Violation[] {
 	const v: Violation[] = [];
 	for (const op of j.operations) {
 		const nom = `Opération ${op.id}`;
 		for (const c of op.cotes) {
 			if (c.sessionCaisseId === null || c.sessionCaisseId === undefined) {
-				const couverte = j.sessions.some(
-					(s) =>
-						s.compteId === c.compteId &&
-						op.origine === 'saisie' &&
-						op.creeLe >= s.ouverteLe &&
-						(s.clotureeLe === null || op.creeLe < s.clotureeLe)
-				);
-				if (couverte) v.push({ invariant: 'C12', message: `${nom} : hors de la Session ouverte.` });
+				if (couverteParUneSession(j, op, c, rouvertes))
+					v.push({ invariant: 'C12', message: `${nom} : hors de la Session ouverte.` });
 				continue;
 			}
 			const session = j.sessions.find((s) => s.id === c.sessionCaisseId);
 			if (session?.compteId !== c.compteId || !c.sessionPhase) {
 				v.push({ invariant: 'C4', message: `${nom} : Côté mal rattaché à sa Session.` });
+			}
+			if (phaseContraire(j, c.sessionCaisseId, c)) {
+				v.push({ invariant: 'C12', message: `${nom} : phase contraire à sa date.` });
 			}
 			if (op.origine === 'recette_especes' || op.origine === 'ecart_caisse') {
 				v.push({ invariant: 'C4', message: `${nom} : ne devrait porter aucune Session.` });
@@ -92,11 +120,14 @@ function violationsCotes(j: GrandJournal): Violation[] {
 	return v;
 }
 
-export function violationsCaisses(j: GrandJournal): Violation[] {
+export function violationsCaisses(
+	j: GrandJournal,
+	rouvertes: ReadonlySet<number> = new Set()
+): Violation[] {
 	return [
 		...violationsSession(j),
 		...violationsRecettes(j),
 		...violationsEcarts(j),
-		...violationsCotes(j)
+		...violationsCotes(j, rouvertes)
 	];
 }

@@ -291,6 +291,7 @@ export function creerDepotOperations(
 		sessionCote: base.prepare(
 			'UPDATE cote SET session_caisse_id = ?, session_phase = ? WHERE id = ?'
 		),
+		phaseCote: base.prepare('UPDATE cote SET session_phase = ? WHERE id = ?'),
 		supprimerCote: base.prepare('DELETE FROM cote WHERE id = ?'),
 		creerLigne: base.prepare(`
 			INSERT INTO ligne
@@ -554,6 +555,7 @@ export function creerDepotOperations(
 		},
 
 		annuler: (id, le, par) => void r.annuler.run(le, par, id),
+		definirPhaseCote: (id, phase) => void r.phaseCote.run(phase, id),
 		definirSansPiece: (id, sansPiece) => void r.definirSansPiece.run(sansPiece ? 1 : 0, id),
 
 		creerLiaison: (l: { type: TypeLiaison; libelle: string }) =>

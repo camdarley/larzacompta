@@ -23,11 +23,27 @@ export function demarrerMinuteur(o: OptionsMinuteur) {
 		});
 	};
 
-	const battre = () => ecrireBattement(o.dossier, o.horloge.maintenant());
+	let enPanne = false;
+	const battre = () => {
+		// Un battement manqué ne coupe jamais la consultation. La panne se note une fois.
+		try {
+			ecrireBattement(o.dossier, o.horloge.maintenant());
+			enPanne = false;
+		} catch (e) {
+			if (!enPanne) o.journaliseur.erreur('battement_impossible', { detail: String(e) });
+			enPanne = true;
+		}
+	};
 	battre();
 	setInterval(battre, BATTEMENT_MS).unref();
 	// Émis par adapter-node à l'arrêt propre : `ape restaurer` n'a plus à attendre le silence.
-	process.once('sveltekit:shutdown', () => effacerBattement(o.dossier));
+	process.once('sveltekit:shutdown', () => {
+		try {
+			effacerBattement(o.dossier);
+		} catch (e) {
+			o.journaliseur.erreur('battement_impossible', { detail: String(e) });
+		}
+	});
 
 	const tour = (demarrage: boolean) => async () => {
 		if (o.sauvegarde) await o.exploitation.sauvegarderSiDu(demarrage);

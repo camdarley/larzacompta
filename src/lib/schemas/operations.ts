@@ -5,9 +5,7 @@
 import { z } from 'zod';
 import { dateValide } from '#lib/domaine/dates.ts';
 import { MODES_PAIEMENT, PHASES_SESSION } from '#lib/domaine/journal.ts';
-import { centimes } from '#lib/domaine/montant.ts';
-
-const MONTANT_MAX = 100_000_000_00;
+import { MONTANT_MAX, centimes } from '#lib/domaine/montant.ts';
 
 const montant = z
 	.number({ message: 'montant_invalide' })

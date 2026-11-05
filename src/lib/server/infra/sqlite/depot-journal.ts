@@ -57,6 +57,9 @@ export function creerDepotJournal(base: Base): DepotJournal {
 		FROM journal_modification WHERE entite_type = ? AND entite_id = ?
 		ORDER BY horodatage DESC, id DESC
 	`);
+	const entitesDe = base
+		.prepare('SELECT DISTINCT entite_id FROM journal_modification WHERE evenement = ?')
+		.pluck();
 	const entiteDeCle = base
 		.prepare(
 			`SELECT entite_id FROM journal_modification
@@ -82,6 +85,7 @@ export function creerDepotJournal(base: Base): DepotJournal {
 		types: () => types.all() as string[],
 		parEntite: (entiteType, entiteId) =>
 			(parEntite.all(entiteType, entiteId) as LigneBrute[]).map(versEntree),
+		entitesDe: (evenement) => entitesDe.all(evenement) as number[],
 		entiteDeCle: (cle) => (entiteDeCle.get(cle) as number | undefined) ?? null
 	};
 }

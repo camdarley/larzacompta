@@ -55,7 +55,8 @@ function tableau(octets: Uint8Array): Resultat<TableauCsv> {
 	if (entetes.some((e) => e === '') || new Set(entetes).size !== entetes.length) {
 		return echec('fichier_illisible');
 	}
-	return succes({ entetes, lignes: rangees.slice(debut + 1).filter((r) => r.length >= largeur) });
+	// Les rangées courtes restent : seul le réglage dit si une colonne utile y manque.
+	return succes({ entetes, lignes: rangees.slice(debut + 1) });
 }
 
 export const sourceCsv: SourceCsv = {

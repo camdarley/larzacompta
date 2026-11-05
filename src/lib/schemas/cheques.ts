@@ -1,10 +1,8 @@
 /** Saisie des Chèques, partagée par les écrans et les endpoints JSON (AD-19). */
 import { z } from 'zod';
 import { dateValide } from '#lib/domaine/dates.ts';
-import { centimes } from '#lib/domaine/montant.ts';
+import { MONTANT_MAX, centimes } from '#lib/domaine/montant.ts';
 import { cleSaisie } from './operations.ts';
-
-const MONTANT_MAX = 100_000_000_00;
 
 const montant = z
 	.number({ message: 'montant_invalide' })

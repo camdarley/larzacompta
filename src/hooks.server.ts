@@ -107,6 +107,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 		transformPageChunk: ({ html }) => html.replace('%ape.theme%', theme)
 	});
 
+	// Le HTML porte les chiffres et les noms de l'APE : rien n'en reste après la déconnexion.
+	if (acces !== null && !reponse.headers.has('Cache-Control')) {
+		reponse.headers.set('Cache-Control', 'private, no-store');
+	}
 	reponse.headers.set('X-Content-Type-Options', 'nosniff');
 	reponse.headers.set('Referrer-Policy', 'same-origin');
 	// Une Pièce s'affiche dans le `panneau`, en iframe : `frame-ancestors 'self'` la garde (AD-16).

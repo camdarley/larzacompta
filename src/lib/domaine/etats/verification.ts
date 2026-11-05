@@ -7,7 +7,7 @@ import { violationsCheques } from '../cheques/verification.ts';
 import { ajouterJours, type DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, OperationJ } from '../journal.ts';
-import { sommeCentimes, type Centimes } from '../montant.ts';
+import { MONTANT_MAX, sommeCentimes, type Centimes } from '../montant.ts';
 import { anomaliesEquation, equationDeControle, type ParametrageEtats } from './resultat.ts';
 import { messageAnomalie } from './anomalies.ts';
 import { exerciceDeDate } from './soldes.ts';
@@ -146,9 +146,17 @@ function violationsReleve(j: GrandJournal): Violation[] {
 	return j.lignesReleve.flatMap((l) => {
 		const ancre = j.ancres.find((a) => a.compteId === l.compteId);
 		const debut = j.exercices.find((e) => e.id === ancre?.exerciceId)?.debut;
-		return debut && l.date < debut
-			? [{ invariant: 'P6', message: `Ligne de relevé ${l.id} antérieure à l'ancre.` }]
-			: [];
+		const v: Violation[] = [];
+		if (debut && l.date < debut) {
+			v.push({ invariant: 'P6', message: `Ligne de relevé ${l.id} antérieure à l'ancre.` });
+		}
+		if (Math.abs(l.montant) > MONTANT_MAX) {
+			v.push({
+				invariant: 'P6',
+				message: `Ligne de relevé ${l.id} : montant démesuré, à retirer de son import.`
+			});
+		}
+		return v;
 	});
 }
 
@@ -163,7 +171,8 @@ function violationsCreances(j: GrandJournal): Violation[] {
 
 export function verifierJournal(
 	j: GrandJournal,
-	parametrageDe: (e: Exercice) => ParametrageEtats
+	parametrageDe: (e: Exercice) => ParametrageEtats,
+	sessionsRouvertes: ReadonlySet<number> = new Set()
 ): Violation[] {
 	const equations = j.exercices
 		.filter((e) => e.statut !== 'repere')
@@ -180,7 +189,7 @@ export function verifierJournal(
 		...violationsExercices(j),
 		...violationsReleve(j),
 		...violationsCreances(j),
-		...violationsCaisses(j),
+		...violationsCaisses(j, sessionsRouvertes),
 		...violationsCheques(j),
 		...equations
 	];

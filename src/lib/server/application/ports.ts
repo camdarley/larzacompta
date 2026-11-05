@@ -8,6 +8,7 @@ import type {
 	GrandJournal,
 	LiaisonJ,
 	OperationJ,
+	PhaseSession,
 	TypeComptage,
 	TypeLiaison
 } from '#lib/domaine/journal.ts';
@@ -147,6 +148,8 @@ export type DepotJournal = {
 	types(): string[];
 	/** Historique d'un élément, du plus récent au plus ancien. */
 	parEntite(entiteType: string, entiteId: number): EntreeJournal[];
+	/** Éléments visés au moins une fois par cet évènement. */
+	entitesDe(evenement: string): number[];
 	/** Élément déjà écrit sous cette clé de saisie : un renvoi ne l'écrit pas deux fois. */
 	entiteDeCle(cle: string): number | null;
 };
@@ -222,6 +225,8 @@ export type DepotOperations = {
 	/** Refuse par `false` si `version` a changé depuis la lecture (O10). */
 	modifier(id: number, versionLue: number, o: BrouillonValide): boolean;
 	annuler(id: number, le: Instant, par: number): void;
+	/** Phase réécrite quand le Comptage final arrive ou change de date (C12). */
+	definirPhaseCote(coteId: number, phase: PhaseSession): void;
 	/** Ne touche pas `version` : la dispense ne change aucun état, et n'invalide pas une saisie. */
 	definirSansPiece(id: number, sansPiece: boolean): void;
 	creerLiaison(l: { type: TypeLiaison; libelle: string }): number;

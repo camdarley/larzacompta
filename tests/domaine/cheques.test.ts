@@ -405,7 +405,7 @@ describe('lecture d’un n° de chèque', () => {
 		expect(memeNumero('124', '123')).toBe(false);
 	});
 
-	it('signale une sortie inconnue, pas une entrée ni un n° inscrit', () => {
+	it('signale une sortie inconnue ou annulée, pas une entrée ni un n° valable', () => {
 		const j = journal({
 			chequesEmis: [
 				{ id: 1, numero: '00555', beneficiaire: 'X', operationId: null, annuleLe: 'x' }
@@ -414,7 +414,7 @@ describe('lecture d’un n° de chèque', () => {
 		});
 		expect(chequeAbsent(j, { libelle: 'CHEQUE 777', montant: c(-1) })).toBe('777');
 		expect(chequeAbsent(j, { libelle: 'CHEQUE 777', montant: c(1) })).toBeNull();
-		expect(chequeAbsent(j, { libelle: 'CHEQUE 555', montant: c(-1) })).toBeNull();
+		expect(chequeAbsent(j, { libelle: 'CHEQUE 555', montant: c(-1) })).toBe('555');
 		expect(chequeAbsent(j, { libelle: 'CHEQUE 666', montant: c(-1) })).toBeNull();
 		expect(numeroInscrit(j, '555')).toBe(true);
 	});
