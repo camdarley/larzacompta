@@ -91,9 +91,11 @@ export function creerDepotParametrage(base: Base): DepotParametrage {
 
 		comptes: base.prepare('SELECT * FROM compte ORDER BY ordre, id'),
 		creerCompte: base.prepare(
-			'INSERT INTO compte (libelle, type, ordre) VALUES (@libelle, @type, @ordre)'
+			'INSERT INTO compte (libelle, type, ordre, reserve) VALUES (@libelle, @type, @ordre, @reserve)'
 		),
-		modifierCompte: base.prepare('UPDATE compte SET libelle = ?, type = ? WHERE id = ?'),
+		modifierCompte: base.prepare(
+			'UPDATE compte SET libelle = ?, type = ?, reserve = COALESCE(?, reserve) WHERE id = ?'
+		),
 		ordreCompte: base.prepare('UPDATE compte SET ordre = ? WHERE id = ?'),
 		actifCompte: base.prepare('UPDATE compte SET actif = ? WHERE id = ?'),
 		supprimerCompte: base.prepare('DELETE FROM compte WHERE id = ?'),
@@ -102,7 +104,9 @@ export function creerDepotParametrage(base: Base): DepotParametrage {
 				`SELECT EXISTS (SELECT 1 FROM cote WHERE compte_id = @id)
 				     OR EXISTS (SELECT 1 FROM balance_ouverture WHERE compte_id = @id)
 				     OR EXISTS (SELECT 1 FROM ligne_releve WHERE compte_id = @id)
-				     OR EXISTS (SELECT 1 FROM constat_solde WHERE compte_id = @id)`
+				     OR EXISTS (SELECT 1 FROM constat_solde WHERE compte_id = @id)
+				     OR EXISTS (SELECT 1 FROM comptage WHERE compte_id = @id)
+				     OR EXISTS (SELECT 1 FROM session_caisse WHERE compte_id = @id)`
 			)
 			.pluck(),
 
@@ -171,8 +175,10 @@ export function creerDepotParametrage(base: Base): DepotParametrage {
 		definirEtapeAssistant: (etape) => void r.etape.run(etape),
 
 		comptes: () => (r.comptes.all() as CompteBrut[]).map(versCompte),
-		creerCompte: (c) => Number(r.creerCompte.run(c).lastInsertRowid),
-		modifierCompte: (id, c) => void r.modifierCompte.run(c.libelle, c.type, id),
+		creerCompte: (c) =>
+			Number(r.creerCompte.run({ ...c, reserve: c.reserve ? 1 : 0 }).lastInsertRowid),
+		modifierCompte: (id, c) =>
+			void r.modifierCompte.run(c.libelle, c.type, c.reserve === undefined ? null : +c.reserve, id),
 		definirOrdreCompte: (id, ordre) => void r.ordreCompte.run(ordre, id),
 		activerCompte: (id, actif) => void r.actifCompte.run(actif ? 1 : 0, id),
 		supprimerCompte: (id) => void r.supprimerCompte.run(id),

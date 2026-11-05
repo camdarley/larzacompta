@@ -1,4 +1,5 @@
 /** Écart et ses causes (SCHEMA-DONNEES §8). Tout se déduit du journal, rien n'est stocké (AD-4). */
+import { repereCaisse, sessionOuverteLe, soldeCourantCaisse } from '../caisse/index.ts';
 import type { DateCivile } from '../dates.ts';
 import type { Constat, CoteJ, GrandJournal, LigneReleveJ, OperationJ } from '../journal.ts';
 import { centimes, sommeCentimes, type Centimes } from '../montant.ts';
@@ -6,7 +7,14 @@ import { soldeCompte } from './soldes.ts';
 
 type JournalEcart = Pick<
 	GrandJournal,
-	'ancres' | 'operations' | 'constats' | 'pointages' | 'lignesReleve' | 'comptes'
+	| 'ancres'
+	| 'operations'
+	| 'constats'
+	| 'comptages'
+	| 'sessions'
+	| 'pointages'
+	| 'lignesReleve'
+	| 'comptes'
 >;
 
 export function dernierConstat(
@@ -21,9 +29,9 @@ export function dernierConstat(
 }
 
 /**
- * Constaté moins calculé. Sans constat, ou pour les chèques à remettre : pas d'Écart.
- * Une caisse se compare à son solde calculé en fin de journée (DECISIONS.md) : au jalon 1, sans
- * Session, seule la date dit si une dépense précède le comptage, pas l'heure de sa saisie.
+ * Constaté moins calculé. Sans constat ni Comptage, ou pour les chèques à remettre : pas d'Écart.
+ * Une caisse lit `soldeCourantCaisse` : un constat s'y compare en fin de journée (DECISIONS.md),
+ * un Comptage selon sa Session.
  */
 export function ecart(j: JournalEcart, compteId: number, d: DateCivile): Centimes | null {
 	const type = j.comptes.find((c) => c.id === compteId)?.type;
@@ -32,8 +40,8 @@ export function ecart(j: JournalEcart, compteId: number, d: DateCivile): Centime
 		return constat ? centimes(constat.solde - soldeCompte(j, compteId, d)) : null;
 	}
 	if (type === 'caisse') {
-		const constat = dernierConstat(j, compteId, d);
-		return constat ? centimes(constat.solde - soldeCompte(j, compteId, constat.date)) : null;
+		if (repereCaisse(j, compteId, { jour: d }) === undefined) return null;
+		return centimes(soldeCourantCaisse(j, compteId, { jour: d }) - soldeCompte(j, compteId, d));
 	}
 	return null;
 }
@@ -97,6 +105,9 @@ export function ouverts(
 
 export function ecartExplique(j: JournalEcart, compteId: number, d: DateCivile): Centimes {
 	const type = j.comptes.find((c) => c.id === compteId)?.type;
+	// Une Session ouverte attend sa Recette d'espèces. Sinon, un Écart de caisse est une Opération.
+	if (type === 'caisse' && sessionOuverteLe(j, compteId, d))
+		return ecart(j, compteId, d) ?? centimes(0);
 	if (type !== 'banque' && type !== 'epargne') return centimes(0);
 	const o = ouverts(j, compteId, d);
 	return centimes(

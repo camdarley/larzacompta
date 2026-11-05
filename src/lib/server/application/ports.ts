@@ -3,7 +3,14 @@ import type { AccesConnecte, Preferences, Tentative } from '#lib/domaine/acces.t
 import type { DateCivile, Instant } from '#lib/domaine/dates.ts';
 import type { Role } from '#lib/domaine/droits.ts';
 import type { Exercice, NouvelExercice } from '#lib/domaine/exercices.ts';
-import type { GrandJournal, LiaisonJ, OperationJ, TypeLiaison } from '#lib/domaine/journal.ts';
+import type {
+	CoupureJ,
+	GrandJournal,
+	LiaisonJ,
+	OperationJ,
+	TypeComptage,
+	TypeLiaison
+} from '#lib/domaine/journal.ts';
 import type { EntreeCreance } from '#lib/domaine/creances/index.ts';
 import type { ModeleDocument } from '#lib/domaine/etats/documents.ts';
 import type { StatutSauvegarde } from '#lib/domaine/exploitation.ts';
@@ -97,6 +104,10 @@ export type DepotAcces = {
 	supprimerSession(hashJeton: string): void;
 	supprimerSessions(accesId: number): void;
 
+	/** Caisses autorisées d'un·e compteur·se (A3). */
+	caissesDe(accesId: number): number[];
+	definirCaisses(accesId: number, compteIds: readonly number[]): void;
+
 	lireTentative(cle: string): Tentative | null;
 	ecrireTentative(t: Tentative): void;
 	effacerTentative(cle: string): void;
@@ -146,8 +157,8 @@ export type DepotParametrage = {
 	definirEtapeAssistant(etape: number): void;
 
 	comptes(): Compte[];
-	creerCompte(c: { libelle: string; type: TypeCompte; ordre: number }): number;
-	modifierCompte(id: number, c: { libelle: string; type: TypeCompte }): void;
+	creerCompte(c: { libelle: string; type: TypeCompte; ordre: number; reserve?: boolean }): number;
+	modifierCompte(id: number, c: { libelle: string; type: TypeCompte; reserve?: boolean }): void;
 	definirOrdreCompte(id: number, ordre: number): void;
 	activerCompte(id: number, actif: boolean): void;
 	supprimerCompte(id: number): void;
@@ -305,6 +316,36 @@ export type DepotPieces = {
 	supprimer(id: number): void;
 };
 
+export type NouveauComptage = {
+	compteId: number;
+	sessionCaisseId: number | null;
+	type: TypeComptage;
+	date: DateCivile;
+	compteLe: Instant;
+	saisiLe: Instant;
+	saisiPar: number;
+	coupures: readonly CoupureJ[];
+};
+
+/** Seul chemin vers `session_caisse`, `comptage` et `comptage_coupure` (AD-7). */
+export type DepotCaisses = {
+	creerSession(s: {
+		compteId: number;
+		actionId: number | null;
+		ouverteLe: Instant;
+		ouvertePar: number;
+	}): number;
+	cloturerSession(id: number, le: Instant, par: number, recetteId: number | null): void;
+	rouvrirSession(id: number): void;
+	creerComptage(c: NouveauComptage): number;
+	/** Remplace les coupures : un Comptage ne stocke aucun total. */
+	corrigerComptage(
+		id: number,
+		c: Pick<NouveauComptage, 'date' | 'saisiLe' | 'saisiPar' | 'coupures'>
+	): void;
+	lierEcart(id: number, operationId: number | null): void;
+};
+
 /** Seul chemin vers `creance_dette` et `reglement` (AD-7). */
 export type DepotCreances = {
 	creer(c: EntreeCreance & { creeLe: Instant; creePar: number }): number;
@@ -333,6 +374,7 @@ export type Depots = {
 	pointage: DepotPointage;
 	pieces: DepotPieces;
 	creances: DepotCreances;
+	caisses: DepotCaisses;
 	exploitation: DepotExploitation;
 };
 

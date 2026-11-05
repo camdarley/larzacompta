@@ -51,6 +51,11 @@ function versSession(s: SessionBrute): SessionConnexion {
 export function creerDepotAcces(base: Base): DepotAcces {
 	const r = {
 		compter: base.prepare('SELECT count(*) FROM acces').pluck(),
+		caissesDe: base
+			.prepare('SELECT compte_id FROM acces_caisse WHERE acces_id = ? ORDER BY compte_id')
+			.pluck(),
+		viderCaisses: base.prepare('DELETE FROM acces_caisse WHERE acces_id = ?'),
+		ajouterCaisse: base.prepare('INSERT INTO acces_caisse (acces_id, compte_id) VALUES (?, ?)'),
 		parId: base.prepare('SELECT * FROM acces WHERE id = ?'),
 		parIdentifiant: base.prepare('SELECT * FROM acces WHERE identifiant = ?'),
 		lister: base.prepare('SELECT * FROM acces ORDER BY revoque_le IS NOT NULL, nom_affiche'),
@@ -109,6 +114,12 @@ export function creerDepotAcces(base: Base): DepotAcces {
 		definirPreferences: (id, p) => void r.preferences.run(JSON.stringify(p), id),
 		noterAcces: (id, le) => void r.noterAcces.run(le, id),
 		revoquer: (id, le) => void r.revoquer.run(le, id),
+
+		caissesDe: (id) => r.caissesDe.all(id) as number[],
+		definirCaisses(id, compteIds) {
+			r.viderCaisses.run(id);
+			for (const compteId of new Set(compteIds)) r.ajouterCaisse.run(id, compteId);
+		},
 
 		creerJeton: (j) => void r.creerJeton.run(j),
 		lireJeton(hash) {

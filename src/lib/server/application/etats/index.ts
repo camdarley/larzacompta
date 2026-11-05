@@ -15,6 +15,7 @@ import {
 	lignesNonPointees,
 	operationsAnciennes,
 	sansReleve,
+	sessionsNonCloturees,
 	type Bilan
 } from '#lib/domaine/etats/controle.ts';
 import {
@@ -108,6 +109,9 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 					{ id: 'anciennes' as const, compteur: anciennes.length },
 					...(caisses.length > 0 && !premierReleve
 						? [{ id: 'comptages' as const, compteur: caisses.filter(caisseACompter).length }]
+						: []),
+					...(caisses.length > 0
+						? [{ id: 'sessions' as const, compteur: sessionsNonCloturees(j, e) }]
 						: [])
 				];
 		const anomalies = anomaliesEquation(equationDeControle(j, e, p));

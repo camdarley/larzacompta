@@ -44,6 +44,12 @@ import {
 	type ExistantLignes,
 	type ReferencesSaisie
 } from '#lib/domaine/operations/validation.ts';
+import {
+	coteFigeParSession,
+	rattacherCotes,
+	sessionsDeSaisie,
+	type PhasesChoisies
+} from '#lib/domaine/caisse/saisie.ts';
 import { controlerCorrection, sommesSoldees } from '#lib/domaine/creances/index.ts';
 import type { DateCivile } from '#lib/domaine/dates.ts';
 import { exerciceDeDate, soldeCompte, soldeDepart } from '#lib/domaine/etats/soldes.ts';
@@ -54,7 +60,7 @@ import {
 	type ModePaiement,
 	type OperationJ
 } from '#lib/domaine/journal.ts';
-import type { Action, Compte, Nature } from '#lib/domaine/parametrage.ts';
+import { comptesTenus, type Action, type Compte, type Nature } from '#lib/domaine/parametrage.ts';
 import {
 	chercherPalette,
 	phraseLigneTrouvee,
@@ -85,6 +91,8 @@ export type EntreeOperation =
 export type OptionsEcriture = {
 	/** Clé de saisie : renvoyer la même saisie après une coupure n'écrit rien de plus. */
 	cle?: string;
+	/** Réponse à « Cette somme était-elle encore dans la caisse au Comptage final ? ». */
+	phases?: PhasesChoisies;
 };
 
 export type EntreeCreation = EntreeOperation &
@@ -121,7 +129,9 @@ function referencesSaisie(o: Pick<Outils, 'depots'>): ReferencesSaisie {
 const coteIdsPointes = (o: Pick<Outils, 'depots'>, op: OperationJ) =>
 	cotesPointes({ pointages: o.depots.operations.journal().pointages }, op);
 
-function nomDeForme(b: Brouillon) {
+function nomDeForme(b: Pick<Brouillon, 'genre' | 'origine' | 'cotes'>) {
+	if (b.origine === 'ecart_caisse') return 'l’Écart de caisse';
+	if (b.origine === 'recette_especes') return 'la Recette d’espèces';
 	if (b.genre === 'interne') return 'le Mouvement interne';
 	if (b.genre === 'compensee') return 'l’Opération compensée';
 	return (b.cotes[0]?.montant ?? 0) < 0 ? 'la Dépense' : 'la Recette';
@@ -146,6 +156,7 @@ export function ecrireOperation(
 	const acces = o.ctx.acces as NonNullable<Ctx['acces']>;
 	const id = o.depots.operations.creer({
 		...decision.valeur,
+		cotes: rattacherCotes(o.depots.operations.journal(), decision.valeur, options.phases),
 		creeLe: o.ctx.maintenant,
 		creePar: acces.id
 	});
@@ -205,12 +216,19 @@ function modifierOperation(o: Outils, e: EntreeModification): Resultat<{ id: num
 	const validation = validerOperation(decision.valeur, references, existantDe(avant));
 	if (!validation.ok) return validation;
 
+	const j = depot.journal();
+	if (coteFigeParSession(j, avant, validation.valeur.cotes)) return echec('session_cloturee');
+
 	// Une Opération qui solde une somme doit encore la couvrir, dans le même sens (F1).
 	const montant = validation.valeur.cotes[0]?.montant ?? centimes(0);
-	const parts = controlerCorrection(e.id, montant, depot.journal());
+	const parts = controlerCorrection(e.id, montant, j);
 	if (!parts.ok) return parts;
 
-	if (!depot.modifier(e.id, e.version, validation.valeur)) {
+	const apres = {
+		...validation.valeur,
+		cotes: rattacherCotes(j, validation.valeur, e.phases, avant)
+	};
+	if (!depot.modifier(e.id, e.version, apres)) {
 		return echec('modification_concurrente');
 	}
 	o.noter({
@@ -224,16 +242,25 @@ function modifierOperation(o: Outils, e: EntreeModification): Resultat<{ id: num
 	return succes({ id: e.id });
 }
 
-/** Écrit l'annulation dans la transaction de l'appelant. */
-export function annulerOperation(o: Outils, id: number): Resultat<{ id: number }> {
+/**
+ * Écrit l'annulation dans la transaction de l'appelant.
+ * `parSonModule` : le module propriétaire d'une Opération spécialisée (O9), et lui seul.
+ */
+export function annulerOperation(
+	o: Outils,
+	id: number,
+	options: { parSonModule?: boolean } = {}
+): Resultat<{ id: number }> {
 	const depot = o.depots.operations;
 	const op = depot.parId(id);
 	if (op === null) return echec('element_introuvable');
 	const decision = deciderAnnulation(op, {
 		coteIdsPointes: coteIdsPointes(o, op),
-		exercices: o.depots.exercices.lister()
+		exercices: o.depots.exercices.lister(),
+		parSonModule: options.parSonModule
 	});
 	if (!decision.ok) return decision;
+	if (coteFigeParSession(depot.journal(), op, [])) return echec('session_cloturee');
 	depot.annuler(id, o.ctx.maintenant, (o.ctx.acces as NonNullable<Ctx['acces']>).id);
 	o.noter({
 		evenement: 'operation.annulee',
@@ -303,7 +330,7 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 		droit: 'saisir',
 		faire(o, e) {
 			const brouillon = versBrouillon(e);
-			const cree = ecrireOperation(o, brouillon, { cle: e.cle });
+			const cree = ecrireOperation(o, brouillon, { cle: e.cle, phases: e.phases });
 			if (!cree.ok) return cree;
 			const pieces = rattacherPieces(o, e.pieces ?? [], cree.valeur.id);
 			if (!pieces.ok) return pieces;
@@ -336,7 +363,7 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 
 	const casAnnulation: CasUsage<number, { id: number }> = {
 		droit: 'saisir',
-		faire: annulerOperation
+		faire: (o, id) => annulerOperation(o, id)
 	};
 
 	/** `sans_piece` reste modifiable après clôture : il ne change aucun état (AD-5). */
@@ -539,7 +566,7 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 				const j = depots.operations.journal();
 				const debut = (id: number | undefined) =>
 					j.exercices.find((e) => e.id === id)?.anneeDebut ?? exercice.anneeDebut;
-				return j.comptes.flatMap((compte) => {
+				return comptesTenus(j.comptes).flatMap((compte) => {
 					const ancre = j.ancres.find((a) => a.compteId === compte.id);
 					if (!compte.actif || debut(ancre?.exerciceId) > exercice.anneeDebut) return [];
 					const depart = soldeDepart(j, compte.id, exercice);
@@ -554,7 +581,9 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 				const n = noms();
 				return {
 					...n,
+					comptes: comptesTenus(n.comptes),
 					groupes: depots.parametrage.groupes(),
+					sessions: sessionsDeSaisie(depots.operations.journal()),
 					exercices: depots.exercices.lister(),
 					recents: recents(depots.operations.journal()),
 					natureSommeARendre: n.natures.find((x) => x.codeSysteme === 'somme_a_rendre')?.id ?? null,

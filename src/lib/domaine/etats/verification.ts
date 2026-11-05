@@ -1,7 +1,8 @@
 /**
- * Contrôles rejoués par `ape verifier` : invariants du §6 livrés au jalon 1 et équation de contrôle.
+ * Contrôles rejoués par `ape verifier` : invariants du §6 livrés et équation de contrôle.
  * Ils lisent la base telle qu'elle est : rien ne suppose que le chemin d'écriture a été respecté.
  */
+import { violationsCaisses } from '../caisse/verification.ts';
 import { ajouterJours, type DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, OperationJ } from '../journal.ts';
@@ -178,6 +179,7 @@ export function verifierJournal(
 		...violationsExercices(j),
 		...violationsReleve(j),
 		...violationsCreances(j),
+		...violationsCaisses(j),
 		...equations
 	];
 }

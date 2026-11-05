@@ -2,6 +2,7 @@
  * Formes de lecture d'une Opération, partagées par l'application et l'interface.
  * L'interface n'importe rien du serveur (AD-1) : elles vivent ici.
  */
+import type { SessionDeSaisie } from '../caisse/saisie.ts';
 import type { SoldeDeSomme } from '../creances/index.ts';
 import type { DateCivile, Instant } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
@@ -49,6 +50,8 @@ export type PageOperations = {
 
 export type ContexteSaisie = {
 	comptes: Compte[];
+	/** Sessions ouvertes : un Côté sur leur caisse s'y rattache (C12). */
+	sessions: SessionDeSaisie[];
 	natures: Nature[];
 	actions: Action[];
 	groupes: Groupe[];

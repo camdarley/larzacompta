@@ -29,6 +29,17 @@ export type Compte = {
 	actif: boolean;
 };
 
+/** Rangé après tous les autres. Il naît seul, et l'epic 8 le fera vivre. */
+export const COMPTE_CHEQUES = {
+	libelle: 'Chèques à remettre',
+	type: 'cheques_a_remettre',
+	ordre: 1_000_000
+} as const;
+
+/** Comptes que l'APE tient elle-même : ceux qu'on crée, range et choisit à la saisie. */
+export const comptesTenus = <C extends Pick<Compte, 'type'>>(comptes: readonly C[]) =>
+	comptes.filter((c) => c.type !== COMPTE_CHEQUES.type);
+
 export type Groupe = { id: number; libelle: string; ordre: number };
 
 export const CODES_SYSTEME = [

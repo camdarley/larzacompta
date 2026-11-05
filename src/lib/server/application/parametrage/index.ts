@@ -11,6 +11,8 @@ import {
 import { soldeCompte } from '#lib/domaine/etats/soldes.ts';
 import { formaterMontant, type Centimes } from '#lib/domaine/montant.ts';
 import {
+	COMPTE_CHEQUES,
+	comptesTenus,
 	deplacer,
 	libelleDisponible,
 	prochainOrdre,
@@ -39,6 +41,8 @@ export type EntreeAssociation = Omit<Association, 'etapeAssistant'>;
 export type EntreeCompte = {
 	libelle: string;
 	type: TypeCompte;
+	/** Caisse de réserve : sans Session ni Action (FR-16). */
+	reserve?: boolean;
 	/** Solde de départ : au début d'un Exercice ouvert (E6). */
 	ancre?: { exerciceId: number; solde: Centimes };
 };
@@ -165,7 +169,8 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 			const id = o.depots.parametrage.creerCompte({
 				libelle: e.libelle,
 				type: e.type,
-				ordre: prochainOrdre(comptes)
+				ordre: prochainOrdre(comptesTenus(comptes)),
+				reserve: e.type === 'caisse' && e.reserve === true
 			});
 			o.noter({
 				evenement: 'compte.cree',
@@ -194,7 +199,12 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 			if (!libre.ok) return libre;
 			// Le type d'un Compte qui porte des mouvements ne change plus.
 			const type = o.depots.parametrage.compteUtilise(id) ? compte.valeur.type : e.type;
-			o.depots.parametrage.modifierCompte(id, { libelle: e.libelle, type });
+			const sessions = o.depots.operations.journal().sessions;
+			// Une caisse qui a déjà tenu une Session ne devient pas une réserve (C1).
+			const reserve =
+				type === 'caisse' &&
+				(sessions.some((s) => s.compteId === id) ? false : (e.reserve ?? compte.valeur.reserve));
+			o.depots.parametrage.modifierCompte(id, { libelle: e.libelle, type, reserve });
 			o.noter({
 				evenement: 'compte.modifie',
 				entiteType: 'compte',
@@ -204,7 +214,7 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 						? `a modifié le Compte ${e.libelle}.`
 						: `a renommé le Compte ${compte.valeur.libelle} en ${e.libelle}.`,
 				avant: compte.valeur,
-				apres: { libelle: e.libelle, type }
+				apres: { libelle: e.libelle, type, reserve }
 			});
 			if (e.ancre) {
 				const exercices = o.depots.exercices.lister();
@@ -224,7 +234,7 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 	const casActiverCompte: CasUsage<{ id: number; actif: boolean }, true> = {
 		droit: 'parametrer',
 		faire(o, { id, actif }) {
-			const compte = trouver(o.depots.parametrage.comptes(), id);
+			const compte = trouver(comptesTenus(o.depots.parametrage.comptes()), id);
 			if (!compte.ok) return compte;
 			if (!actif) {
 				const non = refusDesactivation(o, id);
@@ -244,7 +254,7 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 	const casSupprimerCompte: CasUsage<number, true> = {
 		droit: 'parametrer',
 		faire(o, id) {
-			const compte = trouver(o.depots.parametrage.comptes(), id);
+			const compte = trouver(comptesTenus(o.depots.parametrage.comptes()), id);
 			if (!compte.ok) return compte;
 			if (o.depots.parametrage.compteUtilise(id)) return echec('element_utilise');
 			o.depots.parametrage.supprimerCompte(id);
@@ -262,7 +272,7 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 	const casDeplacerCompte: CasUsage<{ id: number; sens: 'monter' | 'descendre' }, true> = {
 		droit: 'parametrer',
 		faire(o, { id, sens }) {
-			const comptes = o.depots.parametrage.comptes();
+			const comptes = comptesTenus(o.depots.parametrage.comptes());
 			const compte = trouver(comptes, id);
 			if (!compte.ok) return compte;
 			for (const m of deplacer(comptes, id, sens)) {
@@ -575,8 +585,7 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 				const exercices = socle.depots.exercices.lister();
 				const cible = exercices.find((e) => e.id === exerciceId);
 				const ancres = depot.ancres();
-				return depot
-					.comptes()
+				return comptesTenus(depot.comptes())
 					.filter((c) => c.actif)
 					.flatMap((c) => {
 						const ancre = ancres.find((a) => a.compteId === c.id);
@@ -593,7 +602,7 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 		comptes(ctx: Ctx): Resultat<CompteVue[]> {
 			return lire(ctx, 'parametrer', () => {
 				const ancres = depot.ancres();
-				return depot.comptes().map((c) => ({
+				return comptesTenus(depot.comptes()).map((c) => ({
 					...c,
 					utilise: depot.compteUtilise(c.id),
 					ancre: ancres.find((a) => a.compteId === c.id) ?? null

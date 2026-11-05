@@ -2,6 +2,7 @@
  * Tableau de contrôle (FR-15, FR-32) : pour chaque Compte, l'addition posée, le solde constaté,
  * l'Écart et ses causes, puis la `phrase-bilan`. Jamais rassurante si un Écart existe.
  */
+import { dateSession, repereCaisse, sessionOuverteLe } from '../caisse/index.ts';
 import { joursEntre, type DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal } from '../journal.ts';
@@ -34,6 +35,8 @@ export type CarteCompte = {
 	operationsOuvertes: number;
 	/** Plus de 45 jours depuis le dernier contrôle. */
 	ancien: boolean;
+	/** Caisse : sa Recette d'espèces reste à enregistrer, ce n'est pas un Écart non expliqué. */
+	sessionOuverte: boolean;
 	etat: EtatCarte;
 	phraseEcart: string | null;
 };
@@ -64,7 +67,11 @@ export function phraseEcart(
 	if (brut === 0 && reste === 0) return null;
 	const montant = formaterMontant(centimes(Math.abs(brut)));
 	const aComprendre = formaterMontant(centimes(Math.abs(reste)));
-	if (!pointable) return `Écart de ${montant}. Recomptez, ou vérifiez les mouvements du jour.`;
+	if (!pointable) {
+		return reste === 0
+			? 'Session ouverte : sa Recette d’espèces reste à enregistrer.'
+			: `Écart de ${montant}. Recomptez, ou vérifiez les mouvements du jour.`;
+	}
 	if (nombre === 0) return `Écart de ${montant}. Rien de non pointé ne l’explique.`;
 	const elements = elementsNonPointes(lignes, operations);
 	if (brut === 0) {
@@ -83,8 +90,23 @@ function etatDe(c: Pick<CarteCompte, 'nonExplique' | 'ecart' | 'constate' | 'anc
 
 type Journal = Pick<
 	GrandJournal,
-	'ancres' | 'operations' | 'constats' | 'pointages' | 'lignesReleve' | 'comptes' | 'exercices'
+	| 'ancres'
+	| 'operations'
+	| 'constats'
+	| 'comptages'
+	| 'sessions'
+	| 'pointages'
+	| 'lignesReleve'
+	| 'comptes'
+	| 'exercices'
 >;
+
+/** Dernier solde réel connu : le relevé d'un Compte, le Comptage ou le constat d'une caisse. */
+function dernierControle(j: Journal, compte: Compte, fin: DateCivile) {
+	return compte.type === 'caisse'
+		? repereCaisse(j, compte.id, { jour: fin })
+		: dernierConstat(j, compte.id, fin);
+}
 
 export function carteCompte(
 	j: Journal,
@@ -96,9 +118,11 @@ export function carteCompte(
 	const fin = e.fin as DateCivile;
 	const reference = aujourdhui < fin ? aujourdhui : fin;
 	// Un relevé d'un autre Exercice ne contrôle pas celui-ci.
-	const lu = dernierConstat(j, compte.id, fin);
+	const lu = dernierControle(j, compte, fin);
 	const constat = lu !== undefined && lu.date >= debut ? lu : undefined;
-	const date = constat?.date ?? (reference < debut ? debut : reference);
+	const jourRegarde = reference < debut ? debut : reference;
+	// Un relevé arrête la comparaison à sa date. Une caisse se lit au jour regardé.
+	const date = compte.type === 'caisse' ? jourRegarde : (constat?.date ?? jourRegarde);
 	const depart = soldeDepart(j, compte.id, e);
 	const calcule = soldeCompte(j, compte.id, date);
 	const brut = constat === undefined ? null : ecart(j, compte.id, date);
@@ -121,6 +145,7 @@ export function carteCompte(
 		lignesOuvertes,
 		operationsOuvertes,
 		ancien: constat !== undefined && joursEntre(constat.date, reference) > JOURS_CONTROLE_ANCIEN,
+		sessionOuverte: compte.type === 'caisse' && sessionOuverteLe(j, compte.id, date),
 		phraseEcart:
 			brut === null
 				? null
@@ -174,7 +199,7 @@ export function cartesComptes(
 		.filter((c) => !muette(c));
 }
 
-export type TacheControle = 'lignes' | 'pieces' | 'anciennes' | 'comptages';
+export type TacheControle = 'lignes' | 'pieces' | 'anciennes' | 'comptages' | 'sessions';
 export type Tache = { id: TacheControle; compteur: number };
 
 /** Non pointées, jusqu'à la fin de l'Exercice regardé : une ligne d'avant ne s'oublie pas. */
@@ -185,6 +210,17 @@ export function lignesNonPointees(
 	const pointees = new Set(j.pointages.flatMap((p) => p.ligneReleveIds));
 	return j.lignesReleve.filter((l) => !pointees.has(l.id) && l.date <= (e.fin as DateCivile))
 		.length;
+}
+
+/** Sessions de caisse encore ouvertes, datées jusqu'à la fin de l'Exercice regardé. */
+export function sessionsNonCloturees(
+	j: Pick<GrandJournal, 'sessions' | 'comptages'>,
+	e: Exercice
+): number {
+	return j.sessions.filter((s) => {
+		const date = dateSession(j, s.id);
+		return s.clotureeLe === null && date !== null && date <= (e.fin as DateCivile);
+	}).length;
 }
 
 /** Côtés non pointés, antérieurs au début du dernier relevé de leur Compte (FR-15). */
@@ -215,14 +251,16 @@ export type Bilan =
 /**
  * Ce qui reste à regarder sur un Compte et qu'aucune tuile ne compte déjà : un contrôle ancien,
  * un solde jamais constaté, un Écart sans aucun élément non pointé.
- * Une caisse pas encore comptée a sa tuile : le compte de la phrase-bilan se retrouve à l'écran.
+ * Une caisse pas encore comptée a sa tuile, une Session ouverte aussi : le compte de la
+ * phrase-bilan se retrouve à l'écran.
  */
 function aRegarderSeul(c: CarteCompte): boolean {
-	if (c.etat !== 'a_regarder' || caisseACompter(c)) return false;
+	if (c.etat !== 'a_regarder' || caisseACompter(c) || c.sessionOuverte) return false;
 	return c.constate === null || c.ancien || c.nonPointees === 0;
 }
 
-export const caisseACompter = (c: CarteCompte) => c.compte.type === 'caisse' && c.constate === null;
+export const caisseACompter = (c: CarteCompte) =>
+	c.compte.type === 'caisse' && c.constate === null && !c.sessionOuverte;
 
 /** Sans relevé sur l'Exercice : aucun Compte pointable n'a ni ligne ni solde à comparer. */
 export function sansReleve(

@@ -15,7 +15,7 @@ import {
 } from './resultat.ts';
 import { etatTresorerie } from './tresorerie.ts';
 
-/** Session de caisse vue par E4 : le jalon 2 remplit `GrandJournal.sessions`. */
+/** Session de caisse vue par E4. */
 export type SessionOuverte = { caisse: string; date: DateCivile };
 
 /** E3 : le plus ancien ouvert d'abord. E4 : pas de Session ouverte datée dedans. Rien d'autre. */

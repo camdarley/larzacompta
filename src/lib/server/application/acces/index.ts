@@ -39,6 +39,8 @@ export type LigneAccesVue = {
 	nomAffiche: string;
 	role: Role;
 	enAttente: boolean;
+	/** Caisses autorisées d'un·e compteur·se. */
+	caisses: number[];
 	dernierAccesLe: Instant | null;
 	revoqueLe: Instant | null;
 };
@@ -242,8 +244,18 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
+	/** Seules des caisses s'autorisent : un Compte banque n'a rien à compter (A3). */
+	function ecrireCaisses(o: Outils, id: number, caisses: readonly number[]): Resultat<true> {
+		const connues = o.depots.parametrage.comptes().filter((c) => c.type === 'caisse');
+		if (!caisses.every((c) => connues.some((x) => x.id === c))) {
+			return echec('element_introuvable');
+		}
+		o.depots.acces.definirCaisses(id, caisses);
+		return succes(true);
+	}
+
 	const casCreation: CasUsage<
-		{ identifiant: string; nomAffiche: string; role: Role },
+		{ identifiant: string; nomAffiche: string; role: Role; caisses?: readonly number[] },
 		{ id: number; jeton: string }
 	> = {
 		droit: 'parametrer',
@@ -254,16 +266,39 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 			if (o.depots.acces.parIdentifiant(e.identifiant) !== null) {
 				return echec('identifiant_deja_utilise', { champ: 'identifiant' });
 			}
-			const id = o.depots.acces.creer({ ...e, creeLe: o.ctx.maintenant });
+			const { caisses = [], ...acces } = e;
+			const id = o.depots.acces.creer({ ...acces, creeLe: o.ctx.maintenant });
+			const autorisees = ecrireCaisses(o, id, e.role === 'compteur' ? caisses : []);
+			if (!autorisees.ok) return autorisees;
 			const jeton = emettreJeton(o, id);
 			o.noter({
 				evenement: 'acces.cree',
 				entiteType: 'acces',
 				entiteId: id,
 				resume: `a créé l’Accès de ${e.nomAffiche}.`,
-				apres: { identifiant: e.identifiant, nomAffiche: e.nomAffiche, role: e.role }
+				apres: { identifiant: e.identifiant, nomAffiche: e.nomAffiche, role: e.role, caisses }
 			});
 			return succes({ id, jeton });
+		}
+	};
+
+	const casCaisses: CasUsage<{ id: number; caisses: readonly number[] }, true> = {
+		droit: 'parametrer',
+		faire(o, e) {
+			const a = o.depots.acces.parId(e.id);
+			if (a === null || a.role !== 'compteur') return echec('element_introuvable');
+			const avant = o.depots.acces.caissesDe(e.id);
+			const autorisees = ecrireCaisses(o, e.id, e.caisses);
+			if (!autorisees.ok) return autorisees;
+			o.noter({
+				evenement: 'acces.caisses_modifiees',
+				entiteType: 'acces',
+				entiteId: e.id,
+				resume: `a changé les caisses autorisées de ${a.nomAffiche}.`,
+				avant,
+				apres: e.caisses
+			});
+			return succes(true);
 		}
 	};
 
@@ -405,8 +440,15 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 			return executer(casDeconnexion, ctx, jeton);
 		},
 
-		creer(ctx: Ctx, e: { identifiant: string; nomAffiche: string; role: Role }) {
+		creer(
+			ctx: Ctx,
+			e: { identifiant: string; nomAffiche: string; role: Role; caisses?: readonly number[] }
+		) {
 			return executer(casCreation, ctx, e);
+		},
+
+		definirCaisses(ctx: Ctx, e: { id: number; caisses: readonly number[] }) {
+			return executer(casCaisses, ctx, e);
 		},
 
 		revoquer(ctx: Ctx, id: number) {
@@ -442,6 +484,7 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 						nomAffiche: a.nomAffiche,
 						role: a.role,
 						enAttente: !a.aMotDePasse,
+						caisses: depots.acces.caissesDe(a.id),
 						dernierAccesLe: a.dernierAccesLe,
 						revoqueLe: a.revoqueLe
 					}))

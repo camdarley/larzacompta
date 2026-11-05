@@ -9,9 +9,13 @@ import type {
 	ModePaiement,
 	OperationJ,
 	Origine,
+	PhaseSession,
 	PieceJ,
 	PointageJ,
+	ComptageJ,
 	Constat,
+	SessionJ,
+	TypeComptage,
 	TypeLiaison
 } from '#lib/domaine/journal.ts';
 import { journalVide } from '#lib/domaine/journal.ts';
@@ -42,6 +46,8 @@ type CoteBrut = {
 	compte_id: number;
 	date: string;
 	montant_centimes: number;
+	session_caisse_id: number | null;
+	session_phase: PhaseSession | null;
 };
 type LigneBrute = {
 	id: number;
@@ -68,6 +74,28 @@ type ConstatBrut = {
 	solde_centimes: number;
 	source: Constat['source'];
 	cree_le: string;
+};
+type ComptageBrut = {
+	id: number;
+	compte_id: number;
+	session_caisse_id: number | null;
+	type: TypeComptage;
+	date: string;
+	compte_le: string;
+	saisi_le: string;
+	saisi_par: number;
+	operation_ecart_id: number | null;
+};
+type CoupureBrute = { comptage_id: number; coupure_centimes: number; quantite: number };
+type SessionBrute = {
+	id: number;
+	compte_id: number;
+	action_id: number | null;
+	ouverte_le: string;
+	ouverte_par: number;
+	cloturee_le: string | null;
+	cloturee_par: number | null;
+	operation_recette_id: number | null;
 };
 type LigneReleveBrute = {
 	id: number;
@@ -102,7 +130,9 @@ const versCote = (c: CoteBrut): CoteJ => ({
 	operationId: c.operation_id,
 	compteId: c.compte_id,
 	date: c.date,
-	montant: centimes(c.montant_centimes)
+	montant: centimes(c.montant_centimes),
+	sessionCaisseId: c.session_caisse_id,
+	sessionPhase: c.session_phase
 });
 
 const versLigne = (l: LigneBrute): LigneJ => ({
@@ -214,14 +244,24 @@ export function creerDepotOperations(
 		`),
 		annuler: base.prepare('UPDATE operation SET annulee_le = ?, annulee_par = ? WHERE id = ?'),
 		definirSansPiece: base.prepare('UPDATE operation SET sans_piece = ? WHERE id = ?'),
-		creerCote: base.prepare(
-			'INSERT INTO cote (operation_id, compte_id, date, montant_centimes) VALUES (?, ?, ?, ?)'
+		comptages: base.prepare('SELECT * FROM comptage ORDER BY date, compte_le, id'),
+		coupures: base.prepare(
+			'SELECT * FROM comptage_coupure ORDER BY comptage_id, coupure_centimes DESC'
 		),
+		sessions: base.prepare('SELECT * FROM session_caisse ORDER BY id'),
+
+		creerCote: base.prepare(`
+			INSERT INTO cote (operation_id, compte_id, date, montant_centimes, session_caisse_id, session_phase)
+			VALUES (?, ?, ?, ?, ?, ?)
+		`),
 		modifierCote: base.prepare(
 			'UPDATE cote SET compte_id = ?, date = ?, montant_centimes = ? WHERE id = ?'
 		),
 		// Le trigger de Côté pointé vise ces colonnes dès qu'elles sont citées, même inchangées.
 		dateCote: base.prepare('UPDATE cote SET date = ? WHERE id = ?'),
+		sessionCote: base.prepare(
+			'UPDATE cote SET session_caisse_id = ?, session_phase = ? WHERE id = ?'
+		),
 		supprimerCote: base.prepare('DELETE FROM cote WHERE id = ?'),
 		creerLigne: base.prepare(`
 			INSERT INTO ligne
@@ -239,6 +279,17 @@ export function creerDepotOperations(
 			.prepare('SELECT id FROM operation WHERE liaison_id = ? ORDER BY id')
 			.pluck()
 	};
+
+	function creerCote(operationId: number, c: BrouillonValide['cotes'][number]) {
+		r.creerCote.run(
+			operationId,
+			c.compteId,
+			c.date,
+			c.montant,
+			c.sessionCaisseId ?? null,
+			c.sessionPhase ?? null
+		);
+	}
 
 	function ecrireLignes(operationId: number, o: BrouillonValide) {
 		o.lignes.forEach((l, i) => {
@@ -271,6 +322,36 @@ export function creerDepotOperations(
 			ligneReleveIds: (lignes.get(p.id) ?? []).map((l) => l.ligne_releve_id)
 		}));
 	}
+
+	function chargerComptages(): ComptageJ[] {
+		const coupures = grouper(r.coupures.all() as CoupureBrute[], (c) => c.comptage_id);
+		return (r.comptages.all() as ComptageBrut[]).map((c) => ({
+			id: c.id,
+			compteId: c.compte_id,
+			sessionCaisseId: c.session_caisse_id,
+			type: c.type,
+			date: c.date,
+			compteLe: c.compte_le,
+			saisiLe: c.saisi_le,
+			saisiPar: c.saisi_par,
+			operationEcartId: c.operation_ecart_id,
+			coupures: (coupures.get(c.id) ?? []).map((x) => ({
+				coupure: centimes(x.coupure_centimes),
+				quantite: x.quantite
+			}))
+		}));
+	}
+
+	const versSession = (s: SessionBrute): SessionJ => ({
+		id: s.id,
+		compteId: s.compte_id,
+		actionId: s.action_id,
+		ouverteLe: s.ouverte_le,
+		ouvertePar: s.ouverte_par,
+		clotureeLe: s.cloturee_le,
+		clotureePar: s.cloturee_par,
+		operationRecetteId: s.operation_recette_id
+	});
 
 	function chargerCreances(): CreanceDetteJ[] {
 		const reglements = grouper(r.reglements.all() as ReglementBrut[], (x) => x.creance_dette_id);
@@ -321,6 +402,8 @@ export function creerDepotOperations(
 					source: c.source,
 					creeLe: c.cree_le
 				})),
+				comptages: chargerComptages(),
+				sessions: (r.sessions.all() as SessionBrute[]).map(versSession),
 				pointages: chargerPointages(),
 				lignesReleve: (r.lignesReleve.all() as LigneReleveBrute[]).map((l) => ({
 					id: l.id,
@@ -366,7 +449,7 @@ export function creerDepotOperations(
 					creePar: o.creePar
 				}).lastInsertRowid
 			);
-			for (const c of o.cotes) r.creerCote.run(id, c.compteId, c.date, c.montant);
+			for (const c of o.cotes) creerCote(id, c);
 			ecrireLignes(id, o);
 			return id;
 		},
@@ -391,8 +474,11 @@ export function creerDepotOperations(
 			o.cotes.forEach((c, i) => {
 				const existant = existants[i];
 				if (existant === undefined) {
-					r.creerCote.run(id, c.compteId, c.date, c.montant);
-				} else if (existant.compte_id === c.compteId && existant.montant_centimes === c.montant) {
+					creerCote(id, c);
+					return;
+				}
+				r.sessionCote.run(c.sessionCaisseId ?? null, c.sessionPhase ?? null, existant.id);
+				if (existant.compte_id === c.compteId && existant.montant_centimes === c.montant) {
 					r.dateCote.run(c.date, existant.id);
 				} else {
 					r.modifierCote.run(c.compteId, c.date, c.montant, existant.id);

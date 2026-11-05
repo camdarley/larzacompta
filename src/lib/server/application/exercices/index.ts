@@ -11,6 +11,7 @@ import {
 import { centimes, type Centimes } from '#lib/domaine/montant.ts';
 import { libelleDisponible, prochainOrdre, type TypeCompte } from '#lib/domaine/parametrage.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
+import { sessionsAClore } from '#lib/domaine/caisse/index.ts';
 import { deciderCloture, figerParametrage, serialiserCloture } from '#lib/domaine/etats/cloture.ts';
 import { avecEcart, cartesComptes, lignesNonPointees } from '#lib/domaine/etats/controle.ts';
 import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
@@ -193,15 +194,12 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
-	/**
-	 * Clôture, dans la transaction d'`executer()` (AD-5). Bloquée seulement par E3 et E4 :
-	 * le jalon 2 passera ici les Sessions ouvertes, `journal.sessions` est vide jusque-là.
-	 */
+	/** Clôture, dans la transaction d'`executer()` (AD-5). Bloquée seulement par E3 et E4. */
 	const casCloture: CasUsage<number, Exercice> = {
 		droit: 'saisir',
 		faire(o, id) {
 			const j = o.depots.operations.journal();
-			const decision = deciderCloture(o.depots.exercices.lister(), id, []);
+			const decision = deciderCloture(o.depots.exercices.lister(), id, sessionsAClore(j));
 			if (!decision.ok) return decision;
 			const e = decision.valeur;
 			const courant = parametrageCourant(o.depots);
@@ -256,7 +254,7 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 				const suivant = j.exercices.find((x) => x.anneeDebut === e.anneeDebut + 1) ?? null;
 				const figes = parametrageDe(socle.depots, e).comptes;
 				const cartes = cartesComptes(j, e, ctx.aujourdhui, figes);
-				const decision = deciderCloture(j.exercices, id, []);
+				const decision = deciderCloture(j.exercices, id, sessionsAClore(j));
 				const cloture = socle.depots.exercices.cloture(id);
 				return {
 					exercice: e,

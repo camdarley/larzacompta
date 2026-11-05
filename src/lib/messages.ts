@@ -31,9 +31,9 @@ const MESSAGES = {
 	pointage_desequilibre:
 		'Il reste {montant} d’écart entre le relevé et l’Opération. Corrigez l’Opération, ou créez un ajustement de {montant}.',
 	comptage_ouverture_different:
-		'Vous avez compté {montant} de moins que la dernière clôture. Ça arrive. Recomptez une fois pour vérifier.',
+		'Vous avez compté {montant} {sens} que la dernière clôture. Ça arrive. Recomptez une fois pour vérifier.',
 	comptage_reserve_different:
-		'Vous avez compté {montant} de moins que le solde attendu. Ça arrive. Recomptez une fois pour vérifier.',
+		'Vous avez compté {montant} {sens} que le solde attendu. Ça arrive. Recomptez une fois pour vérifier.',
 	difference_confirmee:
 		'La différence de {montant} est confirmée. Elle sera notée comme Écart de caisse.',
 	application_en_marche:
@@ -83,6 +83,14 @@ const MESSAGES = {
 	comptage_manquant: 'Il manque le Comptage final. Comptez la caisse avant de clôturer la Session.',
 	session_invalide:
 		'Cette Session ne peut pas changer d’état : seule la dernière Session d’une caisse se rouvre, dans un Exercice ouvert.',
+	recomptage_requis:
+		'Vous avez compté {montant} {sens} que le solde attendu. Ça arrive. Recomptez une fois pour vérifier.',
+	comptage_date_future: 'Ce Comptage se date du jour où il a eu lieu, pas d’un jour à venir.',
+	comptage_date_anterieure:
+		'Cette date précède le Comptage d’avant sur cette caisse. Choisissez le jour où vous avez compté.',
+	comptage_vide: 'Rien n’est compté. Indiquez au moins une quantité, ou vérifiez la caisse.',
+	session_cloturee:
+		'Cette Opération fait partie d’une Session clôturée : la Recette d’espèces en dépend. Rouvrez la Session pour la corriger.',
 	reglement_excessif: 'Ce règlement dépasse le reste dû. Corrigez le montant.',
 	reglement_sens:
 		'Une somme à recevoir se solde par une Recette, une somme à payer par une Dépense.',
@@ -151,6 +159,10 @@ export const TEXTES = {
 	sur_ordinateur: 'Cet écran se travaille sur ordinateur.',
 	quitter_sans_enregistrer: 'Quitter sans enregistrer ?',
 	cahier_pret: 'Votre cahier est prêt.',
+	comptage_repris: 'Repris du dernier Comptage. Vérifiez la caisse et corrigez si besoin.',
+	comptage_a_faire: 'La caisse a bougé depuis le dernier Comptage. Comptez-la.',
+	comptage_reseau:
+		'Pas de réseau pour l’instant. Rien n’est enregistré : le Comptage reste sur ce téléphone. Notez le total sur papier, puis réessayez.',
 	tout_pointe: 'Tout est pointé',
 	aucun_ecart: 'Égal au relevé',
 	premier_releve: 'Importez votre premier relevé pour commencer le contrôle.',

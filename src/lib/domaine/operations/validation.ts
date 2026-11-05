@@ -3,11 +3,18 @@ import { formaterMontant, centimes, type Centimes } from '../montant.ts';
 import type { DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import { exerciceDeDate } from '../etats/soldes.ts';
-import type { Genre, ModePaiement, Origine } from '../journal.ts';
+import type { Genre, ModePaiement, Origine, PhaseSession } from '../journal.ts';
 import type { Ancre, Compte } from '../parametrage.ts';
 import { echec, succes, type Resultat } from '../resultat.ts';
 
-export type CoteSaisi = { compteId: number; date: DateCivile; montant: Centimes };
+export type CoteSaisi = {
+	compteId: number;
+	date: DateCivile;
+	montant: Centimes;
+	/** Posés au seul point d'écriture, quel que soit l'écran de saisie (C12). */
+	sessionCaisseId?: number | null;
+	sessionPhase?: PhaseSession | null;
+};
 
 export type LigneSaisie = {
 	montant: Centimes;

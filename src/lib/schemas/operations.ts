@@ -4,7 +4,7 @@
  */
 import { z } from 'zod';
 import { dateValide } from '#lib/domaine/dates.ts';
-import { MODES_PAIEMENT } from '#lib/domaine/journal.ts';
+import { MODES_PAIEMENT, PHASES_SESSION } from '#lib/domaine/journal.ts';
 import { centimes } from '#lib/domaine/montant.ts';
 
 const MONTANT_MAX = 100_000_000_00;
@@ -98,14 +98,23 @@ export const cleSaisie = z.string().min(8).max(64).optional();
 /** Pièces déposées pendant la saisie, rattachées avec l'Opération. */
 export const piecesDeposees = z.array(identifiant).max(20).optional();
 
+/** Réponse à la question d'une Session, par Compte (AD-10). */
+export const phasesChoisies = z.record(z.string(), z.enum(PHASES_SESSION)).optional();
+
 export const schemaCreation = z.intersection(
 	saisieOperation,
-	z.object({ cle: cleSaisie, rendDe: identifiant.optional(), pieces: piecesDeposees })
+	z.object({
+		cle: cleSaisie,
+		rendDe: identifiant.optional(),
+		pieces: piecesDeposees,
+		phases: phasesChoisies
+	})
 );
 
 export const schemaModification = z.object({
 	version: z.number().int().positive(),
 	cle: cleSaisie,
+	phases: phasesChoisies,
 	saisie: saisieOperation
 });
 

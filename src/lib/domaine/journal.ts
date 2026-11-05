@@ -42,12 +42,19 @@ export const LIBELLES_MODE_PAIEMENT: Record<ModePaiement, string> = {
 	autre: 'Autre'
 };
 
+export const PHASES_SESSION = ['pendant', 'apres_comptage'] as const;
+/** `pendant` : avant le Comptage final, compté dans la Recette d'espèces (C5). */
+export type PhaseSession = (typeof PHASES_SESSION)[number];
+
 export type CoteJ = {
 	id: number;
 	operationId: number;
 	compteId: number;
 	date: DateCivile;
 	montant: Centimes;
+	/** Toujours renseignés ensemble (C4). Absents d'un Côté sans Session. */
+	sessionCaisseId?: number | null;
+	sessionPhase?: PhaseSession | null;
 };
 
 export type LigneJ = {
@@ -110,6 +117,34 @@ export type LigneReleveJ = {
 	empreinte: string;
 };
 
+export type CoupureJ = { coupure: Centimes; quantite: number };
+
+export type TypeComptage = 'ouverture' | 'fin' | 'controle';
+
+export type ComptageJ = {
+	id: number;
+	compteId: number;
+	sessionCaisseId: number | null;
+	type: TypeComptage;
+	date: DateCivile;
+	compteLe: Instant;
+	saisiLe: Instant;
+	saisiPar: number;
+	operationEcartId: number | null;
+	coupures: CoupureJ[];
+};
+
+export type SessionJ = {
+	id: number;
+	compteId: number;
+	actionId: number | null;
+	ouverteLe: Instant;
+	ouvertePar: number;
+	clotureeLe: Instant | null;
+	clotureePar: number | null;
+	operationRecetteId: number | null;
+};
+
 export type PointageJ = {
 	id: number;
 	compteId: number;
@@ -142,11 +177,11 @@ export type GrandJournal = {
 	operationsAnnulees: OperationJ[];
 	liaisons: LiaisonJ[];
 	constats: Constat[];
-	/** Tableaux du jalon 2, vides avant lui : aucun calcul n'en dépend pour rester juste. */
-	comptages: never[];
-	sessions: never[];
+	comptages: ComptageJ[];
+	sessions: SessionJ[];
 	pointages: PointageJ[];
 	lignesReleve: LigneReleveJ[];
+	/** Tableaux de l'epic 8, vides avant lui : aucun calcul n'en dépend pour rester juste. */
 	chequesRecus: never[];
 	chequesEmis: never[];
 	creancesDettes: CreanceDetteJ[];

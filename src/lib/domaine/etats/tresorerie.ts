@@ -54,7 +54,8 @@ function comptesDe(j: JournalTresorerie, e: Exercice, p: ParametrageEtats): Lign
 		.flatMap((c) => {
 			const depart = soldeDepart(j, c.id, e);
 			const solde = soldeCompte(j, c.id, fin);
-			if (!c.actif && depart === 0 && solde === 0) return [];
+			const discret = !c.actif || c.type === 'cheques_a_remettre';
+			if (discret && depart === 0 && solde === 0) return [];
 			return [
 				{
 					compteId: c.id,

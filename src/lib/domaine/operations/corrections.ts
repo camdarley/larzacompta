@@ -100,12 +100,12 @@ export function deciderModification(
 
 export function deciderAnnulation(
 	op: OperationJ,
-	ctx: Omit<ContexteCorrection, 'versionLue'>
+	ctx: Omit<ContexteCorrection, 'versionLue'> & { parSonModule?: boolean }
 ): Resultat<true> {
 	if (op.annuleeLe !== null) return echec('operation_annulee');
 	const fige = exerciceFigeant(op, ctx.exercices);
 	if (fige) return echec('exercice_cloture', { exercice: fige.libelle });
-	if (estSpecialisee(op)) return echec('operation_geree_ailleurs');
+	if (estSpecialisee(op) && !ctx.parSonModule) return echec('operation_geree_ailleurs');
 	// O8 : une Opération annulée ne porte aucun Côté pointé.
 	if (op.cotes.some((c) => ctx.coteIdsPointes.includes(c.id))) return echec('cote_pointe');
 	return succes(true);
