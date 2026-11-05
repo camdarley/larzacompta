@@ -106,6 +106,36 @@ describe('volume de relevé', () => {
 		expect(performance.now() - debut).toBeLessThan(1000);
 	});
 
+	it('le Tableau de contrôle et le Pointage restent vifs au plafond d’un import', () => {
+		const lignes = Array.from(
+			{ length: MAX_LIGNES_IMPORT },
+			(_, n) => `05/10/2026;Ligne ${n};-${1 + (n % 90)},00`
+		);
+		valeur(
+			i.app.pointage.importer(i.ctx(), {
+				compteId: i.compteId,
+				nomFichier: 'plafond.csv',
+				octets: new TextEncoder().encode(['Date;Libellé;Montant', ...lignes].join('\n')),
+				reglage: {
+					date: 'Date',
+					libelle: 'Libellé',
+					identifiant: null,
+					montant: { mode: 'unique', colonne: 'Montant' }
+				},
+				autreCompte: false
+			})
+		);
+		const mesurer = (faire: () => void) => {
+			const debut = performance.now();
+			faire();
+			return performance.now() - debut;
+		};
+		const tableau = mesurer(() => valeur(i.app.etats.tableau(i.ctx(), i.courant)));
+		const pointage = mesurer(() => valeur(i.app.pointage.page(i.ctx(), i.compteId, null)));
+		expect(tableau).toBeLessThan(2000);
+		expect(pointage).toBeLessThan(2000);
+	}, 60_000);
+
 	it('refuse un fichier trop long, sans rien écrire', () => {
 		const lignes = Array.from(
 			{ length: MAX_LIGNES_IMPORT + 1 },
