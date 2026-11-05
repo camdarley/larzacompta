@@ -13,7 +13,8 @@ test('l’assistant prépare le cahier, étape par étape', async ({ page }) => 
 	await expect(etapes.getByRole('listitem')).toHaveText([
 		/Votre APE/,
 		/Vos Comptes/,
-		/Natures et Actions/
+		/Natures et Actions/,
+		/Vos sommes en cours/
 	]);
 	await axeSansViolation(page);
 
@@ -56,6 +57,22 @@ test('l’assistant prépare le cahier, étape par étape', async ({ page }) => 
 	// Un seul choix décoché, pour vérifier que seul ce qui est coché est créé.
 	await page.getByLabel('Buvette').uncheck();
 	await page.getByLabel('Kermesse').check();
+	await page.getByRole('button', { name: 'Continuer' }).click();
+
+	// Vos sommes en cours : une somme de l'an passé, datée d'avant l'ancre.
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Vos sommes en cours');
+	await expect(page.getByRole('button', { name: 'Passer cette étape' })).toBeVisible();
+	await axeSansViolation(page);
+	await page.getByLabel('Tiers').fill('Sam Fictif');
+	await page.getByLabel('Motif').fill('Avance kermesse 2026');
+	await page.getByLabel('Reste dû').fill('42,50');
+	await page.getByRole('button', { name: 'Ajouter cette somme' }).click();
+	await expect(page.getByRole('list', { name: 'Sommes reprises' })).toContainText('Sam Fictif');
+	await expect(page.getByLabel('Tiers')).toHaveValue('');
+	await page.getByRole('link', { name: 'Retour' }).click();
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Natures et Actions');
+	await page.goto('/bienvenue?etape=4');
+	await expect(page.getByRole('list', { name: 'Sommes reprises' })).toContainText('Sam Fictif');
 	await page.getByRole('button', { name: 'Terminer' }).click();
 
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Votre cahier est prêt.');

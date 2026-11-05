@@ -56,7 +56,7 @@ test('2.13 : aide-terme s’ouvre au clic, au focus, au survol, se ferme avec É
 	page
 }) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
-	await page.goto('/operations');
+	await page.goto('/operations', { waitUntil: 'networkidle' });
 	const terme = page.getByRole('button', { name: 'Qu’est-ce qu’une Opération ?' });
 	const bulle = page.getByRole('group', { name: 'Opération' });
 
@@ -79,7 +79,7 @@ test('2.13 : aide-terme s’ouvre au clic, au focus, au survol, se ferme avec É
 
 test('2.13 : la bulle reste quand la souris la rejoint', async ({ page }) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
-	await page.goto('/operations');
+	await page.goto('/operations', { waitUntil: 'networkidle' });
 	const terme = page.getByRole('button', { name: 'Qu’est-ce qu’une Opération ?' });
 	const bulle = page.getByRole('group', { name: 'Opération' });
 	await terme.hover();

@@ -34,6 +34,10 @@
 		white-space: nowrap;
 	}
 
+	.tableau :global(th.droite) {
+		text-align: right;
+	}
+
 	.tableau :global(td) {
 		height: var(--espace-row);
 		padding: var(--espace-1) var(--espace-3);

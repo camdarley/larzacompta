@@ -68,6 +68,11 @@ const MESSAGES = {
 	session_invalide:
 		'Cette Session ne peut pas changer d’état : seule la dernière Session d’une caisse se rouvre, dans un Exercice ouvert.',
 	reglement_excessif: 'Ce règlement dépasse le reste dû. Corrigez le montant.',
+	reglement_sens:
+		'Une somme à recevoir se solde par une Recette, une somme à payer par une Dépense.',
+	reglement_depasse_operation:
+		'Les sommes soldées dépassent le montant de l’Opération. Corrigez un montant.',
+	creance_annulee: 'Cette somme a été annulée : elle ne se solde plus.',
 	facture_date_anterieure:
 		'Cette date précède celle de la dernière Facture émise. La numérotation doit rester chronologique.',
 	dernier_tresorier: 'Il faut garder au moins un Accès trésorier·e actif.',

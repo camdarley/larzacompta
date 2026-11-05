@@ -29,6 +29,11 @@ const ECRANS: [string, string][] = [
 	['operations-vide', '/operations?q=zzz'],
 	['operation-nouvelle', '/operations?op=nouvelle'],
 	['aide', '/aide'],
+	['creances', '/creances-dettes'],
+	['creance-ajout', '/creances-dettes?ajout=dette'],
+	['pieces-manquantes', '/pieces'],
+	['pieces-toutes', '/pieces/toutes'],
+	['pieces-photo', '/pieces/photo'],
 	['journal', '/journal'],
 	['journal-filtre', '/journal?type=compte'],
 	['plus', '/plus'],
@@ -69,6 +74,29 @@ function ecransPointage(): [string, string][] {
 		['pointage-fin', `/pointage/${compteDe('Banque du parcours')}`],
 		['pointage-ecart-restant', `/pointage/${compteDe('Banque imaginaire')}`],
 		['pointage-vide', `/pointage/${compteDe('Banque vide')}`]
+	];
+}
+
+/** Pièces et sommes en attente, posées par `17-pieces.spec.ts` et `18-creances.spec.ts`. */
+function ecransSuivi(): [string, string][] {
+	const b = base();
+	const pieceDe = (nom: string) =>
+		b.prepare('SELECT id FROM piece WHERE nom_original = ?').pluck().get(nom);
+	const pdf = pieceDe('commune.pdf');
+	const image = pieceDe('ticket-ramettes.jpg');
+	const somme = b
+		.prepare(`SELECT id FROM creance_dette WHERE tiers = 'Mairie imaginaire'`)
+		.pluck()
+		.get();
+	b.close();
+	if (!pdf || !image) return [];
+	return [
+		['piece-pdf', `/pieces/toutes?piece=${pdf}`],
+		['piece-image', `/pieces/toutes?piece=${image}`],
+		['solder', `/creances-dettes?op=nouvelle&solder=${somme}`],
+		['op-avec-piece', `/operations?op=${idDe('Ramettes de papier')}`],
+		['op-commune', `/operations?op=${idDe('Copie deux')}`],
+		['bienvenue-4', '/bienvenue?etape=4']
 	];
 }
 
@@ -128,9 +156,12 @@ test.describe('captures', () => {
 				await page.emulateMedia({ colorScheme });
 				await page.setViewportSize({ width: format.largeur, height: format.hauteur });
 				const avecOperations = idDe('Autocars du Sud') ? ecransOperation() : [];
-				for (const [nom, chemin] of [...ECRANS, ...avecOperations, ...ecransPointage()].filter(
-					([n]) => filtre.test(n)
-				)) {
+				for (const [nom, chemin] of [
+					...ECRANS,
+					...avecOperations,
+					...ecransPointage(),
+					...ecransSuivi()
+				].filter(([n]) => filtre.test(n))) {
 					await page.goto(chemin);
 					await photographier(page, `${nom}-${format.nom}-${theme}`);
 				}
@@ -179,6 +210,48 @@ test.describe('captures', () => {
 				await page.keyboard.type('?');
 				await photographier(page, `geste-raccourcis-${suffixe}`);
 				await page.keyboard.press('Escape');
+			}
+		}
+		// Pièces : visionneuse dans le panneau, choix de la dépense après une photo.
+		for (const format of FORMATS.filter(
+			(f) => f.nom !== 'tablette' && filtre.test('piece-geste')
+		)) {
+			for (const [theme, colorScheme] of THEMES) {
+				const op = idDe('Ramettes de papier');
+				if (!op) continue;
+				await page.emulateMedia({ colorScheme });
+				await page.setViewportSize({ width: format.largeur, height: format.hauteur });
+				const suffixe = `${format.nom}-${theme}`;
+				await page.goto(`/operations?op=${op}`, { waitUntil: 'networkidle' });
+				await page
+					.getByRole('dialog')
+					.getByRole('button', { name: 'Ouvrir ticket-ramettes.jpg' })
+					.click();
+				await photographier(page, `piece-geste-visionneuse-${suffixe}`);
+				await page.getByRole('dialog').getByRole('button', { name: 'Retour' }).click();
+				await page
+					.getByRole('dialog')
+					.getByRole('region', { name: 'Pièce' })
+					.scrollIntoViewIfNeeded();
+				await photographier(page, `piece-geste-bloc-${suffixe}`);
+				await page.goto('/operations?op=nouvelle', { waitUntil: 'networkidle' });
+				await page
+					.getByRole('dialog')
+					.getByRole('region', { name: 'Pièce' })
+					.scrollIntoViewIfNeeded();
+				await photographier(page, `piece-geste-nouvelle-${suffixe}`);
+				await page.goto('/pieces/photo', { waitUntil: 'networkidle' });
+				await photographier(page, `piece-geste-photo-prise-${suffixe}`);
+				await page
+					.locator('input[type=file]:not([capture])')
+					.last()
+					.setInputFiles({
+						name: `demo-${suffixe}.pdf`,
+						mimeType: 'application/pdf',
+						buffer: Buffer.from(`%PDF-1.4\n%${suffixe}\n`)
+					});
+				await page.getByText('La photo est enregistrée.').waitFor();
+				await photographier(page, `piece-geste-photo-choix-${suffixe}`);
 			}
 		}
 		// Pointage : écran de correspondance, panneau prérempli, propositions sélectionnées.

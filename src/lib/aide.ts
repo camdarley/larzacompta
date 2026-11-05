@@ -6,7 +6,7 @@ export const ARTICLES: readonly Article[] = [
 		id: 'demarrer',
 		titre: 'Préparer son cahier',
 		paragraphes: [
-			'L’assistant de démarrage décrit votre APE, vos Comptes et leurs soldes de départ, puis vos Natures et vos Actions. Vous pouvez le quitter et le reprendre : il repart où vous en étiez.',
+			'L’assistant de démarrage décrit votre APE, vos Comptes et leurs soldes de départ, vos Natures et vos Actions, puis les sommes encore dues de l’année passée. Vous pouvez le quitter et le reprendre : il repart où vous en étiez.',
 			'Les soldes de départ se lisent sur le relevé de la fin de l’Exercice précédent. Une caisse se compte à la main.'
 		]
 	},
@@ -111,6 +111,35 @@ export const ARTICLES: readonly Article[] = [
 			'L’Écart compare le solde du relevé au solde calculé par l’outil, à la date du relevé. À 0,00 €, vos Opérations et la banque disent la même chose, au centime.',
 			'Un clic sur l’Écart ouvre ses causes : les Lignes de relevé et les Opérations non pointées, et la somme qu’elles expliquent. Une Opération non pointée plus ancienne que le dernier relevé est à regarder en premier.',
 			'Si votre fichier ne donne pas de solde, l’outil vous le demande : recopiez celui de votre relevé.'
+		]
+	},
+	{
+		id: 'creances-dettes',
+		titre: 'Créances et Dettes',
+		paragraphes: [
+			'Une Créance est une somme que l’on doit à l’APE, une Dette une somme que l’APE doit. Un remboursement de bénévole en attente se saisit comme une Dette.',
+			'Une somme en attente ne compte ni en recette, ni en dépense : seule l’Opération qui la solde touche le résultat et la trésorerie.',
+			'« Solder » ouvre une Opération préremplie. Un paiement partiel laisse le reste dû visible, et une même Opération peut solder plusieurs sommes.',
+			'Si l’Opération qui solde une somme est annulée, le reste dû remonte.',
+			'Une somme de l’an passé, reprise à l’assistant, se rattache à son Exercice d’origine au moment du paiement : elle ne compte pas dans le résultat de l’Exercice en cours.'
+		]
+	},
+	{
+		id: 'pieces',
+		titre: 'Pièces',
+		paragraphes: [
+			'Une Pièce est le justificatif d’une Opération : facture, reçu, photo de ticket. Un PDF ou une image de 20 Mo au plus.',
+			'L’onglet Manquantes liste les dépenses sans Pièce. « Pas besoin de Pièce » en retire une dépense qui n’en demande pas, des frais bancaires par exemple.',
+			'Une même Pièce peut justifier plusieurs Opérations : déposer deux fois le même fichier ne crée pas de doublon.',
+			'Une Pièce rattachée se retire, mais son fichier reste. Sur un Exercice clôturé, joindre une Pièce reste possible : cela ne change aucun chiffre.'
+		]
+	},
+	{
+		id: 'photo',
+		titre: 'Photographier un ticket',
+		paragraphes: [
+			'Sur téléphone, l’entrée Photo ouvre l’appareil. Choisissez ensuite la dépense, ou « Rattacher plus tard » : la photo attend dans Pièces, onglet Toutes.',
+			'La photo est réduite avant l’envoi, ce qui retire sa position et ses autres métadonnées.'
 		]
 	},
 	{

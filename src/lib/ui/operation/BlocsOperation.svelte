@@ -147,6 +147,21 @@
 	</section>
 {/if}
 
+{#if detail.soldes.length > 0}
+	<section class="bloc" aria-label="Sommes soldées">
+		<h3 class="t-heading">Solde</h3>
+		<ul class="reliees">
+			{#each detail.soldes as s (s.creanceId)}
+				<li>
+					<span>{s.tiers}, {s.motif}</span>
+					<span class="t-caption t-muted">{s.sens === 'creance' ? 'À recevoir' : 'À payer'}</span>
+					<span class="montant">{formaterMontant(s.montant)}</span>
+				</li>
+			{/each}
+		</ul>
+	</section>
+{/if}
+
 {#if detail.pointee}
 	<section class="bloc" aria-label="Mouvement bancaire">
 		<h3 class="t-heading">Mouvement bancaire</h3>

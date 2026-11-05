@@ -1,9 +1,11 @@
 import { redirect } from '@sveltejs/kit';
-import { ETAPE_ASSISTANT_TERMINE } from '#lib/domaine/assistant.ts';
+import { ETAPE_ASSISTANT_SOMMES, ETAPE_ASSISTANT_TERMINE } from '#lib/domaine/assistant.ts';
+import { dateDeReprise } from '#lib/domaine/creances/index.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import { ACTIONS_TYPE, NATURES_TYPE } from '#lib/domaine/liste-type.ts';
 import { fonctionLivree } from '#lib/fonctions.ts';
 import { schemaLigneCompte } from '#lib/schemas/assistant.ts';
+import { schemaReprise } from '#lib/schemas/creances.ts';
 import { schemaAnnee } from '#lib/schemas/exercices.ts';
 import { schemaAssociation } from '#lib/schemas/parametrage.ts';
 import { valider } from '#lib/schemas/valider.ts';
@@ -23,13 +25,15 @@ export function load({ locals, url }) {
 	const numero = Number(demande);
 	const etape = fin
 		? 'fin'
-		: numero >= 1 && numero <= Math.min(atteinte, 3)
+		: numero >= 1 && numero <= Math.min(atteinte, ETAPE_ASSISTANT_SOMMES)
 			? numero
 			: termine
 				? 'fin'
-				: Math.min(atteinte, 3);
+				: Math.min(atteinte, ETAPE_ASSISTANT_SOMMES);
 
 	const mois = association?.moisDebutExercice ?? 9;
+	const exercices = exiger(app.exercices.lister(ctx));
+	const reprise = dateDeReprise(exercices);
 	return {
 		association,
 		atteinte,
@@ -37,7 +41,10 @@ export function load({ locals, url }) {
 		anneeCourante: app.exercices.anneeCourante(ctx, mois),
 		mois,
 		comptes: exiger(app.parametrage.comptes(ctx)),
-		exercices: exiger(app.exercices.lister(ctx)),
+		exercices,
+		dateReprise: reprise,
+		sommes: reprise ? exiger(app.creances.reprises(ctx, reprise)) : [],
+		actions: exiger(app.parametrage.actions(ctx)).map(({ id, libelle }) => ({ id, libelle })),
 		naturesExistantes: exiger(app.parametrage.natures(ctx)).map((n) => n.libelle),
 		actionsExistantes: exiger(app.parametrage.actions(ctx)).map((a) => a.libelle),
 		naturesType: NATURES_TYPE,
@@ -118,7 +125,25 @@ export const actions = {
 			actions: textes('action')
 		});
 		if (!r.ok) return refus(r.erreur);
-		exiger(app.parametrage.definirEtapeAssistant(ctx, ETAPE_ASSISTANT_TERMINE));
+		exiger(app.parametrage.definirEtapeAssistant(ctx, ETAPE_ASSISTANT_SOMMES));
+		redirect(303, `/bienvenue?etape=${ETAPE_ASSISTANT_SOMMES}`);
+	},
+	/** Une somme reprise reste sur l'écran : on en ajoute une autre, ou on termine. */
+	somme: async ({ request, locals }) => {
+		const champs = champsDe(await request.formData());
+		const entree = valider(schemaReprise, champs);
+		if (!entree.ok) return refus(entree.erreur, champs);
+		const app = application();
+		const ctx = app.ctx(locals.acces);
+		const date = dateDeReprise(exiger(app.exercices.lister(ctx)));
+		if (date === null) return refus({ code: 'exercice_invalide' }, champs);
+		const r = app.creances.ajouter(ctx, { ...entree.valeur, date, note: null });
+		if (!r.ok) return refus(r.erreur, champs);
+		return { ajoutee: true };
+	},
+	terminer: ({ locals }) => {
+		const app = application();
+		exiger(app.parametrage.definirEtapeAssistant(app.ctx(locals.acces), ETAPE_ASSISTANT_TERMINE));
 		redirect(303, '/bienvenue?etape=fin');
 	}
 };

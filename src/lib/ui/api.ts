@@ -46,6 +46,29 @@ export async function envoyerFichier<T>(url: string, corps: FormData): Promise<R
 	}
 }
 
+/**
+ * Dépôt avec progression : `fetch` ne suit pas l'envoi, `XMLHttpRequest` si.
+ * `progres` reçoit la part envoyée, de 0 à 1.
+ */
+export function envoyerFichierSuivi<T>(
+	url: string,
+	corps: FormData,
+	progres: (part: number) => void
+): Promise<Reponse<T>> {
+	return new Promise((resoudre) => {
+		const xhr = new XMLHttpRequest();
+		xhr.open('POST', url);
+		xhr.upload.onprogress = (e) => {
+			if (e.lengthComputable) progres(e.loaded / e.total);
+		};
+		xhr.onerror = () => resoudre({ type: 'reseau' });
+		xhr.onload = () => {
+			resoudre(interpreter<T>(new Response(xhr.responseText || null, { status: xhr.status })));
+		};
+		xhr.send(corps);
+	});
+}
+
 export async function demander<T>(url: string): Promise<Reponse<T>> {
 	try {
 		return await interpreter<T>(await fetch(url));

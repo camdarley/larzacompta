@@ -10,10 +10,12 @@ import {
 	type Ctx,
 	type Socle
 } from './application/executer.ts';
+import { creerCreances } from './application/creances/index.ts';
 import { creerExercices } from './application/exercices/index.ts';
 import { creerJournal } from './application/journal/index.ts';
 import { creerOperations } from './application/operations/index.ts';
 import { creerParametrage } from './application/parametrage/index.ts';
+import { creerPieces } from './application/pieces/index.ts';
 import { creerPointage } from './application/pointage/index.ts';
 import type { Fichiers, Hacheur, Horloge, Journaliseur } from './application/ports.ts';
 import { creerJetons } from './infra/auth/jetons.ts';
@@ -25,10 +27,12 @@ import { sourceCsv } from './infra/sources/csv.ts';
 import { estOfx, sourceOfx } from './infra/sources/ofx.ts';
 import { ouvrirBase, type Base } from './infra/sqlite/connexion.ts';
 import { creerDepotAcces } from './infra/sqlite/depot-acces.ts';
+import { creerDepotCreances } from './infra/sqlite/depot-creances.ts';
 import { creerDepotExercices } from './infra/sqlite/depot-exercices.ts';
 import { creerDepotJournal } from './infra/sqlite/depot-journal.ts';
 import { creerDepotOperations } from './infra/sqlite/depot-operations.ts';
 import { creerDepotParametrage } from './infra/sqlite/depot-parametrage.ts';
+import { creerDepotPieces } from './infra/sqlite/depot-pieces.ts';
 import { creerDepotPointage } from './infra/sqlite/depot-pointage.ts';
 import { appliquerMigrations, chargerMigrations } from './infra/sqlite/migrateur.ts';
 import { creerTransaction } from './infra/sqlite/transaction.ts';
@@ -52,7 +56,9 @@ export function composer(options: OptionsComposition) {
 			parametrage,
 			exercices,
 			operations: creerDepotOperations(options.base, parametrage, exercices),
-			pointage: creerDepotPointage(options.base)
+			pointage: creerDepotPointage(options.base),
+			pieces: creerDepotPieces(options.base),
+			creances: creerDepotCreances(options.base)
 		},
 		transaction: creerTransaction(options.base),
 		horloge,
@@ -76,7 +82,9 @@ export function composer(options: OptionsComposition) {
 		parametrage: creerParametrage(socle, executer, lire),
 		exercices: creerExercices(socle, executer, lire),
 		operations: creerOperations(socle, executer, lire),
-		pointage: creerPointage(socle, executer, lire)
+		pointage: creerPointage(socle, executer, lire),
+		pieces: creerPieces(socle, executer, lire),
+		creances: creerCreances(socle, executer, lire)
 	};
 }
 

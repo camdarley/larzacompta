@@ -88,6 +88,7 @@ type CreanceBrute = {
 	montant_centimes: number;
 	date: string;
 	action_id: number | null;
+	note: string | null;
 	annulee_le: string | null;
 };
 type ReglementBrut = {
@@ -191,7 +192,7 @@ export function creerDepotOperations(
 		pointageCotes: base.prepare('SELECT pointage_id, cote_id FROM pointage_cote'),
 		pointageLignes: base.prepare('SELECT pointage_id, ligne_releve_id FROM pointage_ligne'),
 		creances: base.prepare(`
-			SELECT id, sens, tiers, motif, montant_centimes, date, action_id, annulee_le
+			SELECT id, sens, tiers, motif, montant_centimes, date, action_id, note, annulee_le
 			FROM creance_dette ORDER BY date, id
 		`),
 		reglements: base.prepare(
@@ -212,6 +213,7 @@ export function creerDepotOperations(
 			WHERE id = @id AND version = @versionLue
 		`),
 		annuler: base.prepare('UPDATE operation SET annulee_le = ?, annulee_par = ? WHERE id = ?'),
+		definirSansPiece: base.prepare('UPDATE operation SET sans_piece = ? WHERE id = ?'),
 		creerCote: base.prepare(
 			'INSERT INTO cote (operation_id, compte_id, date, montant_centimes) VALUES (?, ?, ?, ?)'
 		),
@@ -280,6 +282,7 @@ export function creerDepotOperations(
 			montant: centimes(c.montant_centimes),
 			date: c.date,
 			actionId: c.action_id,
+			note: c.note,
 			annuleeLe: c.annulee_le,
 			reglements: (reglements.get(c.id) ?? []).map((x) => ({
 				operationId: x.operation_id,
@@ -403,6 +406,7 @@ export function creerDepotOperations(
 		},
 
 		annuler: (id, le, par) => void r.annuler.run(le, par, id),
+		definirSansPiece: (id, sansPiece) => void r.definirSansPiece.run(sansPiece ? 1 : 0, id),
 
 		creerLiaison: (l: { type: TypeLiaison; libelle: string }) =>
 			Number(r.creerLiaison.run(l.type, l.libelle).lastInsertRowid),

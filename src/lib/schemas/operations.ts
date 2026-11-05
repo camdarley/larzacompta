@@ -34,7 +34,8 @@ const enTete = {
 	reference: texteLibre(120),
 	modePaiement: z.enum(MODES_PAIEMENT).nullable().default(null),
 	note: texteLibre(2000),
-	tiers: texteLibre(200)
+	tiers: texteLibre(200),
+	sansPiece: z.boolean().default(false)
 };
 
 const ligne = z.object({
@@ -94,9 +95,12 @@ export const saisieOperation = z.discriminatedUnion('forme', [
 
 export const cleSaisie = z.string().min(8).max(64).optional();
 
+/** Pièces déposées pendant la saisie, rattachées avec l'Opération. */
+export const piecesDeposees = z.array(identifiant).max(20).optional();
+
 export const schemaCreation = z.intersection(
 	saisieOperation,
-	z.object({ cle: cleSaisie, rendDe: identifiant.optional() })
+	z.object({ cle: cleSaisie, rendDe: identifiant.optional(), pieces: piecesDeposees })
 );
 
 export const schemaModification = z.object({
@@ -104,6 +108,8 @@ export const schemaModification = z.object({
 	cle: cleSaisie,
 	saisie: saisieOperation
 });
+
+export const schemaSansPiece = z.object({ sansPiece: z.boolean() });
 
 export const schemaRelier = z.object({ autreId: identifiant, libelle });
 

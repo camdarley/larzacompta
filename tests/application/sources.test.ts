@@ -203,6 +203,17 @@ describe('adaptateur csv (story 3.4)', () => {
 });
 
 describe('stockage de fichiers (AD-16)', () => {
+	it('relit un fichier par son empreinte, et rien d’autre', () => {
+		const dossier = mkdtempSync(join(tmpdir(), 'ape-fichiers-'));
+		const fichiers = creerFichiers(dossier);
+		const octets = new TextEncoder().encode('%PDF-1.7');
+		const sha = fichiers.ecrire(octets);
+		expect(fichiers.lire(sha)).toEqual(octets);
+		expect(fichiers.lire('0'.repeat(64))).toBeNull();
+		expect(fichiers.lire('../../base.sqlite')).toBeNull();
+		rmSync(dossier, { recursive: true });
+	});
+
 	it('adresse par SHA-256, écrit puis renomme, et ne garde aucun temporaire', () => {
 		const dossier = mkdtempSync(join(tmpdir(), 'ape-fichiers-'));
 		try {

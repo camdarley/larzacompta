@@ -38,6 +38,7 @@ import {
 	type ExistantLignes,
 	type ReferencesSaisie
 } from '#lib/domaine/operations/validation.ts';
+import { controlerCorrection, sommesSoldees } from '#lib/domaine/creances/index.ts';
 import type { DateCivile } from '#lib/domaine/dates.ts';
 import { exerciceDeDate, soldeCompte, soldeDepart } from '#lib/domaine/etats/soldes.ts';
 import type { Exercice } from '#lib/domaine/exercices.ts';
@@ -58,7 +59,9 @@ import {
 	type Trouvee
 } from '#lib/domaine/recherche/index.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
+import { porteUneDepense, vuesPieces } from '#lib/domaine/pieces/index.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
+import { rattacherPieces } from '../pieces/index.ts';
 import type {
 	ContexteSaisie,
 	DetailOperation,
@@ -82,6 +85,8 @@ export type EntreeCreation = EntreeOperation &
 	OptionsEcriture & {
 		/** Rendre une somme reçue : relie les deux Opérations (FR-8). */
 		rendDe?: number;
+		/** Pièces déposées pendant la saisie : rattachées avec l'Opération, dans sa transaction. */
+		pieces?: number[];
 	};
 
 export type EntreeModification = {
@@ -194,6 +199,11 @@ function modifierOperation(o: Outils, e: EntreeModification): Resultat<{ id: num
 	const validation = validerOperation(decision.valeur, references, existantDe(avant));
 	if (!validation.ok) return validation;
 
+	// Une Opération qui solde une somme doit encore la couvrir, dans le même sens (F1).
+	const montant = validation.valeur.cotes[0]?.montant ?? centimes(0);
+	const parts = controlerCorrection(e.id, montant, depot.journal());
+	if (!parts.ok) return parts;
+
 	if (!depot.modifier(e.id, e.version, validation.valeur)) {
 		return echec('modification_concurrente');
 	}
@@ -264,7 +274,10 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 		faire(o, e) {
 			const brouillon = versBrouillon(e);
 			const cree = ecrireOperation(o, brouillon, { cle: e.cle });
-			if (!cree.ok || e.rendDe === undefined) return cree;
+			if (!cree.ok) return cree;
+			const pieces = rattacherPieces(o, e.pieces ?? [], cree.valeur.id);
+			if (!pieces.ok) return pieces;
+			if (e.rendDe === undefined) return cree;
 
 			// Rendre une somme : les deux Opérations se relient par une liaison neutre.
 			const depot = o.depots.operations;
@@ -303,6 +316,26 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 				avant: brouillonDe(op)
 			});
 			return succes({ id });
+		}
+	};
+
+	/** `sans_piece` reste modifiable après clôture : il ne change aucun état (AD-5). */
+	const casSansPiece: CasUsage<{ id: number; sansPiece: boolean }, true> = {
+		droit: 'saisir',
+		faire(o, e) {
+			const op = o.depots.operations.parId(e.id);
+			if (op === null) return echec('element_introuvable');
+			if (op.annuleeLe !== null) return echec('operation_annulee');
+			o.depots.operations.definirSansPiece(e.id, e.sansPiece);
+			o.noter({
+				evenement: 'operation.sans_piece',
+				entiteType: 'operation',
+				entiteId: e.id,
+				resume: e.sansPiece
+					? `a marqué « ${op.libelle} » : pas besoin de Pièce.`
+					: `a de nouveau demandé une Pièce pour « ${op.libelle} ».`
+			});
+			return succes(true);
 		}
 	};
 
@@ -382,6 +415,8 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 		},
 
 		annuler: (ctx: Ctx, id: number) => executer(casAnnulation, ctx, id),
+		definirSansPiece: (ctx: Ctx, e: { id: number; sansPiece: boolean }) =>
+			executer(casSansPiece, ctx, e),
 		relier: (ctx: Ctx, e: { id: number; autreId: number; libelle: string }) =>
 			executer(casRelier, ctx, e),
 		delier: (ctx: Ctx, id: number) => executer(casDelier, ctx, id),
@@ -514,9 +549,11 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 				const pointes = cotesPointes(j, operation);
 				const pointages = j.pointages.filter((p) => p.coteIds.some((c) => pointes.includes(c)));
 				const resume = operation.liaisonId === null ? null : resumeLiaison(j, operation.liaisonId);
-				const sommeNature = depots.parametrage
-					.natures()
-					.find((n) => n.codeSysteme === 'somme_a_rendre')?.id;
+				const natures = depots.parametrage.natures();
+				const sommeNature = natures.find((n) => n.codeSysteme === 'somme_a_rendre')?.id;
+				const pieces = vuesPieces(depots.pieces.lister(), depots.pieces.liens(), j).filter((p) =>
+					p.operations.some((o) => o.id === id)
+				);
 				const detail: DetailOperation = {
 					operation,
 					intention: intentionDe(operation),
@@ -553,6 +590,12 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 							montant,
 							libelle
 						})),
+					pieces,
+					estDepense: porteUneDepense(
+						operation,
+						new Set(natures.filter((n) => n.neutre).map((n) => n.id))
+					),
+					soldes: sommesSoldees(operation, j),
 					historique: depots.journal.parEntite('operation', id)
 				};
 				return detail;

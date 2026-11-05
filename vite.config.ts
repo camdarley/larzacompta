@@ -17,6 +17,8 @@ export default defineConfig({
 					// Attributs style= posés par Bits UI pour le positionnement. Pas de <style> ni de script.
 					'style-src-attr': ['unsafe-inline'],
 					'img-src': ['self', 'data:'],
+					// Un PDF s'affiche en entier dans le `panneau` (AD-16).
+					'frame-src': ['self'],
 					'font-src': ['self'],
 					'connect-src': ['self'],
 					'manifest-src': ['self'],

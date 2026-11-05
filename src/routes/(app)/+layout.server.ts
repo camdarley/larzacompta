@@ -30,6 +30,15 @@ export function load({ locals, url }) {
 		const r = app.pointage.ligneASaisir(ctx, Number(id));
 		return r.ok ? r.valeur : null;
 	};
+	const lireSomme = (id: string | null) => {
+		if (id === null) return null;
+		const r = app.creances.aSolder(ctx, Number(id));
+		return r.ok ? r.valeur : null;
+	};
+	const lireSommes = (voulues: boolean) => {
+		const r = voulues ? app.creances.ouvertes(ctx) : null;
+		return r?.ok ? r.valeur : [];
+	};
 	const panneau =
 		parametre === null || !peut(acces.role, 'consulter')
 			? null
@@ -38,8 +47,12 @@ export function load({ locals, url }) {
 					detail,
 					modele: lireDetail(url.searchParams.get('depuis') ?? url.searchParams.get('rendre')),
 					ligne: lireLigne(url.searchParams.get('releve')),
+					solder: lireSomme(url.searchParams.get('solder')),
+					sommes: lireSommes(parametre === 'nouvelle' && url.searchParams.has('solder')),
 					introuvable: parametre !== 'nouvelle' && detail === null
 				};
+
+	const exercice = exerciceSelectionne(exercices, url.searchParams.get('exercice'));
 
 	return {
 		acces: {
@@ -52,6 +65,10 @@ export function load({ locals, url }) {
 			pointage:
 				fonctionLivree('pointage') && peut(acces.role, 'saisir')
 					? exiger(app.pointage.aPointer(ctx))
+					: 0,
+			pieces:
+				fonctionLivree('pieces') && peut(acces.role, 'saisir')
+					? exiger(app.pieces.compterManquantes(ctx, exercice))
 					: 0
 		},
 		raccourcis: acces.preferences.raccourcis,
@@ -60,6 +77,6 @@ export function load({ locals, url }) {
 		nav: navigation(acces.role),
 		entreesMobile: entreesMobile(acces.role),
 		exercices: [...exercices].sort((a, b) => b.anneeDebut - a.anneeDebut),
-		exercice: exerciceSelectionne(exercices, url.searchParams.get('exercice'))
+		exercice
 	};
 }

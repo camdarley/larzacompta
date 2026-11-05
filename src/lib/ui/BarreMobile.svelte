@@ -3,18 +3,48 @@
 	import { Menu } from '@lucide/svelte';
 	import type { Entree } from '#lib/fonctions.ts';
 	import Icone from './Icone.svelte';
+	import { photoAttendue } from './piece/photo-attente.svelte.ts';
 
 	let { entrees, lien }: { entrees: Entree[]; lien: (href: string) => string } = $props();
 
 	const actif = (e: Entree) =>
 		e.href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(e.href);
+
+	const estPhoto = (e: Entree) => e.href === '/pieces/photo';
+	let appareil = $state<HTMLInputElement | null>(null);
+
+	/** L'appareil ne s'ouvre que sur un geste : c'est ce toucher qui l'ouvre, le lien suit. */
+	function surPhoto() {
+		appareil?.click();
+	}
+
+	function surCliche(e: Event & { currentTarget: HTMLInputElement }) {
+		photoAttendue.fichier = e.currentTarget.files?.[0] ?? null;
+		e.currentTarget.value = '';
+	}
 </script>
+
+{#if entrees.some(estPhoto)}
+	<input
+		bind:this={appareil}
+		hidden
+		type="file"
+		accept="image/*"
+		capture="environment"
+		aria-label="Prendre une photo"
+		onchange={surCliche}
+	/>
+{/if}
 
 <nav class="barre" aria-label="Navigation mobile">
 	<ul>
 		{#each entrees as e (e.href)}
 			<li>
-				<a href={lien(e.href)} aria-current={actif(e) ? 'page' : undefined}>
+				<a
+					href={lien(e.href)}
+					aria-current={actif(e) ? 'page' : undefined}
+					onclick={estPhoto(e) ? surPhoto : undefined}
+				>
 					<Icone nom={e.icone} taille={24} />
 					<span>{e.libelleCourt ?? e.libelle}</span>
 				</a>

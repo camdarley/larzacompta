@@ -7,7 +7,7 @@
 	let { nom, onglets, vertical = false }: Props = $props();
 	let liste = $state<HTMLElement | null>(null);
 
-	const actif = (o: Onglet) => page.url.pathname === o.href;
+	const actif = (o: Onglet) => page.url.pathname === o.href.split('?')[0];
 
 	/** Chaque onglet a son URL ; les flèches parcourent la liste (EXPERIENCE.md). */
 	function surTouche(e: KeyboardEvent) {
@@ -34,8 +34,7 @@
 					aria-current={actif(o) ? 'page' : undefined}
 					data-sveltekit-preload-data="hover"
 				>
-					{o.libelle}{#if o.compteur !== undefined}
-						({o.compteur}){/if}
+					{o.compteur === undefined ? o.libelle : `${o.libelle} (${o.compteur})`}
 				</a>
 			</li>
 		{/each}

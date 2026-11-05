@@ -24,6 +24,8 @@ const LIVREES: ReadonlySet<Fonction> = new Set<Fonction>([
 	'tableau_controle',
 	'operations',
 	'pointage',
+	'creances_dettes',
+	'pieces',
 	'reglages',
 	'journal',
 	'aide'
@@ -48,6 +50,7 @@ export type NomIcone =
 	| 'cheques'
 	| 'creances'
 	| 'pieces'
+	| 'photo'
 	| 'factures'
 	| 'actions'
 	| 'etats'
@@ -171,7 +174,7 @@ const MOBILE_TRESORIER: Entree[] = [
 		libelle: 'Photo',
 		href: '/pieces/photo',
 		droit: 'saisir',
-		icone: 'pieces'
+		icone: 'photo'
 	}
 ];
 

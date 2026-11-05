@@ -127,6 +127,7 @@ export type CreanceDetteJ = {
 	montant: Centimes;
 	date: DateCivile;
 	actionId: number | null;
+	note: string | null;
 	annuleeLe: Instant | null;
 	reglements: ReglementJ[];
 };

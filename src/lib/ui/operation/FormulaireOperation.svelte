@@ -2,6 +2,7 @@
 	import { goto, refreshAll } from '$app/navigation';
 	import { ChevronDown, Ellipsis } from '@lucide/svelte';
 	import { untrack } from 'svelte';
+	import type { SommeASolder } from '#lib/domaine/creances/index.ts';
 	import { exerciceDeDate } from '#lib/domaine/etats/soldes.ts';
 	import { type Exercice } from '#lib/domaine/exercices.ts';
 	import {
@@ -26,11 +27,13 @@
 	import Dialogue from '#lib/ui/Dialogue.svelte';
 	import Menu from '#lib/ui/Menu.svelte';
 	import Panneau from '#lib/ui/Panneau.svelte';
+	import BlocPieces from '#lib/ui/piece/BlocPieces.svelte';
 	import { demanderReconnexion } from '#lib/ui/reconnexion.svelte.ts';
 	import SelecteurRecherche, { type OptionRecherche } from '#lib/ui/SelecteurRecherche.svelte';
 	import { afficherToast } from '#lib/ui/toasts.svelte.ts';
 	import Touche from '#lib/ui/Touche.svelte';
 	import { urlAvec } from '#lib/ui/url.ts';
+	import BlocSommes from './BlocSommes.svelte';
 	import BlocsOperation from './BlocsOperation.svelte';
 	import ResteARepartir from './ResteARepartir.svelte';
 	import { nouvelleCle, Saisie, type Choix } from './saisie.svelte.ts';
@@ -44,6 +47,9 @@
 		modele: DetailOperation | null;
 		/** Ligne de relevé d'où part l'Opération : enregistrer la pointe aussi (FR-14). */
 		ligne: LigneASaisir | null;
+		/** Somme à solder : enregistrer crée l'Opération et son règlement. */
+		solder: SommeASolder | null;
+		sommes: SommeASolder[];
 		rendre: boolean;
 		introuvable: boolean;
 		intention: string | null;
@@ -57,6 +63,8 @@
 		detail,
 		modele,
 		ligne,
+		solder,
+		sommes,
 		rendre,
 		introuvable,
 		intention,
@@ -108,6 +116,8 @@
 			s.date = date;
 		} else if (ligne) {
 			reprendreLigne(s, ligne);
+		} else if (solder) {
+			s.reprendreSomme(solder);
 		} else if (detail === null && modele === null) {
 			const voulue = intention as Choix | null;
 			if (voulue && [...ACTIFS, ...AUTRES.map((a) => a.choix)].includes(voulue)) s.choix = voulue;
@@ -369,6 +379,9 @@
 			};
 		}
 
+		for (const [i, p] of saisie.sommes.entries()) {
+			montantPositif(p.montant, `parts.${i}`);
+		}
 		const lignes = saisie.lignes.map((l, i) => {
 			const lu = montantPositif(l.montant, `lignes.${i}.montant`);
 			requis(l.natureId, `lignes.${i}.natureId`);
@@ -406,6 +419,13 @@
 			montant: m.valeur,
 			lignes
 		};
+	}
+
+	function partsEnvoyees() {
+		return saisie.sommes.flatMap((p) => {
+			const lu = lireMontant(p.montant);
+			return lu.ok ? [{ creanceId: p.somme.id, montant: lu.valeur }] : [];
+		});
 	}
 
 	function focusPremiereErreur() {
@@ -455,6 +475,7 @@
 			if (occupe) return;
 			occupe = true;
 			alerte = null;
+			const pieces = saisie.pieces.map((p) => p.id);
 			const r = detail
 				? await envoyer<{ id: number }>(`/api/operations/${detail.operation.id}`, {
 						version: detail.operation.version,
@@ -465,9 +486,21 @@
 					? await envoyer<{ id: number }>('/api/pointage/depuis-ligne', {
 							ligneId: ligne.id,
 							cle: saisie.cle,
-							saisie: corps
+							saisie: corps,
+							pieces
 						})
-					: await envoyer<{ id: number }>('/api/operations', { ...corps, cle: saisie.cle });
+					: solder
+						? await envoyer<{ id: number }>('/api/creances/solder', {
+								cle: saisie.cle,
+								saisie: corps,
+								pieces,
+								parts: partsEnvoyees()
+							})
+						: await envoyer<{ id: number }>('/api/operations', {
+								...corps,
+								cle: saisie.cle,
+								pieces
+							});
 			occupe = false;
 			if (r.type !== 'ok') {
 				traiterEchec(r, lancer);
@@ -718,7 +751,9 @@
 				exerciceCourantId={exerciceDeDate(contexte.exercices, detail.operation.date)?.id ?? null}
 			/>
 		{:else if !lectureSeule}
-			{#if !texteSeul && !verrouille && (estNouvelle || saisie.choix === 'depense' || saisie.choix === 'recette')}
+			{#if solder}
+				<BlocSommes {saisie} {sommes} {erreurs} />
+			{:else if !texteSeul && !verrouille && (estNouvelle || saisie.choix === 'depense' || saisie.choix === 'recette')}
 				<div class="intentions" role="group" aria-label="Intention">
 					<button
 						type="button"
@@ -939,7 +974,15 @@
 								autocomplete="off"
 							/>
 						</div>
-						{#if estCheque}
+						{#if solder}
+							<Champ
+								etiquette="Tiers"
+								id="op-tiers"
+								name="tiers"
+								bind:valeur={saisie.tiers}
+								autocomplete="off"
+							/>
+						{:else if estCheque}
 							<Champ
 								etiquette="Bénéficiaire"
 								id="op-tiers"
@@ -974,7 +1017,21 @@
 		{/if}
 
 		{#if detail}
+			<div class="bloc-piece">
+				<BlocPieces {detail} {peutSaisir} estDepense={detail.estDepense} />
+			</div>
 			<BlocsOperation {detail} {peutSaisir} bind:relierOuvert />
+		{:else if !lectureSeule && !interne && !(somme && saisie.rendDe !== null)}
+			<div class="bloc-piece">
+				<BlocPieces
+					detail={null}
+					{peutSaisir}
+					bind:enSaisie={saisie.pieces}
+					bind:sansPiece={saisie.sansPiece}
+					estDepense={saisie.choix === 'depense' || compensee}
+					surChangement={() => (modifie = true)}
+				/>
+			</div>
 		{/if}
 	{/if}
 
@@ -997,7 +1054,7 @@
 				{ligne ? 'Enregistrer et pointer' : 'Enregistrer'}
 				<span class="touches"><Touche>Ctrl</Touche><Touche>Entrée</Touche></span>
 			</Bouton>
-			{#if estNouvelle && !ligne}
+			{#if estNouvelle && !ligne && !solder}
 				<Bouton variante="discret" onclick={() => envoyerSaisie(true)}>
 					Enregistrer et continuer
 				</Bouton>
@@ -1075,6 +1132,12 @@
 	.formulaire {
 		display: grid;
 		gap: var(--espace-4);
+	}
+
+	.bloc-piece {
+		margin-top: var(--espace-5);
+		padding-top: var(--espace-4);
+		border-top: 1px solid var(--border);
 	}
 
 	.trois {

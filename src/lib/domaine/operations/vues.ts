@@ -2,11 +2,13 @@
  * Formes de lecture d'une Opération, partagées par l'application et l'interface.
  * L'interface n'importe rien du serveur (AD-1) : elles vivent ici.
  */
+import type { SoldeDeSomme } from '../creances/index.ts';
 import type { DateCivile, Instant } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { LigneReleveJ, OperationJ } from '../journal.ts';
 import type { Centimes } from '../montant.ts';
 import type { Action, Compte, Groupe, Nature } from '../parametrage.ts';
+import type { PieceVue } from '../pieces/index.ts';
 import type { Intention } from './formes.ts';
 import type { Recents } from './recents.ts';
 
@@ -82,5 +84,10 @@ export type DetailOperation = {
 	/** Pointages qui relient cette Opération : « Annuler le Pointage » les défait. */
 	pointageIds: number[];
 	mouvements: MouvementBancaire[];
+	pieces: PieceVue[];
+	/** La case « Pas besoin de Pièce » ne concerne qu'une dépense (FR-27). */
+	estDepense: boolean;
+	/** Créances et Dettes que cette Opération solde. */
+	soldes: SoldeDeSomme[];
 	historique: EntreeHistorique[];
 };

@@ -36,10 +36,14 @@ export function banc(instant = '2026-11-04T10:00:00.000Z'): Banc {
 		journaliseur: { info() {}, erreur() {} },
 		fichiers: {
 			ecrire(octets) {
+				// Adressé par contenu, comme le vrai stockage : le même fichier garde son adresse.
+				const connu = [...fichiers].find(([, o]) => Buffer.compare(o, octets) === 0);
+				if (connu) return connu[0];
 				const sha = `fichier-${fichiers.size + 1}`;
 				fichiers.set(sha, octets);
 				return sha;
-			}
+			},
+			lire: (sha) => fichiers.get(sha) ?? null
 		}
 	});
 	const id = app.socle.depots.acces.creer({

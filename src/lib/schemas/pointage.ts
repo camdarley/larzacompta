@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { dateValide } from '#lib/domaine/dates.ts';
 import { centimes } from '#lib/domaine/montant.ts';
-import { saisieOperation, cleSaisie } from './operations.ts';
+import { saisieOperation, cleSaisie, piecesDeposees } from './operations.ts';
 
 const MONTANT_MAX = 100_000_000_00;
 const identifiant = z.number({ message: 'champ_requis' }).int().positive();
@@ -30,7 +30,8 @@ export const schemaSolde = z.object({ date, solde: signe.transform(centimes) });
 export const schemaDepuisLigne = z.object({
 	ligneId: identifiant,
 	cle: cleSaisie,
-	saisie: saisieOperation
+	saisie: saisieOperation,
+	pieces: piecesDeposees
 });
 
 const colonne = z.string().min(1, 'champ_requis').max(200);

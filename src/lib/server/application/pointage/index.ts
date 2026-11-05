@@ -43,6 +43,7 @@ import {
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
 import { ecrireOperation, versBrouillon, type EntreeOperation } from '../operations/index.ts';
+import { rattacherPieces } from '../pieces/index.ts';
 
 export type EntreeImport = {
 	compteId: number;
@@ -71,7 +72,12 @@ export type EntreeLigne = {
 
 export type EntreeSolde = { compteId: number; date: DateCivile; solde: Centimes };
 
-export type EntreeDepuisLigne = { ligneId: number; saisie: EntreeOperation; cle?: string };
+export type EntreeDepuisLigne = {
+	ligneId: number;
+	saisie: EntreeOperation;
+	cle?: string;
+	pieces?: number[];
+};
 
 export type CandidatPointage = ElementRelie & { coteId: number };
 
@@ -420,6 +426,8 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 				ligneIds: [ligne.id]
 			});
 			if (!pointe.ok) return pointe;
+			const pieces = rattacherPieces(o, e.pieces ?? [], cree.valeur.id);
+			if (!pieces.ok) return pieces;
 			return succes({ id: cree.valeur.id, pointageId: pointe.valeur.id });
 		}
 	};

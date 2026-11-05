@@ -26,6 +26,7 @@ export default defineConfig({
 			APE_DONNEES: DOSSIER_E2E,
 			ORIGIN: ORIGINE_E2E,
 			PROTOCOL_HEADER: 'x-forwarded-proto',
+			BODY_SIZE_LIMIT: '25M',
 			PORT: String(PORT_E2E),
 			HOST: '127.0.0.1',
 			TZ: 'Europe/Paris'

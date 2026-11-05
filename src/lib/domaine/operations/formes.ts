@@ -12,6 +12,8 @@ export type EnTeteSaisie = {
 	modePaiement: ModePaiement | null;
 	note: string | null;
 	tiers: string | null;
+	/** Pas besoin de Pièce (FR-27). Absent : la Pièce reste attendue. */
+	sansPiece?: boolean;
 };
 
 export type LigneVentilee = {
@@ -64,7 +66,7 @@ export function formeStandard(s: SaisieStandard): Brouillon {
 		modePaiement: s.modePaiement,
 		note: s.note,
 		tiers: s.tiers,
-		sansPiece: false,
+		sansPiece: s.sansPiece ?? false,
 		cotes: [
 			{
 				compteId: s.compteId,
@@ -139,7 +141,7 @@ export function formeCompensee(s: SaisieCompensee): Brouillon {
 		modePaiement: s.modePaiement,
 		note: s.note,
 		tiers: s.tiers,
-		sansPiece: false,
+		sansPiece: s.sansPiece ?? false,
 		cotes: ecart === 0 ? [] : [{ compteId: s.compteId, date: s.date, montant: ecart }],
 		lignes: [
 			{

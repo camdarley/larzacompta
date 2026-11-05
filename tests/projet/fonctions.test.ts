@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { fonctionLivree, navigation, rolesLivres, type Fonction } from '#lib/fonctions.ts';
+import {
+	entreesMobile,
+	fonctionLivree,
+	navigation,
+	rolesLivres,
+	type Fonction
+} from '#lib/fonctions.ts';
 
 describe('#lib/fonctions', () => {
 	it('ne montre que les fonctions livrées', () => {
@@ -16,6 +22,14 @@ describe('#lib/fonctions', () => {
 		const compteur = navigation('compteur', toutes);
 		expect(compteur.bas.map((e) => e.libelle)).toEqual(['Aide']);
 		expect(compteur.groupes).toEqual([]);
+	});
+
+	it('ouvre Pièces et Créances au·à la lecteur·rice, et la Photo à qui saisit', () => {
+		const suivi = navigation('lecteur').groupes.find((g) => g.titre === 'Suivi');
+		expect(suivi?.entrees.map((e) => e.libelle)).toEqual(['Créances et Dettes', 'Pièces']);
+		expect(entreesMobile('tresorier').map((e) => e.libelle)).toContain('Photo');
+		expect(entreesMobile('lecteur').map((e) => e.libelle)).toContain('Pièces');
+		expect(entreesMobile('lecteur').map((e) => e.libelle)).not.toContain('Photo');
 	});
 
 	it('expose les fonctions et rôles livrés', () => {

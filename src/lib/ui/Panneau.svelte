@@ -21,6 +21,8 @@
 		surTouche?: (e: KeyboardEvent) => void;
 		/** Rien à perdre en fermant : des filtres, déjà écrits dans l'URL. */
 		sansConfirmation?: boolean;
+		/** Panneau de lecture : le haut reste à l'écran, le premier champ n'attire pas le défilement. */
+		lecture?: boolean;
 	};
 
 	let {
@@ -33,7 +35,8 @@
 		actionsTete,
 		modifie = $bindable(false),
 		surTouche,
-		sansConfirmation = false
+		sansConfirmation = false,
+		lecture = false
 	}: Props = $props();
 
 	/** Une saisie commencée ne se perd pas sur un geste malheureux (EXPERIENCE.md). */
@@ -68,9 +71,10 @@
 			class="ape-panneau"
 			onkeydown={surTouche}
 			onOpenAutoFocus={(e) => {
+				if (lecture) return;
 				// Le premier champ plutôt que la croix : on ouvre un panneau pour y saisir.
 				const champ = corps?.querySelector<HTMLElement>(
-					'input:not([type=hidden]), select, textarea'
+					'input:not([type=hidden], [hidden]), select, textarea'
 				);
 				if (champ) {
 					e.preventDefault();

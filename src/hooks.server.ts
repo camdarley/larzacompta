@@ -86,7 +86,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	reponse.headers.set('X-Content-Type-Options', 'nosniff');
 	reponse.headers.set('Referrer-Policy', 'same-origin');
-	reponse.headers.set('X-Frame-Options', 'DENY');
+	// Une Pièce s'affiche dans le `panneau`, en iframe : `frame-ancestors 'self'` la garde (AD-16).
+	reponse.headers.set(
+		'X-Frame-Options',
+		event.route.id === '/fichiers/[sha]' ? 'SAMEORIGIN' : 'DENY'
+	);
 	return reponse;
 };
 

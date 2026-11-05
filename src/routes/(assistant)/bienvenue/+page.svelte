@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { CheckCheck, Plus, Trash2 } from '@lucide/svelte';
-	import { ETAPES_ASSISTANT } from '#lib/domaine/assistant.ts';
+	import { refreshAll } from '$app/navigation';
+	import { ETAPE_ASSISTANT_SOMMES, ETAPES_ASSISTANT } from '#lib/domaine/assistant.ts';
 	import { capitaliser, formaterDateLongue, nomDuMois } from '#lib/domaine/dates.ts';
 	import { bornesExercice, libelleExercice } from '#lib/domaine/exercices.ts';
-	import { formaterSaisie } from '#lib/domaine/montant.ts';
+	import { formaterMontant, formaterSaisie } from '#lib/domaine/montant.ts';
 	import { LIBELLES_TYPE_COMPTE } from '#lib/domaine/parametrage.ts';
 	import { TEXTES } from '#lib/messages.ts';
+	import { envoyer } from '#lib/ui/api.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import CaseACocher from '#lib/ui/CaseACocher.svelte';
@@ -97,6 +99,32 @@
 	function retirerRangee(cle: number) {
 		rangees = rangees.filter((r) => r.cle !== cle);
 	}
+
+	// Étape Vos sommes en cours.
+	const ajoutSomme = ({ cancel }: { cancel: () => void }) => {
+		if (occupe) return cancel();
+		occupe = true;
+		return async ({
+			update,
+			result
+		}: {
+			update: (o: { reset: boolean }) => Promise<void>;
+			result: { type: string };
+		}) => {
+			await update({ reset: result.type === 'success' });
+			occupe = false;
+		};
+	};
+
+	async function retirerSomme(id: number) {
+		await envoyer(`/api/creances/${id}/annuler`);
+		await refreshAll();
+	}
+
+	const optionsAction = $derived([
+		{ valeur: '', libelle: 'Sans Action' },
+		...data.actions.map((a) => ({ valeur: String(a.id), libelle: a.libelle }))
+	]);
 </script>
 
 <div class="assistant">
@@ -117,7 +145,8 @@
 				<CheckCheck size={40} strokeWidth={1.75} aria-hidden="true" />
 				<h1 class="t-display" tabindex="-1">{TEXTES.cahier_pret}</h1>
 				<p class="t-muted">
-					Vos Comptes ont leurs soldes de départ. Vos Natures et vos Actions sont en place.
+					Vos Comptes ont leurs soldes de départ. Vos Natures, vos Actions et vos sommes en cours
+					sont en place.
 				</p>
 				<div class="suites">
 					{#if data.suites.importer}
@@ -257,6 +286,86 @@
 						<Bouton type="submit" {occupe}>Continuer</Bouton>
 					</div>
 				</form>
+			{:else if data.etape === ETAPE_ASSISTANT_SOMMES}
+				<p class="intro t-muted">
+					Ce qui était encore dû au {data.dateReprise ? formaterDateLongue(data.dateReprise) : ''} : une
+					cotisation attendue, un bénévole à rembourser. Rien de tout cela ne compte dans le résultat
+					de l’Exercice qui démarre. Rien à reprendre ? Passez cette étape.
+				</p>
+
+				{#if data.sommes.length > 0}
+					<ul class="sommes" aria-label="Sommes reprises">
+						{#each data.sommes as s (s.id)}
+							<li>
+								<div>
+									<p>{s.tiers}, {s.motif}</p>
+									<p class="t-caption t-muted">{s.sens === 'creance' ? 'À recevoir' : 'À payer'}</p>
+								</div>
+								<span class="montant">{formaterMontant(s.reste)}</span>
+								<button
+									type="button"
+									class="retirer-somme"
+									aria-label="Retirer {s.tiers}"
+									onclick={() => retirerSomme(s.id)}
+								>
+									<Trash2 size={20} strokeWidth={1.75} aria-hidden="true" />
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+
+				<form method="post" action="?/somme" class="pile" use:enhance={ajoutSomme}>
+					<ChampListe
+						etiquette="Sens"
+						name="sens"
+						valeur={saisie.sens ?? 'dette'}
+						options={[
+							{ valeur: 'dette', libelle: 'À payer : l’APE doit cette somme' },
+							{ valeur: 'creance', libelle: 'À recevoir : on doit cette somme à l’APE' }
+						]}
+					/>
+					<div class="deux">
+						<Champ
+							etiquette="Tiers"
+							name="tiers"
+							valeur={saisie.tiers ?? ''}
+							erreur={erreurs.tiers}
+							autocomplete="off"
+						/>
+						<Champ
+							etiquette="Motif"
+							name="motif"
+							valeur={saisie.motif ?? ''}
+							erreur={erreurs.motif}
+							autocomplete="off"
+						/>
+						<ChampMontant
+							etiquette="Reste dû"
+							name="montant"
+							valeur={saisie.montant ?? ''}
+							erreur={erreurs.montant}
+						/>
+						<ChampListe
+							etiquette="Action"
+							name="actionId"
+							valeur={saisie.actionId ?? ''}
+							options={optionsAction}
+						/>
+					</div>
+					<div>
+						<Bouton type="submit" variante="secondaire" {occupe}>
+							<Plus size={20} strokeWidth={1.75} aria-hidden="true" />
+							Ajouter cette somme
+						</Bouton>
+					</div>
+				</form>
+				<form method="post" action="?/terminer" class="navigation" use:enhance={soumettre}>
+					<a class="t-label" href="/bienvenue?etape=3">Retour</a>
+					<Bouton type="submit" {occupe}>
+						{data.sommes.length > 0 ? 'Terminer' : 'Passer cette étape'}
+					</Bouton>
+				</form>
 			{:else}
 				<p class="intro t-muted">
 					Gardez ce qui vous parle, tout se modifie ensuite. Les Natures de l’outil, comme l’Écart
@@ -288,7 +397,7 @@
 					</div>
 					<div class="navigation">
 						<a class="t-label" href="/bienvenue?etape=2">Retour</a>
-						<Bouton type="submit" {occupe}>Terminer</Bouton>
+						<Bouton type="submit" {occupe}>Continuer</Bouton>
 					</div>
 				</form>
 			{/if}
@@ -370,6 +479,48 @@
 		min-height: var(--espace-touch);
 	}
 
+	.deux {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--espace-3);
+		align-items: start;
+	}
+
+	.sommes {
+		margin-bottom: var(--espace-4);
+		border: 1px solid var(--border);
+		border-radius: var(--rayon-md);
+	}
+
+	.sommes li {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		align-items: center;
+		gap: var(--espace-3);
+		padding: var(--espace-1) var(--espace-1) var(--espace-1) var(--espace-3);
+	}
+
+	.sommes li + li {
+		border-top: 1px solid var(--border);
+	}
+
+	.retirer-somme {
+		display: inline-grid;
+		place-items: center;
+		width: var(--espace-row);
+		height: var(--espace-row);
+		border: 0;
+		border-radius: var(--rayon-md);
+		background: transparent;
+		color: var(--ink-muted);
+		cursor: pointer;
+	}
+
+	.retirer-somme:hover {
+		background: var(--surface-sunken);
+		color: var(--ink);
+	}
+
 	.colonnes {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -407,6 +558,10 @@
 	}
 
 	@media (max-width: 639.98px) {
+		.deux {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
 		.rangee {
 			grid-template-columns: minmax(0, 1fr) var(--espace-touch);
 			padding-bottom: var(--espace-3);

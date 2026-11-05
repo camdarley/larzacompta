@@ -4,8 +4,10 @@ import type { DateCivile, Instant } from '#lib/domaine/dates.ts';
 import type { Role } from '#lib/domaine/droits.ts';
 import type { Exercice, NouvelExercice } from '#lib/domaine/exercices.ts';
 import type { GrandJournal, LiaisonJ, OperationJ, TypeLiaison } from '#lib/domaine/journal.ts';
+import type { EntreeCreance } from '#lib/domaine/creances/index.ts';
 import type { BrouillonValide } from '#lib/domaine/operations/validation.ts';
 import type { Centimes } from '#lib/domaine/montant.ts';
+import type { PieceStockee } from '#lib/domaine/pieces/index.ts';
 import type {
 	Action,
 	Ancre,
@@ -194,6 +196,8 @@ export type DepotOperations = {
 	/** Refuse par `false` si `version` a changé depuis la lecture (O10). */
 	modifier(id: number, versionLue: number, o: BrouillonValide): boolean;
 	annuler(id: number, le: Instant, par: number): void;
+	/** Ne touche pas `version` : la dispense ne change aucun état, et n'invalide pas une saisie. */
+	definirSansPiece(id: number, sansPiece: boolean): void;
 	creerLiaison(l: { type: TypeLiaison; libelle: string }): number;
 	definirLiaison(operationId: number, liaisonId: number | null): void;
 	deplacerLiaison(depuis: number, vers: number): void;
@@ -258,8 +262,32 @@ export type Sources = {
 	estOfx(octets: Uint8Array): boolean;
 };
 
-/** Stockage adressé par contenu (AD-16). Rend le SHA-256 du fichier écrit. */
-export type Fichiers = { ecrire(octets: Uint8Array): string };
+/** Stockage adressé par contenu (AD-16). `ecrire` rend le SHA-256 du fichier. */
+export type Fichiers = {
+	ecrire(octets: Uint8Array): string;
+	lire(sha256: string): Uint8Array | null;
+};
+
+/** Seul chemin vers `piece` et `piece_operation` (AD-7). */
+export type DepotPieces = {
+	lister(): PieceStockee[];
+	parId(id: number): PieceStockee | null;
+	parSha(sha256: string): PieceStockee | null;
+	liens(): { pieceId: number; operationId: number }[];
+	creer(p: Omit<PieceStockee, 'id'> & { creePar: number }): number;
+	/** `false` si le lien existait déjà : rien n'a changé, rien à noter. */
+	rattacher(pieceId: number, operationId: number): boolean;
+	detacher(pieceId: number, operationId: number): boolean;
+	supprimer(id: number): void;
+};
+
+/** Seul chemin vers `creance_dette` et `reglement` (AD-7). */
+export type DepotCreances = {
+	creer(c: EntreeCreance & { creeLe: Instant; creePar: number }): number;
+	annuler(id: number, le: Instant, par: number): void;
+	retablir(id: number): void;
+	regler(creanceId: number, operationId: number, montant: Centimes): void;
+};
 
 export type Exporteurs = {
 	/** CSV : UTF-8 avec BOM, séparateur `;`. Reçoit un modèle déjà calculé (AD-18). */
@@ -273,6 +301,8 @@ export type Depots = {
 	exercices: DepotExercices;
 	operations: DepotOperations;
 	pointage: DepotPointage;
+	pieces: DepotPieces;
+	creances: DepotCreances;
 };
 
 export type Journaliseur = {

@@ -7,15 +7,35 @@
 		coche?: boolean;
 		aide?: string;
 		id?: string;
+		/** Geste enregistré aussitôt, sans formulaire. */
+		surChangement?: (coche: boolean) => void;
 		children: Snippet;
 	};
 
-	let { name, value = 'on', coche = $bindable(false), aide, id, children }: Props = $props();
+	let {
+		name,
+		value = 'on',
+		coche = $bindable(false),
+		aide,
+		id,
+		surChangement,
+		children
+	}: Props = $props();
 	const idAuto = $derived(id ?? `case-${name}-${value}`);
 </script>
 
 <div class="case">
-	<input id={idAuto} type="checkbox" {name} {value} bind:checked={coche} />
+	<input
+		id={idAuto}
+		type="checkbox"
+		{name}
+		{value}
+		bind:checked={coche}
+		oninput={(e) => {
+			if (surChangement) e.stopPropagation();
+		}}
+		onchange={() => surChangement?.(coche)}
+	/>
 	<label for={idAuto}>
 		{@render children()}
 		{#if aide}<span class="aide t-caption">{aide}</span>{/if}

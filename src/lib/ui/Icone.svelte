@@ -2,6 +2,7 @@
 	import {
 		BookOpen,
 		CalendarRange,
+		Camera,
 		ChartColumn,
 		CircleHelp,
 		ClipboardCheck,
@@ -28,6 +29,7 @@
 		cheques: ReceiptText,
 		creances: Landmark,
 		pieces: FileText,
+		photo: Camera,
 		factures: ClipboardCheck,
 		actions: CalendarRange,
 		etats: ChartColumn,

@@ -5,7 +5,9 @@
 import { lireMontant, formaterSaisie, centimes, type Centimes } from '#lib/domaine/montant.ts';
 import { differentiel, type Intention } from '#lib/domaine/operations/formes.ts';
 import { resteARepartir, type PartLigne } from '#lib/domaine/operations/ventilation.ts';
+import type { SommeASolder } from '#lib/domaine/creances/index.ts';
 import type { ModePaiement, OperationJ } from '#lib/domaine/journal.ts';
+import type { PieceDeposee } from '#lib/domaine/pieces/index.ts';
 
 export type Choix = Intention | 'interne' | 'remboursement' | 'somme' | 'compensee';
 
@@ -54,6 +56,9 @@ function lire(texte: string): Centimes | null {
 const positif = (c: Centimes) => centimes(Math.abs(c));
 const texteDe = (c: Centimes) => formaterSaisie(positif(c));
 
+/** Part d'une Opération sur une somme à solder. */
+export type PartEtat = { somme: SommeASolder; montant: string };
+
 export function nouvelleCle(): string {
 	return crypto.randomUUID();
 }
@@ -88,6 +93,13 @@ export class Saisie {
 	origineId = $state<number | null>(null);
 	/** Rendre cette somme : Opération reçue. */
 	rendDe = $state<number | null>(null);
+	/** Pièces déposées pendant la saisie : elles partent avec l'Opération. */
+	pieces = $state<PieceDeposee[]>([]);
+	sansPiece = $state(false);
+
+	/** Créances et Dettes que l'Opération solde, avec la part de chacune. */
+	sommes = $state<PartEtat[]>([]);
+
 	/** Une même saisie garde sa clé, même renvoyée : aucun double enregistrement. */
 	cle = $state(nouvelleCle());
 
@@ -123,6 +135,43 @@ export class Saisie {
 		if (this.lignes.length === 1 && seule?.auto) {
 			seule.montant = this.total === null ? '' : texteDe(this.total);
 		}
+		// Une seule somme : elle suit le montant, un paiement partiel se saisit d'un seul geste.
+		const [part] = this.sommes;
+		if (this.sommes.length === 1 && part) {
+			part.montant = this.total === null ? '' : texteDe(this.total);
+		}
+	}
+
+	/** Solder une somme : montant, Action et rattachement viennent d'elle, rien à ressaisir. */
+	reprendreSomme(s: SommeASolder) {
+		this.choix = s.sens === 'creance' ? 'recette' : 'depense';
+		this.tiers = s.tiers;
+		this.libelle = `${s.tiers}, ${s.motif}`;
+		this.montant = texteDe(s.reste);
+		this.sommes = [{ somme: s, montant: texteDe(s.reste) }];
+		this.surMontant();
+		const [premiere] = this.lignes;
+		if (premiere) {
+			premiere.actionId = s.actionId;
+			premiere.rattachementId = s.rattachementId;
+			premiere.rattachementOuvert = s.rattachementId !== null;
+		}
+	}
+
+	/** Une autre somme sur la même Opération : son reste s'ajoute, avec sa Ligne. */
+	ajouterSomme(s: SommeASolder) {
+		this.sommes.push({ somme: s, montant: texteDe(s.reste) });
+		const avant = positif(this.total ?? centimes(0));
+		for (const l of this.lignes) l.auto = false;
+		this.montant = texteDe(centimes(avant + s.reste));
+		const l = this.ajouterLigne(s.reste);
+		l.actionId = s.actionId;
+		l.rattachementId = s.rattachementId;
+		l.rattachementOuvert = s.rattachementId !== null;
+	}
+
+	retirerSomme(id: number) {
+		this.sommes = this.sommes.filter((p) => p.somme.id !== id);
 	}
 
 	ajouterLigne(montant: Centimes = centimes(0)): LigneEtat {
