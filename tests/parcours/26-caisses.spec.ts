@@ -33,6 +33,24 @@ test.afterAll(() => {
 	rmSync(dossier, { recursive: true, force: true });
 });
 
+// La console reste sans erreur à travers coupure, recomptage et écart confirmé (story 8.10).
+let erreursConsole: string[] = [];
+
+test.beforeEach(({ page }) => {
+	erreursConsole = [];
+	page.on('console', (m) => {
+		// Le navigateur note lui-même une requête coupée, ou le refus attendu d'un rôle.
+		if (m.type() === 'error' && !/Failed to load resource|ERR_FAILED/.test(m.text())) {
+			erreursConsole.push(m.text());
+		}
+	});
+	page.on('pageerror', (e) => erreursConsole.push(String(e)));
+});
+
+test.afterEach(() => {
+	expect(erreursConsole).toEqual([]);
+});
+
 async function connecte(page: Page, role: keyof typeof JETONS) {
 	await page
 		.context()

@@ -14,6 +14,7 @@ import { composer } from '../../src/lib/server/composition.ts';
 import { creerFichiers } from '../../src/lib/server/infra/fichiers/index.ts';
 import { ouvrirBase } from '../../src/lib/server/infra/sqlite/connexion.ts';
 import { chargerDansDossier, type JeuCharge } from '../jeux/charger.ts';
+import { toucheLiens } from './aides.ts';
 import { demarrerServeur } from './aides-instance.ts';
 
 const PORT = 4188;
@@ -218,7 +219,10 @@ test.describe('UJ-2 sur téléphone, au toucher', () => {
 	});
 });
 
-test('UJ-1 au clavier : l’ordre de tabulation de la rafale suit la pile', async ({ page }) => {
+test('UJ-1 au clavier : l’ordre de tabulation de la rafale suit la pile', async ({
+	page,
+	browserName
+}) => {
 	await connecte(page);
 	await page.goto('/cheques');
 	await expect(page.locator('#rafale-emetteur')).toBeFocused();
@@ -243,7 +247,7 @@ test('UJ-1 au clavier : l’ordre de tabulation de la rafale suit la pile', asyn
 		});
 		expect(contour, `${id} sans repère de focus`).toBe(true);
 	}
-	await page.keyboard.press('Tab');
+	await page.keyboard.press(toucheLiens(browserName));
 	await expect(page.getByRole('button', { name: 'Enregistrer' })).toBeFocused();
 });
 

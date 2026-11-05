@@ -252,7 +252,7 @@ test.describe('Camille dépose les chèques des Agrumes', () => {
 		page
 	}) => {
 		await connecte(page);
-		await page.goto(`/pointage/${jeu.ccp}`);
+		await page.goto(`/pointage/${jeu.ccp}`, { waitUntil: 'networkidle' });
 		const ofx = ofxTexte(
 			[
 				{ date: jourOfx, montant: '158.00', id: 'Q1', libelle: 'REMISE CHEQUES 0000042' },
@@ -372,7 +372,10 @@ test.describe('Camille dépose les chèques des Agrumes', () => {
 		await axeSansViolation(page);
 		await dialogue.getByRole('button', { name: 'Marquer comme rejeté' }).click();
 		await expect(dialogue).toBeHidden();
-		await page.goto('/cheques?etat=rejete');
+		await page
+			.getByRole('navigation', { name: 'Filtrer par état' })
+			.getByRole('link', { name: /Rejeté/ })
+			.click();
 		await expect(page.getByRole('row', { name: /Famille Datte/ })).toContainText('Rejeté');
 	});
 
