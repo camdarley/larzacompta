@@ -13,7 +13,9 @@ if (!present) {
 	process.exit(0);
 }
 
-const execution = spawnSync('pnpm', ['exec', 'vitest', 'run', '--dir', 'tests/prive'], {
-	stdio: 'inherit'
-});
+const execution = spawnSync(
+	process.execPath,
+	['node_modules/vitest/vitest.mjs', 'run', '--project', 'prive'],
+	{ stdio: 'inherit', env: { ...process.env, APE_JEU_PRIVE: '1' } }
+);
 process.exit(execution.status ?? 1);

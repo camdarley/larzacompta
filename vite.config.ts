@@ -55,6 +55,14 @@ export default defineConfig({
 					environment: 'node',
 					include: ['tests/projet/**/*.test.ts']
 				}
+			},
+			{
+				extends: true,
+				test: {
+					name: 'prive',
+					environment: 'node',
+					include: ['tests/prive/**/*.test.ts']
+				}
 			}
 		],
 		coverage: {

@@ -66,6 +66,7 @@ const standard = (e: {
 
 export type JeuCharge = Reperes & {
 	caisse: number;
+	kermesse: number;
 	exercice: { courant: number; repere: number };
 };
 
@@ -255,7 +256,7 @@ export function chargerJeu(app: Application, ctx: Ctx): JeuCharge {
 	);
 
 	pointerReleve(app, ctx, banque, livret);
-	return { ...reperes, caisse, exercice: { courant, repere } };
+	return { ...reperes, caisse, kermesse: action('Kermesse'), exercice: { courant, repere } };
 }
 
 /** Le relevé d'octobre : tout se pointe, sauf un frais que le cahier ne connaît pas encore. */
