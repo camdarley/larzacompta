@@ -84,6 +84,7 @@ test('UJ-3 : Dominique remonte de la Kermesse à la Pièce et à la banque, Cami
 	// SM-5 : une personne extérieure retrouve la Pièce en moins d'une minute.
 	expect(Date.now() - debut).toBeLessThan(60_000);
 	await page.keyboard.press('Escape');
+	await expect(detail).toBeHidden();
 
 	await context.clearCookies();
 	await context.addCookies([{ name: 'ape_session', value: JETON_TRESORIER, url: ETATS }]);

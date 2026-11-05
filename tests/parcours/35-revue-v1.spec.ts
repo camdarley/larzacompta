@@ -150,7 +150,7 @@ test.describe('saisie', () => {
 		await page.locator('#op-montant').fill('12');
 		await page.evaluate(() => history.back());
 		await expect(page.getByRole('heading', { name: /Quitter sans enregistrer/ })).toBeVisible();
-		expect(page.url()).toContain('op=nouvelle');
+		await expect(page).toHaveURL(/op=nouvelle/);
 		await capture(page, 'retour-dirty-m');
 		await page.getByRole('button', { name: 'Continuer la saisie' }).click();
 		await expect(page.locator('#op-montant')).toHaveValue('12,00');

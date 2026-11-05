@@ -243,9 +243,11 @@ test.describe('barre latérale', () => {
 		await page.goto('/actions');
 		await photo(page, 'barre-basse');
 		const fin = nav.locator('[aria-current="page"]');
-		const bas = await fin.evaluate((n) => n.getBoundingClientRect().bottom);
+		// L'entrée se remonte après l'hydratation : WebKit la lit parfois un instant trop tôt.
 		const borne = await nav.evaluate((n) => n.getBoundingClientRect().bottom);
-		expect(bas).toBeLessThanOrEqual(borne);
+		await expect
+			.poll(() => fin.evaluate((n) => n.getBoundingClientRect().bottom))
+			.toBeLessThanOrEqual(borne);
 	});
 });
 

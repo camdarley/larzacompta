@@ -138,7 +138,7 @@
 						sansValeur="Sans Action"
 						creer={creerAction}
 						libelleCreer={(t) => `Créer l’Action ${t}`}
-						suggere={l.suggestion !== null}
+						suggere={l.suggestion !== null && l.actionId !== null}
 						onaccepter={() => (l.suggestion = null)}
 						onchange={() => (l.suggestion = null)}
 						onfin={ligneSuivante}
