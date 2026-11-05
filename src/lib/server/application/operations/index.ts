@@ -90,7 +90,7 @@ export type EntreeModification = {
 	saisie: EntreeOperation;
 } & OptionsEcriture;
 
-function versBrouillon(e: EntreeOperation): Brouillon {
+export function versBrouillon(e: EntreeOperation): Brouillon {
 	if (e.forme === 'interne') return formeInterne(e);
 	if (e.forme === 'compensee') return formeCompensee(e);
 	return formeStandard(e);
@@ -544,6 +544,7 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 						estSommeARendre(operation, sommeNature)
 							? resteARendre(j, operation)
 							: null,
+					pointageIds: pointages.map((p) => p.id),
 					mouvements: j.lignesReleve
 						.filter((l) => pointages.some((p) => p.ligneReleveIds.includes(l.id)))
 						.map(({ id: ligneId, date, montant, libelle }) => ({

@@ -9,10 +9,12 @@ import { echec, type Resultat } from '#lib/domaine/resultat.ts';
 import type {
 	Depots,
 	Exporteurs,
+	Fichiers,
 	Hacheur,
 	Horloge,
 	Jetons,
 	Journaliseur,
+	Sources,
 	Transaction
 } from './ports.ts';
 
@@ -30,6 +32,8 @@ export type Socle = {
 	jetons: Jetons;
 	journaliseur: Journaliseur;
 	exporteurs: Exporteurs;
+	sources: Sources;
+	fichiers: Fichiers;
 };
 
 export type NoteJournal = {

@@ -106,6 +106,15 @@ export function lireDate(texte: string): Resultat<DateCivile> {
 	return echec('date_invalide');
 }
 
+/** Jours écoulés de `a` à `b`, en jours civils. */
+export function joursEntre(a: DateCivile, b: DateCivile): number {
+	const nombre = (d: DateCivile) => {
+		const { annee, mois, jour } = parties(d);
+		return Date.UTC(annee, mois - 1, jour) / 86_400_000;
+	};
+	return nombre(b) - nombre(a);
+}
+
 export function ajouterJours(date: DateCivile, jours: number): DateCivile {
 	let { annee, mois, jour } = parties(date);
 	let reste = jours;

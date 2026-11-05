@@ -11,6 +11,8 @@ const hacheurRapide: Hacheur = {
 
 export type Banc = {
 	app: Application;
+	/** SHA-256 factice → octets : aucun fichier n'est écrit par les tests d'application. */
+	fichiers: Map<string, Uint8Array>;
 	horloge: { instant: string; maintenant(): string };
 	base: ReturnType<typeof baseMigree>;
 	tresorier: AccesConnecte;
@@ -26,11 +28,19 @@ export function banc(instant = '2026-11-04T10:00:00.000Z'): Banc {
 			return this.instant;
 		}
 	};
+	const fichiers = new Map<string, Uint8Array>();
 	const app = composer({
 		base,
 		horloge,
 		hacheur: hacheurRapide,
-		journaliseur: { info() {}, erreur() {} }
+		journaliseur: { info() {}, erreur() {} },
+		fichiers: {
+			ecrire(octets) {
+				const sha = `fichier-${fichiers.size + 1}`;
+				fichiers.set(sha, octets);
+				return sha;
+			}
+		}
 	});
 	const id = app.socle.depots.acces.creer({
 		identifiant: 'camille',
@@ -48,6 +58,7 @@ export function banc(instant = '2026-11-04T10:00:00.000Z'): Banc {
 	};
 	return {
 		app,
+		fichiers,
 		horloge,
 		base,
 		tresorier,

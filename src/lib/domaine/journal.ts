@@ -104,6 +104,10 @@ export type LigneReleveJ = {
 	montant: Centimes;
 	libelle: string;
 	doublon: 'non' | 'a_confirmer' | 'confirme';
+	/** Nul pour une ligne saisie à la main. */
+	importId: number | null;
+	identifiantSource: string | null;
+	empreinte: string;
 };
 
 export type PointageJ = {

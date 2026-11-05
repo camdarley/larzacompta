@@ -79,6 +79,8 @@ export type DetailOperation = {
 	liaison: LiaisonVue | null;
 	/** Ce qu'il reste à rendre, pour une somme reçue. */
 	resteARendre: Centimes | null;
+	/** Pointages qui relient cette Opération : « Annuler le Pointage » les défait. */
+	pointageIds: number[];
 	mouvements: MouvementBancaire[];
 	historique: EntreeHistorique[];
 };

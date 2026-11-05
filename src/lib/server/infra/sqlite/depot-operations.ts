@@ -76,6 +76,9 @@ type LigneReleveBrute = {
 	montant_centimes: number;
 	libelle: string;
 	doublon: LigneReleveJ['doublon'];
+	import_id: number | null;
+	identifiant_source: string | null;
+	empreinte: string;
 };
 type CreanceBrute = {
 	id: number;
@@ -181,7 +184,8 @@ export function creerDepotOperations(
 		liaisons: base.prepare('SELECT id, type, libelle FROM liaison ORDER BY id'),
 		constats: base.prepare('SELECT * FROM constat_solde ORDER BY date, id'),
 		lignesReleve: base.prepare(
-			'SELECT id, compte_id, date, montant_centimes, libelle, doublon FROM ligne_releve ORDER BY date, id'
+			`SELECT id, compte_id, date, montant_centimes, libelle, doublon, import_id, identifiant_source, empreinte
+				 FROM ligne_releve ORDER BY date, id`
 		),
 		pointages: base.prepare('SELECT id, compte_id FROM pointage ORDER BY id'),
 		pointageCotes: base.prepare('SELECT pointage_id, cote_id FROM pointage_cote'),
@@ -321,7 +325,10 @@ export function creerDepotOperations(
 					date: l.date,
 					montant: centimes(l.montant_centimes),
 					libelle: l.libelle,
-					doublon: l.doublon
+					doublon: l.doublon,
+					importId: l.import_id,
+					identifiantSource: l.identifiant_source,
+					empreinte: l.empreinte
 				})),
 				creancesDettes: chargerCreances()
 			};

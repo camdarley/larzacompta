@@ -14,17 +14,22 @@ import { creerExercices } from './application/exercices/index.ts';
 import { creerJournal } from './application/journal/index.ts';
 import { creerOperations } from './application/operations/index.ts';
 import { creerParametrage } from './application/parametrage/index.ts';
-import type { Hacheur, Horloge, Journaliseur } from './application/ports.ts';
+import { creerPointage } from './application/pointage/index.ts';
+import type { Fichiers, Hacheur, Horloge, Journaliseur } from './application/ports.ts';
 import { creerJetons } from './infra/auth/jetons.ts';
 import { creerHacheur } from './infra/auth/mot-de-passe.ts';
 import { genererCsv } from './infra/documents/csv.ts';
+import { creerFichiers } from './infra/fichiers/index.ts';
 import { creerJournaliseur } from './infra/logs.ts';
+import { sourceCsv } from './infra/sources/csv.ts';
+import { estOfx, sourceOfx } from './infra/sources/ofx.ts';
 import { ouvrirBase, type Base } from './infra/sqlite/connexion.ts';
 import { creerDepotAcces } from './infra/sqlite/depot-acces.ts';
 import { creerDepotExercices } from './infra/sqlite/depot-exercices.ts';
 import { creerDepotJournal } from './infra/sqlite/depot-journal.ts';
 import { creerDepotOperations } from './infra/sqlite/depot-operations.ts';
 import { creerDepotParametrage } from './infra/sqlite/depot-parametrage.ts';
+import { creerDepotPointage } from './infra/sqlite/depot-pointage.ts';
 import { appliquerMigrations, chargerMigrations } from './infra/sqlite/migrateur.ts';
 import { creerTransaction } from './infra/sqlite/transaction.ts';
 
@@ -33,6 +38,7 @@ export type OptionsComposition = {
 	horloge?: Horloge;
 	hacheur?: Hacheur;
 	journaliseur?: Journaliseur;
+	fichiers?: Fichiers;
 };
 
 export function composer(options: OptionsComposition) {
@@ -45,14 +51,17 @@ export function composer(options: OptionsComposition) {
 			journal: creerDepotJournal(options.base),
 			parametrage,
 			exercices,
-			operations: creerDepotOperations(options.base, parametrage, exercices)
+			operations: creerDepotOperations(options.base, parametrage, exercices),
+			pointage: creerDepotPointage(options.base)
 		},
 		transaction: creerTransaction(options.base),
 		horloge,
 		hacheur: options.hacheur ?? creerHacheur(),
 		jetons: creerJetons(),
 		journaliseur: options.journaliseur ?? creerJournaliseur(() => horloge.maintenant()),
-		exporteurs: { csv: genererCsv }
+		exporteurs: { csv: genererCsv },
+		sources: { ofx: sourceOfx, csv: sourceCsv, estOfx },
+		fichiers: options.fichiers ?? creerFichiers(join(dossierDonnees(), 'fichiers'))
 	};
 	const executer = creerExecuteur(socle);
 	const lire = creerLecteur();
@@ -66,7 +75,8 @@ export function composer(options: OptionsComposition) {
 		journal: creerJournal(socle, lire),
 		parametrage: creerParametrage(socle, executer, lire),
 		exercices: creerExercices(socle, executer, lire),
-		operations: creerOperations(socle, executer, lire)
+		operations: creerOperations(socle, executer, lire),
+		pointage: creerPointage(socle, executer, lire)
 	};
 }
 

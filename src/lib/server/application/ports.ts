@@ -16,6 +16,10 @@ import type {
 	Nature,
 	TypeCompte
 } from '#lib/domaine/parametrage.ts';
+import type { ReglageCsv, TableauCsv } from '#lib/domaine/releve/csv.ts';
+import type { LignePlanifiee } from '#lib/domaine/releve/planifier.ts';
+import type { Periode } from '#lib/domaine/releve/trous.ts';
+import type { ReleveNormalise } from '#lib/domaine/releve/types.ts';
 import type { Resultat } from '#lib/domaine/resultat.ts';
 
 export type Horloge = { maintenant(): Instant };
@@ -198,6 +202,65 @@ export type DepotOperations = {
 	operationsDeLiaison(id: number): number[];
 };
 
+export type NouvelImport = {
+	compteId: number;
+	source: string;
+	nomFichier: string;
+	fichierSha256: string;
+	dateMin: DateCivile | null;
+	dateMax: DateCivile | null;
+	lues: number;
+	nouvelles: number;
+	connues: number;
+	importeLe: Instant;
+	importePar: number;
+};
+
+export type NouveauConstat = {
+	compteId: number;
+	date: DateCivile;
+	solde: Centimes;
+	source: 'releve' | 'saisie';
+	importId: number | null;
+	creeLe: Instant;
+	creePar: number;
+};
+
+/** Seul chemin vers le relevé, le Constat et le Pointage (AD-7). */
+export type DepotPointage = {
+	periodes(compteId: number): (Periode & { id: number })[];
+	creerImport(i: NouvelImport): number;
+	creerLigne(
+		l: LignePlanifiee & { compteId: number; importId: number | null; creeLe: Instant }
+	): number;
+	confirmerLigne(id: number): void;
+	supprimerLigne(id: number): void;
+	creerConstat(c: NouveauConstat): number;
+	creerPointage(p: {
+		compteId: number;
+		coteIds: readonly number[];
+		ligneIds: readonly number[];
+		creeLe: Instant;
+		creePar: number;
+	}): number;
+	supprimerPointage(id: number): void;
+	profil(compteId: number): ReglageCsv | null;
+	ecrireProfil(compteId: number, reglage: ReglageCsv): void;
+};
+
+/** Une source ne fait que lire (AD-9). Rien de propre à une banque ne franchit ce port. */
+export type EntreeSource = { octets: Uint8Array; reglage?: ReglageCsv | null };
+export type SourceReleve = { lire(entree: EntreeSource): Resultat<ReleveNormalise> };
+export type SourceCsv = SourceReleve & { tableau(octets: Uint8Array): Resultat<TableauCsv> };
+export type Sources = {
+	ofx: SourceReleve;
+	csv: SourceCsv;
+	estOfx(octets: Uint8Array): boolean;
+};
+
+/** Stockage adressé par contenu (AD-16). Rend le SHA-256 du fichier écrit. */
+export type Fichiers = { ecrire(octets: Uint8Array): string };
+
 export type Exporteurs = {
 	/** CSV : UTF-8 avec BOM, séparateur `;`. Reçoit un modèle déjà calculé (AD-18). */
 	csv(entetes: readonly string[], lignes: readonly (readonly string[])[]): string;
@@ -209,6 +272,7 @@ export type Depots = {
 	parametrage: DepotParametrage;
 	exercices: DepotExercices;
 	operations: DepotOperations;
+	pointage: DepotPointage;
 };
 
 export type Journaliseur = {

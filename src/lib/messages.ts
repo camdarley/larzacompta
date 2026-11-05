@@ -76,6 +76,12 @@ const MESSAGES = {
 		'Ce Pointage ne relie que des éléments d’un Exercice clôturé : il ne s’annule plus.',
 	ligne_releve_pointee: 'Cette Ligne de relevé est pointée. Annulez d’abord le Pointage.',
 	ancre_invalide: 'Le solde de départ d’un Compte se pose au début d’un Exercice ouvert.',
+	pointage_incoherent:
+		'Ces éléments ne se pointent pas ensemble : ils doivent porter sur le même Compte, et n’être pas déjà pointés.',
+	ligne_releve_conservee:
+		'Cette Ligne de relevé vient de votre banque : seule une ligne en double s’écarte.',
+	ligne_avant_ancre:
+		'Cette date précède le solde de départ de ce Compte : la ligne n’entrerait pas dans le contrôle.',
 
 	// Saisie et parcours d'Accès, absents du tableau d'EXPERIENCE.md, même ton.
 	forme_invalide:
