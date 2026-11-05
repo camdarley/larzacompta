@@ -8,7 +8,7 @@
  * Sans étiquette `v*` avant HEAD, c'est la première version : la base vient du code courant.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -22,6 +22,8 @@ const volumes = {
 const serveur = `ape-cycle-serveur-${suffixe}`;
 const temporaire = mkdtempSync(join(tmpdir(), 'ape-cycle-'));
 const racine = process.cwd();
+/** Vrai quand la version précédente a moins de migrations que le code courant. */
+let codeEnAvance = false;
 
 function etape(nom: string) {
 	console.log(`\n=== ${nom}`);
@@ -44,23 +46,52 @@ function versionPrecedente(): string | null {
 	return r.status === 0 ? r.stdout.trim() : null;
 }
 
-/** La base d'une version antérieure, écrite par le code de cette version-là. */
-function preparerBase(dossier: string) {
+/**
+ * La base d'une version antérieure, écrite par le code de cette version-là, dans son propre
+ * stage de build. Seuls `docker` et `git` sont requis : ni `pnpm` ni module natif sur l'hôte.
+ */
+function preparerBase(volume: string, image: string) {
 	const tag = versionPrecedente();
+	const stage = `${image}-construction`;
 	if (tag === null) {
 		console.log('Première version : la base vient du code courant.');
-		lancer('node', ['tests/cycle/preparer.ts', dossier]);
-		return;
+		lancer('docker', ['build', '--target', 'construction', '--tag', stage, '.']);
+	} else {
+		console.log(`Base écrite par ${tag}.`);
+		codeEnAvance =
+			lancer('git', ['diff', '--name-only', tag, 'HEAD', '--', 'migrations']).trim() !== '';
+		const arbre = join(temporaire, 'precedente');
+		lancer('git', ['worktree', 'add', '--detach', arbre, tag]);
+		try {
+			lancer('docker', ['build', '--target', 'construction', '--tag', stage, '.'], arbre);
+		} finally {
+			lancer('git', ['worktree', 'remove', '--force', arbre]);
+		}
 	}
-	console.log(`Base écrite par ${tag}.`);
-	const arbre = join(temporaire, 'precedente');
-	lancer('git', ['worktree', 'add', '--detach', arbre, tag]);
-	try {
-		lancer('pnpm', ['install', '--frozen-lockfile'], arbre);
-		lancer('node', ['tests/cycle/preparer.ts', dossier], arbre);
-	} finally {
-		lancer('git', ['worktree', 'remove', '--force', arbre]);
-	}
+	lancer('docker', [
+		'run',
+		'--rm',
+		'-v',
+		`${volume}:/instance`,
+		stage,
+		'node',
+		'tests/cycle/preparer.ts',
+		'/instance'
+	]);
+	essayer('docker', ['image', 'rm', stage]);
+	lancer('docker', [
+		'run',
+		'--rm',
+		'--user',
+		'root',
+		'-v',
+		`${volume}:/data`,
+		image,
+		'chown',
+		'-R',
+		'node:node',
+		'/data'
+	]);
 }
 
 const environnement = (depot = '/depot') => [
@@ -101,28 +132,6 @@ function preparerVolumes(image: string) {
 	]);
 }
 
-function copierDansVolume(dossier: string, volume: string, image: string) {
-	const archive = join(temporaire, 'base.tar');
-	execFileSync('tar', ['-cf', archive, '-C', dossier, '.'], {
-		// Sur macOS, sans cela, chaque fichier traîne son double `._`.
-		env: { ...process.env, COPYFILE_DISABLE: '1' }
-	});
-	lancer('docker', [
-		'run',
-		'--rm',
-		'--user',
-		'root',
-		'-v',
-		`${volume}:/data`,
-		'-v',
-		`${temporaire}:/entree:ro`,
-		image,
-		'sh',
-		'-c',
-		'tar --warning=no-unknown-keyword -xf /entree/base.tar -C /data && chown -R node:node /data'
-	]);
-}
-
 /** Tout ce qui compte, en une empreinte : si un chiffre ou un fichier bouge, elle change. */
 const EMPREINTE = `
 const Database = require('/app/node_modules/better-sqlite3');
@@ -144,8 +153,32 @@ const operations = b.prepare('SELECT count(*) FROM operation').pluck().get();
 console.log(JSON.stringify({ operations, fichiers: n, empreinte: h.digest('hex') }));
 `;
 
+const MONTEE = `
+const Database = require('/app/node_modules/better-sqlite3');
+const { existsSync, readdirSync } = require('node:fs');
+const b = new Database('/data/base.sqlite', { readonly: true });
+const migrations = b.prepare('SELECT nom FROM schema_migrations ORDER BY nom').pluck().all();
+const dossier = '/data/avant-migration';
+const copies = existsSync(dossier) ? readdirSync(dossier).length : 0;
+console.log(JSON.stringify({ migrations, copies }));
+`;
+
 function empreinte(volume: string, image: string) {
 	return lancer('docker', [...conteneur(volume, image, ['node', '-e', EMPREINTE])]).trim();
+}
+
+/** Toute migration du code courant est passée, et la base d'avant reste copiée s'il y en avait une. */
+function verifierMontee(volume: string, image: string) {
+	const attendues = readdirSync(join(racine, 'migrations')).filter((f) => f.endsWith('.sql'));
+	const { migrations, copies } = JSON.parse(
+		lancer('docker', conteneur(volume, image, ['node', '-e', MONTEE]))
+	) as { migrations: string[]; copies: number };
+	console.log(`Migrations : ${migrations.join(', ')}. Copies d’avant-migration : ${copies}.`);
+	exiger(
+		attendues.sort().join() === migrations.sort().join(),
+		`Migrations attendues : ${attendues.join(', ')}.`
+	);
+	exiger(!codeEnAvance || copies > 0, 'Aucune copie de la base avant migration.');
 }
 
 function exiger(condition: boolean, message: string) {
@@ -185,12 +218,11 @@ async function principal() {
 	preparerVolumes(image);
 
 	etape('Base de la version précédente');
-	const dossier = join(temporaire, 'instance');
-	preparerBase(dossier);
-	copierDansVolume(dossier, volumes.source, image);
+	preparerBase(volumes.source, image);
 
 	etape('Montée de version, puis ape verifier');
 	console.log(lancer('docker', conteneur(volumes.source, image, ['ape', 'verifier'])).trim());
+	verifierMontee(volumes.source, image);
 	const avant = empreinte(volumes.source, image);
 	console.log(avant);
 	exiger(JSON.parse(avant).operations > 0, 'La base montée est vide.');

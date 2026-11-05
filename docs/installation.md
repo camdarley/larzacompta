@@ -34,7 +34,7 @@ openssl rand -base64 32
 
 Cette étape est obligatoire. Sans elle, une panne du serveur emporte aussi les sauvegardes, et l'outil le rappelle en permanence par un bandeau « copie hors du VPS à configurer ».
 
-Pour un espace compatible S3, ajoutez à `.env` :
+Pour un espace compatible S3, créez d'abord le seau chez l'hébergeur : tant qu'il n'existe pas, la sauvegarde insiste de longues minutes avant d'échouer. Ajoutez ensuite à `.env` :
 
 ```sh
 RESTIC_REPOSITORY=s3:https://s3.exemple.org/nom-du-seau
@@ -89,6 +89,8 @@ Une sauvegarde part au démarrage, puis chaque nuit après 3 h. Dans l'outil, ou
 ```sh
 docker compose exec app ape sauvegarder
 ```
+
+Si la commande répond « Une sauvegarde tourne déjà », c'est celle du démarrage : attendez qu'elle finisse.
 
 Faites ensuite un essai de restauration sur une autre machine : c'est la seule preuve qu'elle marche. Voir `docs/restauration.md`.
 

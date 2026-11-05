@@ -27,7 +27,9 @@
 		"test:couverture": "vitest run --coverage --project domaine",
 		"test:e2e": "pnpm build && playwright test",
 		"test:prive": "node scripts/test-prive.ts",
-		"test:cycle": "node tests/cycle/cycle.ts"
+		"test:cycle": "node tests/cycle/cycle.ts",
+		"test:cycle:montee": "node tests/cycle/montee.ts",
+		"test:machine-vierge": "node tests/cycle/machine-vierge.ts"
 	},
 	"dependencies": {
 		"@fontsource-variable/fraunces": "5.3.0",

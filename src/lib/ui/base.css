@@ -153,6 +153,22 @@ h1:focus {
 	}
 }
 
+/* Au doigt, cibles de 48 px : un téléphone en paysage a la largeur d'un ordinateur, pas la souris. */
+@media (max-width: 639.98px), (pointer: coarse) {
+	button:not(.mot),
+	select,
+	[role='button'],
+	input:not([type='checkbox'], [type='radio']) {
+		min-height: var(--espace-touch) !important;
+	}
+
+	.lien-cible {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--espace-touch);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

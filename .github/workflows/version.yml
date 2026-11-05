@@ -31,13 +31,11 @@ jobs:
         with:
           # La version précédente se retrouve par ses étiquettes.
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test:cycle
+      # Ni pnpm ni dépendances : le cycle ne demande que Docker et Git.
+      - run: node tests/cycle/cycle.ts
 
   image:
     needs: cycle

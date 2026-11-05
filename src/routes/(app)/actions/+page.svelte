@@ -76,7 +76,7 @@
 		<div class="pied">
 			<p class="t-label">Résultat de l’Exercice</p>
 			<p class="montant-lg">{formaterMontantSigne(r.resultat)}</p>
-			<a href={avecExercice('/etats')}>Voir le Compte de résultat</a>
+			<a class="lien-cible" href={avecExercice('/etats')}>Voir le Compte de résultat</a>
 		</div>
 
 		{#if anterieurs.length > 0}

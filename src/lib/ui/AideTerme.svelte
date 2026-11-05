@@ -105,6 +105,20 @@
 		cursor: help;
 	}
 
+	/* Un mot dans le texte garde sa hauteur de ligne : sa zone de doigt déborde vers le haut,
+	   côté étiquette, sans recouvrir le champ placé dessous. */
+	@media (max-width: 639.98px), (pointer: coarse) {
+		.mot {
+			position: relative;
+		}
+
+		.mot::after {
+			content: '';
+			position: absolute;
+			inset: -22px 0 -4px;
+		}
+	}
+
 	.bulle {
 		position: fixed;
 		z-index: 55;

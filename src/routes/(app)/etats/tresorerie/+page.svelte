@@ -101,7 +101,7 @@
 					<dd class="montant">{formaterMontant(t.dettes)}</dd>
 				</div>
 			</dl>
-			<a href={lien('/creances-dettes')}>Voir le détail</a>
+			<a class="lien-cible" href={lien('/creances-dettes')}>Voir le détail</a>
 		</section>
 
 		<section aria-labelledby="titre-explication">

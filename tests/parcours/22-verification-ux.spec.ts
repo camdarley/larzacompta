@@ -3,13 +3,14 @@
  * Toujours : console sans erreur sur chaque écran, états provoqués, parcours au clavier seul.
  * Avec `CAPTURES=<dossier>` : chaque écran à 1280, 800 et 320 px, en clair et en sombre.
  */
-import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
+import { execFileSync, type ChildProcess } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import Database from 'better-sqlite3';
 import { chargerDansDossier, COMPTES_FICTIFS, type JeuCharge } from '../jeux/charger.ts';
+import { demarrerServeur as demarrer, envServeur } from './aides-instance.ts';
 import { panneau } from './aides-operations.ts';
 
 const PORT = 4178;
@@ -32,29 +33,6 @@ const THEMES = [
 	['clair', 'light'],
 	['sombre', 'dark']
 ] as const;
-
-const envServeur = (dossier: string, port: number) => ({
-	...process.env,
-	APE_DONNEES: dossier,
-	ORIGIN: `http://localhost:${port}`,
-	PROTOCOL_HEADER: 'x-forwarded-proto',
-	BODY_SIZE_LIMIT: '25M',
-	PORT: String(port),
-	HOST: '127.0.0.1',
-	TZ: 'Europe/Paris'
-});
-
-async function demarrer(dossier: string, port: number) {
-	const serveur = spawn('node', ['build/index.js'], {
-		stdio: 'ignore',
-		env: envServeur(dossier, port)
-	});
-	for (let i = 0; i < 100; i++) {
-		if ((await fetch(`http://localhost:${port}/sante`).catch(() => null))?.ok) return serveur;
-		await new Promise((r) => setTimeout(r, 100));
-	}
-	throw new Error('Le serveur ne répond pas.');
-}
 
 let dossier: string;
 let dossierNeuf: string;

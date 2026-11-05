@@ -31,7 +31,13 @@
 		font-weight: var(--typo-label-graisse);
 		color: var(--ink-muted);
 		text-align: left;
-		white-space: nowrap;
+	}
+
+	/* En dessous, un en-tête passe à la ligne plutôt que de pousser le tableau hors de l'écran. */
+	@media (min-width: 1024px) {
+		.tableau :global(th) {
+			white-space: nowrap;
+		}
 	}
 
 	.tableau :global(th.droite) {
@@ -43,6 +49,13 @@
 		padding: var(--espace-1) var(--espace-3);
 		border-bottom: 1px solid var(--border);
 		vertical-align: middle;
+	}
+
+	@media (min-width: 640px) and (max-width: 799.98px) {
+		.tableau :global(th),
+		.tableau :global(td) {
+			padding-inline: var(--espace-2);
+		}
 	}
 
 	.tableau :global(tbody tr:last-child td) {

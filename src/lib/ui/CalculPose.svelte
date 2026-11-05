@@ -29,7 +29,7 @@
 		<div class="ligne">
 			<span class="signe" aria-hidden="true">{t.signe ?? ''}</span>
 			<span class="libelle t-caption">
-				{#if t.href}<a href={t.href}>{t.libelle}</a>{:else}{t.libelle}{/if}
+				{#if t.href}<a class="lien-cible" href={t.href}>{t.libelle}</a>{:else}{t.libelle}{/if}
 			</span>
 			<span class="montant">{formaterMontant(t.montant)}</span>
 		</div>
