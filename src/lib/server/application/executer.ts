@@ -7,6 +7,8 @@ import { instantVersDate, type DateCivile, type Instant } from '#lib/domaine/dat
 import { peut, type Droit } from '#lib/domaine/droits.ts';
 import { echec, type Resultat } from '#lib/domaine/resultat.ts';
 import type {
+	Archiveur,
+	CodeSource,
 	Depots,
 	Exporteurs,
 	Fichiers,
@@ -15,6 +17,7 @@ import type {
 	Jetons,
 	Journaliseur,
 	Sources,
+	SourceVersions,
 	Transaction
 } from './ports.ts';
 
@@ -34,6 +37,11 @@ export type Socle = {
 	exporteurs: Exporteurs;
 	sources: Sources;
 	fichiers: Fichiers;
+	archiveur: Archiveur;
+	versions: SourceVersions;
+	versionActuelle: string;
+	revision: string | null;
+	codeSource: CodeSource;
 };
 
 export type NoteJournal = {

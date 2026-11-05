@@ -3,11 +3,26 @@
  * Le fichier est écrit puis renommé : il existe toujours avant sa référence en base.
  */
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+	statSync,
+	writeFileSync
+} from 'node:fs';
 import { join } from 'node:path';
 import type { Fichiers } from '../../application/ports.ts';
 
+const EMPREINTE = /^[0-9a-f]{64}$/;
+
 export function creerFichiers(dossier: string): Fichiers {
+	// Le SHA vient de la base, mais rien d'autre qu'une empreinte ne devient un chemin.
+	const chemin = (sha256: string) =>
+		EMPREINTE.test(sha256) ? join(dossier, sha256.slice(0, 2), sha256) : null;
+
 	return {
 		ecrire(octets) {
 			const sha256 = createHash('sha256').update(octets).digest('hex');
@@ -28,10 +43,31 @@ export function creerFichiers(dossier: string): Fichiers {
 		},
 
 		lire(sha256) {
-			// Le SHA vient de la base, mais rien d'autre qu'une empreinte ne devient un chemin.
-			if (!/^[0-9a-f]{64}$/.test(sha256)) return null;
-			const cible = join(dossier, sha256.slice(0, 2), sha256);
-			return existsSync(cible) ? new Uint8Array(readFileSync(cible)) : null;
+			const cible = chemin(sha256);
+			return cible !== null && existsSync(cible) ? new Uint8Array(readFileSync(cible)) : null;
+		},
+
+		existe(sha256) {
+			const cible = chemin(sha256);
+			return cible !== null && existsSync(cible);
+		},
+
+		lister() {
+			if (!existsSync(dossier)) return [];
+			return readdirSync(dossier).flatMap((sous) => {
+				if (!/^[0-9a-f]{2}$/.test(sous)) return [];
+				return readdirSync(join(dossier, sous))
+					.filter((nom) => EMPREINTE.test(nom))
+					.map((sha256) => ({
+						sha256,
+						modifieLe: statSync(join(dossier, sous, sha256)).mtime.toISOString()
+					}));
+			});
+		},
+
+		supprimer(sha256) {
+			const cible = chemin(sha256);
+			if (cible !== null) rmSync(cible, { force: true });
 		}
 	};
 }

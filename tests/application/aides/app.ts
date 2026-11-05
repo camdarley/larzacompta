@@ -1,6 +1,6 @@
 import type { AccesConnecte } from '#lib/domaine/acces.ts';
 import { composer, type Application } from '#lib/server/composition.ts';
-import type { Hacheur } from '#lib/server/application/ports.ts';
+import type { Archiveur, Hacheur, SourceVersions } from '#lib/server/application/ports.ts';
 import { baseMigree } from './base.ts';
 
 /** Hacheur de test : argon2 est testé à part, et ralentirait inutilement chaque cas. */
@@ -9,8 +9,16 @@ const hacheurRapide: Hacheur = {
 	verifier: (m, phc) => phc === `test$${m}`
 };
 
+export type ArchiveurDeTest = Archiveur & {
+	appels: { controler: boolean }[];
+	panne: string | null;
+};
+export type SourceVersionsDeTest = SourceVersions & { publiee: string | null; lectures: number };
+
 export type Banc = {
 	app: Application;
+	archiveur: ArchiveurDeTest;
+	versions: SourceVersionsDeTest;
 	/** SHA-256 factice → octets : aucun fichier n'est écrit par les tests d'application. */
 	fichiers: Map<string, Uint8Array>;
 	horloge: { instant: string; maintenant(): string };
@@ -29,6 +37,24 @@ export function banc(instant = '2026-11-04T10:00:00.000Z'): Banc {
 		}
 	};
 	const fichiers = new Map<string, Uint8Array>();
+	const archiveur: ArchiveurDeTest = {
+		horsVps: true,
+		appels: [],
+		panne: null,
+		async sauvegarder(options) {
+			this.appels.push(options);
+			if (this.panne !== null) throw new Error(this.panne);
+			return { instantane: 'a1b2c3d4' };
+		}
+	};
+	const versions: SourceVersionsDeTest = {
+		publiee: null,
+		lectures: 0,
+		async derniere() {
+			this.lectures += 1;
+			return this.publiee;
+		}
+	};
 	const app = composer({
 		base,
 		horloge,
@@ -43,8 +69,13 @@ export function banc(instant = '2026-11-04T10:00:00.000Z'): Banc {
 				fichiers.set(sha, octets);
 				return sha;
 			},
-			lire: (sha) => fichiers.get(sha) ?? null
-		}
+			lire: (sha) => fichiers.get(sha) ?? null,
+			existe: (sha) => fichiers.has(sha),
+			lister: () => [...fichiers.keys()].map((sha256) => ({ sha256, modifieLe: instant })),
+			supprimer: (sha) => void fichiers.delete(sha)
+		},
+		archiveur,
+		versions
 	});
 	const id = app.socle.depots.acces.creer({
 		identifiant: 'camille',
@@ -62,6 +93,8 @@ export function banc(instant = '2026-11-04T10:00:00.000Z'): Banc {
 	};
 	return {
 		app,
+		archiveur,
+		versions,
 		fichiers,
 		horloge,
 		base,

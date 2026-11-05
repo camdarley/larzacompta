@@ -135,7 +135,10 @@ describe('Exercice clôturé (AD-5)', () => {
 					fichiers.set('sha', octets);
 					return 'sha';
 				},
-				lire: (s) => fichiers.get(s) ?? null
+				lire: (s) => fichiers.get(s) ?? null,
+				existe: (s) => fichiers.has(s),
+				lister: () => [],
+				supprimer() {}
 			}
 		});
 		const ctx = app.ctx({

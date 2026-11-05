@@ -6,6 +6,7 @@ import type { Exercice, NouvelExercice } from '#lib/domaine/exercices.ts';
 import type { GrandJournal, LiaisonJ, OperationJ, TypeLiaison } from '#lib/domaine/journal.ts';
 import type { EntreeCreance } from '#lib/domaine/creances/index.ts';
 import type { ModeleDocument } from '#lib/domaine/etats/documents.ts';
+import type { StatutSauvegarde } from '#lib/domaine/exploitation.ts';
 import type { BrouillonValide } from '#lib/domaine/operations/validation.ts';
 import type { Centimes } from '#lib/domaine/montant.ts';
 import type { PieceStockee } from '#lib/domaine/pieces/index.ts';
@@ -278,6 +279,10 @@ export type Sources = {
 export type Fichiers = {
 	ecrire(octets: Uint8Array): string;
 	lire(sha256: string): Uint8Array | null;
+	existe(sha256: string): boolean;
+	/** Fichiers présents, pour repérer les orphelins en fin de sauvegarde (AD-17). */
+	lister(): { sha256: string; modifieLe: Instant }[];
+	supprimer(sha256: string): void;
 };
 
 /** Seul chemin vers `piece` et `piece_operation` (AD-7). */
@@ -320,7 +325,50 @@ export type Depots = {
 	pointage: DepotPointage;
 	pieces: DepotPieces;
 	creances: DepotCreances;
+	exploitation: DepotExploitation;
 };
+
+export type ExecutionSauvegarde = {
+	id: number;
+	debutLe: Instant;
+	finLe: Instant | null;
+	statut: StatutSauvegarde;
+	horsVps: boolean;
+	instantane: string | null;
+	message: string | null;
+};
+
+/** Seul chemin vers `sauvegarde_execution` et `version_disponible` (AD-7). */
+export type DepotExploitation = {
+	derniere(): ExecutionSauvegarde | null;
+	derniereReussite(): ExecutionSauvegarde | null;
+	debuter(debutLe: Instant, horsVps: boolean): number;
+	terminer(
+		id: number,
+		fin: {
+			finLe: Instant;
+			statut: 'reussie' | 'echouee';
+			instantane?: string | null;
+			message?: string | null;
+		}
+	): void;
+	/** Lignes `en_cours` encore ouvertes, pour les fermer : leur process n'existe plus. */
+	enCours(): ExecutionSauvegarde[];
+	version(): { derniereVersion: string | null; verifieLe: Instant | null };
+	noterVersion(derniereVersion: string | null, verifieLe: Instant): void;
+};
+
+/** Sauvegarde hors du process (AD-17). Lève une erreur au message sûr si elle échoue. */
+export type Archiveur = {
+	horsVps: boolean;
+	sauvegarder(options: { controler: boolean }): Promise<{ instantane: string | null }>;
+};
+
+/** Dernière version publiée, ou `null` si elle ne se lit pas. */
+export type SourceVersions = { derniere(): Promise<string | null> };
+
+/** Archive du code exact de ce build (AGPL-3.0 §13), posée dans l'image. Absente en développement. */
+export type CodeSource = { present(): boolean; lire(): Uint8Array | null };
 
 export type Journaliseur = {
 	info(message: string, champs?: Record<string, unknown>): void;

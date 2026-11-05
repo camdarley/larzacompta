@@ -165,7 +165,7 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 				violations.push({ invariant: 'A1', message: 'Aucun Accès trésorier·e actif.' });
 			}
 			for (const piece of o.depots.pieces.lister()) {
-				if (socle.fichiers.lire(piece.sha256) === null) {
+				if (!socle.fichiers.existe(piece.sha256)) {
 					violations.push({
 						invariant: 'F7',
 						message: `Le fichier de la Pièce ${piece.id} est absent.`

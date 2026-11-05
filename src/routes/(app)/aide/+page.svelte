@@ -9,6 +9,8 @@
 	} from '#lib/aide.ts';
 	import EnTete from '#lib/ui/EnTete.svelte';
 	import Touche from '#lib/ui/Touche.svelte';
+
+	let { data } = $props();
 </script>
 
 <EnTete
@@ -59,6 +61,16 @@
 			{/each}
 		</ul>
 	</section>
+
+	{#if data.codeSource}
+		<section id="code-source">
+			<h2 class="t-heading">Code source</h2>
+			<p>
+				Cet outil est un logiciel libre, sous licence AGPL-3.0.
+				<a href="/code-source" data-sveltekit-reload>Télécharger le code de cette installation</a>.
+			</p>
+		</section>
+	{/if}
 </div>
 
 <style>

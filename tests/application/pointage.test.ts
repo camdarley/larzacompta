@@ -270,7 +270,13 @@ describe('Exercice clôturé (AD-9)', () => {
 			base,
 			horloge,
 			journaliseur: { info() {}, erreur() {} },
-			fichiers: { ecrire: () => 'f', lire: () => null }
+			fichiers: {
+				ecrire: () => 'f',
+				lire: () => null,
+				existe: () => false,
+				lister: () => [],
+				supprimer() {}
+			}
 		});
 		const ctx = app.ctx({
 			id: 1,

@@ -56,6 +56,17 @@
 
 <EnTete titre="Tableau de contrôle" sansTitre />
 
+{#each data.bandeaux as b (b)}
+	<div class="exploitation">
+		<Bandeau ton="regarder">
+			{TEXTES[b]}
+			{#if b !== 'version_obsolete'}
+				<a href="/reglages/sauvegardes">Voir les sauvegardes</a>
+			{/if}
+		</Bandeau>
+	</div>
+{/each}
+
 {#if !data.pret}
 	<EtatVide
 		principal
@@ -133,6 +144,15 @@
 {/if}
 
 <style>
+	.exploitation {
+		margin-bottom: var(--espace-4);
+	}
+
+	.exploitation a {
+		display: inline-block;
+		margin-left: var(--espace-1);
+	}
+
 	.bilan {
 		display: flex;
 		align-items: flex-start;

@@ -45,6 +45,9 @@ export const ROUTES: Readonly<Record<string, RegleRoute>> = {
 	'/(app)/reglages/exercices/[id]/cloture': 'parametrer',
 	'/(app)/reglages/sauvegardes': 'parametrer',
 	'/(app)/reglages/sauvegardes/export': 'parametrer',
+	'/(app)/reglages/sauvegardes/restauration': 'parametrer',
+	'/(app)/reglages/a-propos': 'parametrer',
+	'/code-source': 'etre_connecte',
 
 	'/api/operations': 'saisir',
 	'/api/operations/[id]': 'saisir',

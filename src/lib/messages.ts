@@ -28,6 +28,11 @@ const MESSAGES = {
 		'Vous avez compté {montant} de moins que le solde attendu. Ça arrive. Recomptez une fois pour vérifier.',
 	difference_confirmee:
 		'La différence de {montant} est confirmée. Elle sera notée comme Écart de caisse.',
+	application_en_marche:
+		'L’application tourne encore : arrêtez-la avec « docker compose stop app », puis relancez cette commande.',
+	instance_en_place:
+		'Cette installation contient déjà une base ou des fichiers. Pour les remplacer, ajoutez --remplacer : ils seront gardés dans avant-restauration/.',
+	sauvegarde_sans_base: 'Cette sauvegarde ne contient pas de base : rien n’a été remplacé.',
 	acces_refuse:
 		'Votre Accès ne permet pas de voir cette page. Demandez à la personne qui tient la trésorerie si vous en avez besoin.',
 	connexion_refusee: 'Identifiant ou mot de passe incorrect.',
@@ -128,7 +133,13 @@ export const TEXTES = {
 	tout_pointe: 'Tout est pointé',
 	aucun_ecart: 'Égal au relevé',
 	premier_releve: 'Importez votre premier relevé pour commencer le contrôle.',
-	solde_ignore: 'Le solde de ce relevé tombe dans un Exercice clôturé : il est ignoré.'
+	solde_ignore: 'Le solde de ce relevé tombe dans un Exercice clôturé : il est ignoré.',
+	sauvegarde_echec:
+		'La sauvegarde de cette nuit a échoué. Vos données sont intactes, mais prévenez la personne qui gère l’installation.',
+	copie_hors_vps:
+		'Vos sauvegardes restent sur ce serveur : copie hors du VPS à configurer. Prévenez la personne qui gère l’installation.',
+	version_obsolete:
+		'Une version plus récente est disponible, avec des correctifs de sécurité. Prévenez la personne qui gère l’installation.'
 } as const;
 
 function remplir(gabarit: string, details: Record<string, unknown> | undefined) {

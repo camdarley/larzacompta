@@ -1,12 +1,15 @@
 /** Commandes serveur : `ape <verbe>`, lancées dans le conteneur par la personne qui gère l'installation. */
 import { messageErreur } from '#lib/messages.ts';
-import { application } from '#lib/server/composition.ts';
+import { application, restaurerInstance } from '#lib/server/composition.ts';
 
 const USAGE = `Usage : ape <commande>
 
   lien-initial                     Émet le lien de création du premier Accès
   reinitialiser-acces <identifiant> Émet un lien de réinitialisation, valable 7 jours
-  verifier                         Rejoue les contrôles, l'équation et les empreintes de clôture`;
+  verifier                         Rejoue les contrôles, l'équation et les empreintes de clôture
+  sauvegarder                      Lance une sauvegarde tout de suite
+  restaurer [instantané] [--remplacer]
+                                   Remet base et fichiers, application arrêtée, puis vérifie`;
 
 function origine() {
 	return process.env.ORIGIN ?? 'http://localhost:5173';
@@ -63,13 +66,47 @@ function verifier(): number {
 	return 2;
 }
 
-function principal(args: string[]): number {
+async function sauvegarder(): Promise<number> {
+	const app = application();
+	const reussie = await app.exploitation.sauvegarder();
+	const derniere = app.socle.depots.exploitation.derniere();
+	if (!reussie) {
+		const detail =
+			derniere?.statut === 'en_cours' ? 'Une sauvegarde tourne déjà.' : derniere?.message;
+		console.error(`Sauvegarde échouée. ${detail ?? ''}`.trim());
+		return 1;
+	}
+	console.log(`Sauvegarde réussie : instantané ${derniere?.instantane ?? 'inconnu'}.`);
+	return 0;
+}
+
+async function restaurer(args: string[]): Promise<number> {
+	const instantane = args.find((a) => !a.startsWith('--')) ?? 'latest';
+	let r;
+	try {
+		r = await restaurerInstance({ instantane, remplacer: args.includes('--remplacer') });
+	} catch (e) {
+		console.error(`Restauration impossible. ${e instanceof Error ? e.message : String(e)}`);
+		return 1;
+	}
+	if (!r.ok) {
+		console.error(messageErreur(r.erreur));
+		return 1;
+	}
+	console.log('Base et fichiers remis en place. Vérification…');
+	application().exploitation.apresRestauration();
+	return verifier();
+}
+
+async function principal(args: string[]): Promise<number> {
 	const [commande, parametre] = args;
 	if (commande === 'lien-initial') return lienInitial();
 	if (commande === 'reinitialiser-acces') return reinitialiser(parametre);
 	if (commande === 'verifier') return verifier();
+	if (commande === 'sauvegarder') return sauvegarder();
+	if (commande === 'restaurer') return restaurer(args.slice(1));
 	console.log(USAGE);
 	return commande ? 1 : 0;
 }
 
-process.exitCode = principal(process.argv.slice(2));
+process.exitCode = await principal(process.argv.slice(2));

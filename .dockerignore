@@ -1,0 +1,28 @@
+# Liste blanche : seul ce qui est nommé ici entre dans l'image, et dans l'archive du code qu'elle
+# sert (AGPL-3.0 §13). Rien de `.private/`, `_bmad-output/`, `data/` ni `.env` ne peut donc s'y glisser.
+*
+!docs/
+!migrations/
+!scripts/
+!src/
+!static/
+!tests/
+!.env.example
+!.node-version
+!.npmrc
+!.prettierignore
+!.prettierrc
+!Caddyfile
+!DECISIONS.md
+!Dockerfile
+!LICENSE
+!README.md
+!compose.yaml
+!eslint.config.js
+!package.json
+!playwright.config.ts
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.json
+!vite.cli.config.ts
+!vite.config.ts

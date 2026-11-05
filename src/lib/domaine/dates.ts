@@ -62,6 +62,29 @@ export function instantVersDate(instant: Instant): DateCivile {
 	return `${lire('year')}-${lire('month')}-${lire('day')}`;
 }
 
+function heureDeParis(instant: Instant): number {
+	const heure = new Intl.DateTimeFormat('en-GB', {
+		timeZone: FUSEAU,
+		hour: '2-digit',
+		hour12: false
+	}).format(new Date(instant));
+	return Number(heure);
+}
+
+/** Dernier passage de `heure` à Paris : l'écart à UTC se lit, il change deux fois par an. */
+export function dernierPassage(maintenant: Instant, heure: number): Instant {
+	const duJour = (date: DateCivile) => {
+		for (const decalage of [1, 2]) {
+			const candidat = `${date}T${deuxChiffres(heure - decalage)}:00:00.000Z`;
+			if (heureDeParis(candidat) === heure) return candidat;
+		}
+		throw new Error(`Heure sans passage à Paris : ${heure}`);
+	};
+	const jour = instantVersDate(maintenant);
+	const aujourdhui = duJour(jour);
+	return aujourdhui <= maintenant ? aujourdhui : duJour(ajouterJours(jour, -1));
+}
+
 /** `12 mars 2026`. */
 export function formaterDateLongue(date: DateCivile): string {
 	const { annee, mois, jour } = parties(date);

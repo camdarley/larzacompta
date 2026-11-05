@@ -4,12 +4,13 @@ import { THEMES, type Theme } from '#lib/domaine/acces.ts';
 import { deciderRoute } from '#lib/domaine/droits.ts';
 import { message } from '#lib/messages.ts';
 import { ROUTES } from '#lib/routes.ts';
-import { application } from '#lib/server/composition.ts';
+import { application, demarrerTachesDeFond } from '#lib/server/composition.ts';
 import { COOKIE_SESSION, COOKIE_THEME } from '#lib/server/cookies.ts';
 
 /** Au démarrage : migrations, puis lien initial si l'instance n'a aucun Accès (AD-14). */
 export const init: ServerInit = () => {
 	const app = application();
+	demarrerTachesDeFond();
 	if (!app.acces.instanceSansAcces()) return;
 	const r = app.acces.emettreLienInitial(app.ctx(null));
 	if (r.ok && r.valeur) {

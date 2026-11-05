@@ -1,0 +1,12 @@
+# Seul service exposé (AD-21). L'adresse vient de ORIGIN : Caddy en tire son certificat.
+{$ORIGIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	# Ajoute X-Forwarded-For, X-Forwarded-Proto et X-Forwarded-Host, lus par adapter-node.
+	reverse_proxy app:3000
+}

@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { TEXTES } from '#lib/messages.ts';
+	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import Onglets from '#lib/ui/Onglets.svelte';
 	import ReserveOrdinateur from '#lib/ui/ReserveOrdinateur.svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	const onglets = [
 		{ libelle: 'Association', href: '/reglages' },
@@ -12,7 +14,8 @@
 		{ libelle: 'Groupes', href: '/reglages/groupes' },
 		{ libelle: 'Accès', href: '/reglages/acces' },
 		{ libelle: 'Exercices', href: '/reglages/exercices' },
-		{ libelle: 'Sauvegardes', href: '/reglages/sauvegardes' }
+		{ libelle: 'Sauvegardes', href: '/reglages/sauvegardes' },
+		{ libelle: 'À propos', href: '/reglages/a-propos' }
 	];
 </script>
 
@@ -21,6 +24,9 @@
 		<Onglets nom="Sections des Réglages" {onglets} vertical />
 	</aside>
 	<div class="contenu">
+		{#if data.versionObsolete}
+			<Bandeau ton="regarder">{TEXTES.version_obsolete}</Bandeau>
+		{/if}
 		<ReserveOrdinateur />
 		{@render children()}
 	</div>

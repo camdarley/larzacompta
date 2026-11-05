@@ -1,0 +1,58 @@
+# Une instance sert une APE (AD-21). Réglages : `.env`, à partir de `.env.example`.
+name: ape-compta
+
+x-journaux: &journaux
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+
+services:
+  app:
+    image: ${APE_IMAGE:-ape-compta:local}
+    build:
+      context: .
+      args:
+        APE_REVISION: ${APE_REVISION:-}
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      # Variable absente : le démarrage s'arrête ici plutôt qu'en pleine nuit.
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:?Posez RESTIC_PASSWORD dans .env}
+    expose:
+      - '3000'
+    volumes:
+      - donnees:/data
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    <<: *journaux
+
+  caddy:
+    image: caddy:2.11.8-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      ORIGIN: ${ORIGIN:?Posez ORIGIN dans .env}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_certificats:/data
+      - caddy_reglages:/config
+    <<: *journaux
+
+volumes:
+  donnees:
+  caddy_certificats:
+  caddy_reglages:
