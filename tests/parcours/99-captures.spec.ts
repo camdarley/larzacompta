@@ -68,7 +68,7 @@ function ecransPointage(): [string, string][] {
 		['pointage-solde', `/pointage/${vivant}?saisir=solde`],
 		['pointage-fin', `/pointage/${compteDe('Banque du parcours')}`],
 		['pointage-ecart-restant', `/pointage/${compteDe('Banque imaginaire')}`],
-		['pointage-vide', `/pointage/${compteDe('Compte courant')}`]
+		['pointage-vide', `/pointage/${compteDe('Banque vide')}`]
 	];
 }
 

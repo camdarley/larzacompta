@@ -69,7 +69,9 @@ test('3.3 : /pointage sans relevé propose le dépôt et la saisie', async ({ pa
 	await expect(page).toHaveTitle(new RegExp(`^Pointage, ${COMPTE},`));
 	await expect(page.getByRole('heading', { name: 'Aucun relevé pour ce Compte' })).toBeVisible();
 	await expect(
-		page.getByText('Déposez ici le fichier OFX ou CSV téléchargé depuis votre banque.')
+		page
+			.getByText('Déposez ici le fichier OFX ou CSV téléchargé depuis votre banque.')
+			.filter({ visible: true })
 	).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Choisir un fichier' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Saisir une ligne' })).toBeVisible();
@@ -875,6 +877,7 @@ test('3.8 : Espace coche plusieurs lignes pour une Opération, 1 2 3 changent la
 });
 
 test('jeu de captures : une file vivante, à regarder', async ({ page }) => {
+	compteVierge('Banque vide', 0);
 	const id = compteVierge('CCP imaginaire', 350000);
 	await operation(page, {
 		compteId: id,

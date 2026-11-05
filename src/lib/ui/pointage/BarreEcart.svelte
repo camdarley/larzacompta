@@ -100,10 +100,12 @@
 		</div>
 	</dl>
 
-	<p class="progression t-label">
-		<span class="compte-rendu">{barre.pointees} sur {barre.total}</span>
-		<progress max={Math.max(barre.total, 1)} value={barre.pointees} aria-hidden="true"></progress>
-	</p>
+	{#if barre.total > 0}
+		<p class="progression t-label">
+			<span class="compte-rendu">{barre.pointees} sur {barre.total}</span>
+			<progress max={Math.max(barre.total, 1)} value={barre.pointees} aria-hidden="true"></progress>
+		</p>
+	{/if}
 
 	<p class="visuellement-cache" aria-live="polite" aria-atomic="true">{annonce}</p>
 </section>

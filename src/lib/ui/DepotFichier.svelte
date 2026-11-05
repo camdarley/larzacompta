@@ -83,7 +83,7 @@
 		display: grid;
 		justify-items: center;
 		gap: var(--espace-3);
-		padding: var(--espace-6) var(--espace-4);
+		padding: var(--espace-4) var(--espace-4) var(--espace-6);
 		border: 2px dashed var(--border-strong);
 		border-radius: var(--rayon-lg);
 		background: var(--surface-sunken);

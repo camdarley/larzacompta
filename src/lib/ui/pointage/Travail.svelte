@@ -604,22 +604,12 @@
 	onpaste={surCollage}
 />
 
-{#snippet boutonsImport(compact: boolean)}
-	<DepotFichier
-		{compact}
-		{deposer}
-		occupe={importEnCours}
-		accepte=".ofx,.csv,.txt,.tsv"
-		libelleBouton={compact ? 'Importer un relevé' : 'Choisir un fichier'}
-	>
-		{#snippet autres()}
-			{#if !compact}
-				<Bouton variante="secondaire" onclick={() => changerUrl({ saisir: 'ligne' })}>
-					Saisir une ligne
-				</Bouton>
-			{/if}
-		{/snippet}
-	</DepotFichier>
+{#snippet aucunReleve()}
+	<EtatVide
+		icone={FileUp}
+		titre="Aucun relevé pour ce Compte"
+		phrase="Déposez ici le fichier OFX ou CSV téléchargé depuis votre banque."
+	/>
 {/snippet}
 
 <div class="page">
@@ -662,13 +652,16 @@
 	</div>
 
 	{#if vue.lignes.length === 0}
-		<div class="vide">
-			<EtatVide
-				icone={FileUp}
-				titre="Aucun relevé pour ce Compte"
-				phrase="Déposez ici le fichier OFX ou CSV téléchargé depuis votre banque."
-			/>
-			<div class="seulement-ordinateur">{@render boutonsImport(false)}</div>
+		<div class="seulement-telephone">{@render aucunReleve()}</div>
+		<div class="seulement-ordinateur">
+			<DepotFichier {deposer} occupe={importEnCours} accepte=".ofx,.csv,.txt,.tsv">
+				{@render aucunReleve()}
+				{#snippet autres()}
+					<Bouton variante="secondaire" onclick={() => changerUrl({ saisir: 'ligne' })}>
+						Saisir une ligne
+					</Bouton>
+				{/snippet}
+			</DepotFichier>
 		</div>
 	{:else}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -688,7 +681,13 @@
 					{/each}
 				</ol>
 				<div class="pied-file seulement-ordinateur">
-					{@render boutonsImport(true)}
+					<DepotFichier
+						compact
+						{deposer}
+						occupe={importEnCours}
+						accepte=".ofx,.csv,.txt,.tsv"
+						libelleBouton="Importer un relevé"
+					/>
 					<Bouton variante="discret" onclick={() => changerUrl({ saisir: 'ligne' })}>
 						<Plus size={20} strokeWidth={1.75} aria-hidden="true" />
 						Saisir une ligne
@@ -933,12 +932,6 @@
 
 	.annonces:empty {
 		display: none;
-	}
-
-	.vide {
-		display: grid;
-		gap: var(--espace-4);
-		justify-items: center;
 	}
 
 	.travail {
