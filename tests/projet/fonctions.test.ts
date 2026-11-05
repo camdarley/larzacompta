@@ -33,7 +33,7 @@ describe('#lib/fonctions', () => {
 	});
 
 	it('expose les fonctions et rôles livrés', () => {
-		expect(fonctionLivree('budget')).toBe(false);
+		expect(fonctionLivree('budget')).toBe(true);
 		expect(fonctionLivree('journal')).toBe(true);
 		expect(rolesLivres()).toEqual(['tresorier', 'compteur']);
 	});

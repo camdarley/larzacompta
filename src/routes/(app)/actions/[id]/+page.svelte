@@ -4,6 +4,7 @@
 	import { noeudNature } from '#lib/domaine/etats/arbre.ts';
 	import { formaterDateCourte } from '#lib/domaine/dates.ts';
 	import { centimes, formaterMontant } from '#lib/domaine/montant.ts';
+	import BudgetAction from '#lib/ui/budget/BudgetAction.svelte';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import CalculPose from '#lib/ui/CalculPose.svelte';
 	import EnTete from '#lib/ui/EnTete.svelte';
@@ -63,6 +64,8 @@
 		exerciceId={data.exercice?.id ?? null}
 	/>
 {/if}
+
+{#if data.budget}<BudgetAction bloc={data.budget} />{/if}
 
 {#if data.sessions.length > 0}
 	<section class="sessions" aria-labelledby="titre-sessions">

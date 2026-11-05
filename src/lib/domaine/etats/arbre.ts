@@ -4,6 +4,7 @@
  */
 import type { DateCivile } from '../dates.ts';
 import type { PieceJ } from '../journal.ts';
+import type { Centimes } from '../montant.ts';
 import {
 	totauxDe,
 	type LigneEtat,
@@ -28,6 +29,10 @@ export type Rangee = Totaux & {
 	deplie: boolean;
 	/** Page dédiée : une Action. */
 	actionId?: number;
+	/** Rien sur l'Exercice regardé : ses montants restent vides, jamais à zéro (FR-34). */
+	absent?: boolean;
+	/** Résultat de chaque Exercice comparé. `null` : absent de cet Exercice. */
+	comparaisons?: (Centimes | null)[];
 	ligne?: {
 		operationId: number;
 		date: DateCivile;
@@ -41,6 +46,8 @@ export type Noeud = Totaux & {
 	type: TypeRangee;
 	libelle: string;
 	actionId?: number;
+	absent?: boolean;
+	comparaisons?: (Centimes | null)[];
 	ligne?: LigneEtat;
 	enfants: Noeud[];
 };
@@ -144,6 +151,8 @@ export function aplatir(
 			depliable: n.enfants.length > 0,
 			deplie,
 			...(n.actionId === undefined ? {} : { actionId: n.actionId }),
+			...(n.absent ? { absent: true } : {}),
+			...(n.comparaisons ? { comparaisons: n.comparaisons } : {}),
 			...(n.ligne
 				? {
 						ligne: {

@@ -20,6 +20,12 @@ import {
 	type Bilan
 } from '#lib/domaine/etats/controle.ts';
 import {
+	comparerResultats,
+	exercicesComparables,
+	exercicesCompares,
+	type Comparaison
+} from '#lib/domaine/etats/comparaison.ts';
+import {
 	modeleAction,
 	modeleActions,
 	modeleCompteDeResultat,
@@ -30,6 +36,7 @@ import {
 import {
 	cheminPiece,
 	cheminFacture,
+	csvBudget,
 	csvChequesEmis,
 	csvChequesRecus,
 	csvFactures,
@@ -173,17 +180,37 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 		};
 	}
 
+	/** Chaque Exercice comparé se calcule seul, avec son paramétrage figé s'il est clôturé (AD-5). */
+	function comparaisonDe(
+		j: GrandJournal,
+		e: Exercice,
+		comparer: string | null
+	): Comparaison | null {
+		const compares = exercicesCompares(j.exercices, e, comparer);
+		if (compares.length === 0) return null;
+		return comparerResultats(
+			compteDeResultat(j, e, parametrageDe(depots, e)),
+			compares.map((x) => ({
+				exercice: x,
+				resultat: compteDeResultat(j, x, parametrageDe(depots, x))
+			}))
+		);
+	}
+
 	function modele(
 		j: GrandJournal,
 		etat: TypeEtat,
 		e: Exercice,
 		aujourdhui: string,
-		actionId: number | null
+		actionId: number | null,
+		comparer: string | null
 	): ModeleDocument | null {
 		const p = parametrageDe(depots, e);
 		const nom = nomApe();
-		if (etat === 'compte-de-resultat')
-			return modeleCompteDeResultat(compteDeResultat(j, e, p), e, nom);
+		if (etat === 'compte-de-resultat') {
+			const r = compteDeResultat(j, e, p);
+			return modeleCompteDeResultat(r, e, nom, comparaisonDe(j, e, comparer));
+		}
 		if (etat === 'tresorerie') return modeleTresorerie(etatTresorerie(j, e, p), e, nom);
 		if (etat === 'actions') return modeleActions(resultatParAction(j, e, p), e, nom);
 		if (etat === 'action') {
@@ -258,14 +285,19 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 			);
 		},
 
-		compteDeResultat(ctx: Ctx, e: Exercice) {
+		compteDeResultat(ctx: Ctx, e: Exercice, comparer: string | null = null) {
 			return lire(ctx, 'consulter', () => {
 				const j = depots.operations.journal();
 				const p = parametrageDe(depots, e);
 				const resultat = compteDeResultat(j, e, p);
 				const tresorerie = etatTresorerie(j, e, p);
 				const anomalies = [...resultat.anomalies, ...tresorerie.anomalies];
-				return { resultat, anomalies: anomalies.map(messageAnomalie) };
+				return {
+					resultat,
+					anomalies: anomalies.map(messageAnomalie),
+					comparaison: comparaisonDe(j, e, comparer),
+					comparables: exercicesComparables(j.exercices, e).map((x) => x.libelle)
+				};
 			});
 		},
 
@@ -314,10 +346,11 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 			ctx: Ctx,
 			etat: TypeEtat,
 			e: Exercice,
-			actionId: number | null = null
+			actionId: number | null = null,
+			comparer: string | null = null
 		): Resultat<ModeleDocument> {
 			const r = lire(ctx, 'consulter', () =>
-				modele(depots.operations.journal(), etat, e, ctx.aujourdhui, actionId)
+				modele(depots.operations.journal(), etat, e, ctx.aujourdhui, actionId, comparer)
 			);
 			if (!r.ok) return r;
 			return r.valeur === null ? echec('element_introuvable') : succes(r.valeur);
@@ -347,7 +380,8 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 					'cheques-recus.csv': csv(csvChequesRecus(j, p)),
 					'remises.csv': csv(csvRemises(j, p)),
 					'cheques-emis.csv': csv(csvChequesEmis(j, p)),
-					'factures.csv': csv(csvFactures(depots.factures.lister()))
+					'factures.csv': csv(csvFactures(depots.factures.lister())),
+					'budget.csv': csv(csvBudget(depots.budget.toutes(), j.exercices, p))
 				};
 				// Lu après les Pièces, en dernier : le flux n'apprend qu'en route ce qui manque.
 				const manquantes: string[] = [];

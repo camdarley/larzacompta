@@ -134,6 +134,11 @@ export function exerciceParDefaut(exercices: readonly Exercice[]): Exercice | nu
 	);
 }
 
+/** Le dernier Exercice tenu avant `e` : celui dont le Budget reprend le réalisé (FR-29). */
+export function exercicePrecedent(exercices: readonly Exercice[], e: Exercice): Exercice | null {
+	return tenus(exercices).findLast((x) => x.anneeDebut < e.anneeDebut) ?? null;
+}
+
 /** Exercice affiché : celui de l'URL s'il existe et se consulte, sinon le défaut. */
 export function exerciceSelectionne(
 	exercices: readonly Exercice[],

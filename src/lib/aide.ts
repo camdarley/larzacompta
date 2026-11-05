@@ -259,7 +259,8 @@ export const ARTICLES_ETATS: readonly Article[] = [
 		titre: 'Compte de résultat',
 		paragraphes: [
 			'Il dit ce que l’Exercice a rapporté et coûté, Groupe par Groupe, dans l’ordre choisi dans les Réglages. Une dépense remboursée vient en moins des Dépenses, pas en Recettes.',
-			'Une Ligne compte toujours dans l’Exercice de sa date. Rattachée à un Exercice antérieur, elle rejoint le bloc « Sur Exercices antérieurs » et sort du résultat de l’année.'
+			'Une Ligne compte toujours dans l’Exercice de sa date. Rattachée à un Exercice antérieur, elle rejoint le bloc « Sur Exercices antérieurs » et sort du résultat de l’année.',
+			'Comparer à ajoute une colonne de résultat par Exercice choisi, sur ordinateur. Une Action absente d’une année y reste vide : elle n’a rien coûté ni rapporté, elle n’existait pas. Un Exercice clôturé se compare avec le paramétrage de sa clôture. Les exports portent les mêmes colonnes.'
 		]
 	},
 	{
@@ -276,6 +277,16 @@ export const ARTICLES_ETATS: readonly Article[] = [
 		paragraphes: [
 			'Il réunit le Compte de résultat et l’État de trésorerie en un PDF à présenter en assemblée générale, avec les Écarts qui restent. D’une année à l’autre, les Groupes gardent leur ordre.',
 			'Tant que l’Exercice est ouvert, il porte le filigrane « Provisoire ». Une fois l’Exercice clôturé, il ne change plus.'
+		]
+	},
+	{
+		id: 'budget',
+		titre: 'Budget',
+		paragraphes: [
+			'Le Budget dit ce que vous prévoyez, Action par Action et Nature par Nature. Une Nature qui rapporte et qui coûte a une rangée Recette et une rangée Dépense. Il se prépare sur ordinateur, et se consulte sur téléphone.',
+			'Repartir du réalisé remplit le Prévu avec les chiffres de l’Exercice précédent, à ajuster ensuite. Une Action ou une Nature retirée n’est pas reprise. Partir de zéro laisse tout vide.',
+			'Chaque montant s’enregistre seul à la sortie du champ, et Entrée passe au suivant. C’est le seul écran qui fonctionne ainsi, car un Budget n’est pas une donnée comptable : il ne passe pas au Journal. Videz un champ pour retirer sa prévision.',
+			'Une dépense au-delà du prévu porte la pastille À regarder. Ce n’est pas une erreur, juste un chiffre à relire. Une recette n’en porte pas : l’année n’est pas finie.'
 		]
 	},
 	{

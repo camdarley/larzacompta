@@ -12,6 +12,7 @@ import type {
 	TypeComptage,
 	TypeLiaison
 } from '#lib/domaine/journal.ts';
+import type { LigneBudget, PositionBudget } from '#lib/domaine/budget/index.ts';
 import type { EntreeCreance } from '#lib/domaine/creances/index.ts';
 import type {
 	CompteurFacture,
@@ -441,6 +442,15 @@ export type Exporteurs = {
 	zip(fichiers: Iterable<EntreeArchive>): ReadableStream<Uint8Array>;
 };
 
+/** Seul chemin vers `budget_ligne`. Un Budget se lit sans `SUM` : ses lignes, rien d'autre. */
+export type DepotBudget = {
+	toutes(): (LigneBudget & { exerciceId: number })[];
+	lignes(exerciceId: number): LigneBudget[];
+	/** Crée la ligne, ou remplace son montant : `budget_unique` n'en garde qu'une. */
+	enregistrer(exerciceId: number, l: LigneBudget): void;
+	retirer(exerciceId: number, p: PositionBudget): void;
+};
+
 export type Depots = {
 	acces: DepotAcces;
 	journal: DepotJournal;
@@ -451,6 +461,7 @@ export type Depots = {
 	pieces: DepotPieces;
 	creances: DepotCreances;
 	factures: DepotFactures;
+	budget: DepotBudget;
 	caisses: DepotCaisses;
 	cheques: DepotCheques;
 	exploitation: DepotExploitation;

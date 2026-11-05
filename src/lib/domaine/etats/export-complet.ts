@@ -9,6 +9,7 @@ import { LIBELLES_COMPTAGE } from '../caisse/vues.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, OperationJ } from '../journal.ts';
 import { LIBELLES_MODE_PAIEMENT } from '../journal.ts';
+import type { LigneBudget } from '../budget/index.ts';
 import { totalFacture, type Facture } from '../factures/index.ts';
 import { formaterCsv, sommeCentimes } from '../montant.ts';
 import { colonneDe, exerciceDuMouvement, groupeDe } from './soldes.ts';
@@ -309,6 +310,23 @@ export function csvFactures(factures: readonly Facture[]): TableCsv {
 	};
 }
 
+export function csvBudget(
+	lignes: readonly (LigneBudget & { exerciceId: number })[],
+	exercices: readonly Pick<Exercice, 'id' | 'libelle'>[],
+	p: Pick<ParametrageEtats, 'actions' | 'natures'>
+): TableCsv {
+	return {
+		entetes: ['Exercice', 'Action', 'Nature', 'Sens', 'Prévu'],
+		lignes: lignes.map((l) => [
+			exercices.find((e) => e.id === l.exerciceId)?.libelle ?? '',
+			p.actions.find((a) => a.id === l.actionId)?.libelle ?? 'Sans Action',
+			p.natures.find((n) => n.id === l.natureId)?.libelle ?? '',
+			l.sens === 'recette' ? 'Recette' : 'Dépense',
+			formaterCsv(l.montant)
+		])
+	};
+}
+
 /** Texte de `LISEZMOI.txt`, sans vocabulaire de logiciel comptable. */
 /** Rien à dire si tout y est : le fichier n'existe alors pas. */
 export function listePiecesManquantes(chemins: readonly string[]): string | null {
@@ -347,6 +365,7 @@ export function lisezMoi(
 		'cheques-emis.csv : le registre des Chèques émis, formules annulées comprises.',
 		'factures.csv : chaque Facture et chaque Avoir, brouillons compris.',
 		'factures/ : les Factures et les Avoirs validés, tels qu’ils ont été émis.',
+		'budget.csv : le Budget de chaque Exercice, une rangée par Action, Nature et sens.',
 		'pieces/ : les Pièces, telles qu’elles ont été déposées.',
 		'PIECES-MANQUANTES.txt : présent seulement si le fichier d’une Pièce manquait à l’export.',
 		''

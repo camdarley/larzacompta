@@ -6,6 +6,8 @@ import { formaterDateLongue, type DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import { centimes, type Centimes } from '../montant.ts';
 import { messageAnomalie } from './anomalies.ts';
+import type { Noeud } from './arbre.ts';
+import type { Comparaison } from './comparaison.ts';
 import { avecEcart, type CarteCompte } from './controle.ts';
 import type {
 	Anomalie,
@@ -55,6 +57,8 @@ export type ModeleDocument = {
 	sousTitre?: string | null;
 	/** Blocs côte à côte sous le titre : émetteur et destinataire d'une Facture. */
 	parties?: { titre: string; lignes: string[] }[];
+	/** Une colonne de plus par Exercice comparé : A4 à l'italienne. */
+	paysage?: boolean;
 };
 
 const COLONNES_RESULTAT = [
@@ -222,14 +226,71 @@ function entete(titre: string, nomFichier: string, e: Exercice, association: str
 	};
 }
 
+/** Un montant absent reste vide, jamais `0,00 €` (FR-34). */
+function rangeeComparee(n: Noeud, niveau: number, fort: boolean): RangeeDocument {
+	const present = (montant: Centimes, signe = false) => (n.absent ? null : { montant, signe });
+	return {
+		cellules: [
+			n.libelle,
+			present(n.recettes),
+			present(n.depenses),
+			present(n.resultat, true),
+			...(n.comparaisons ?? []).map((montant) =>
+				montant === null ? null : { montant, signe: true }
+			)
+		],
+		niveau,
+		fort
+	};
+}
+
+function rangeesComparees(n: Noeud, niveau: number): RangeeDocument[] {
+	const fort = n.type === 'groupe';
+	// Comme le document simple : du Groupe à la Nature, le détail des Lignes reste à l'écran.
+	const enfants = n.enfants.filter((x) => x.type !== 'ligne');
+	return [
+		rangeeComparee(n, niveau, fort),
+		...enfants.flatMap((x) => rangeesComparees(x, niveau + 1))
+	];
+}
+
+function sectionComparee(cr: CompteDeResultat, c: Comparaison): SectionDocument {
+	return {
+		titre: 'Compte de résultat',
+		phrases: [
+			`Comparé à ${c.colonnes.map((x) => x.libelle).join(', ')}. Une Action absente d’un Exercice reste vide.`,
+			...phrasesAnomalies(cr.anomalies)
+		],
+		tableau: {
+			legende: 'Compte de résultat',
+			colonnes: [
+				...COLONNES_RESULTAT,
+				...c.colonnes.map((x) => ({ libelle: x.libelle, montant: true }))
+			],
+			rangees: [
+				...c.noeuds.flatMap((n) => rangeesComparees(n, 0)),
+				{ ...rangeeComparee(c.total, 0, true), total: true }
+			]
+		}
+	};
+}
+
 export function modeleCompteDeResultat(
 	cr: CompteDeResultat,
 	e: Exercice,
-	association: string
+	association: string,
+	comparaison: Comparaison | null = null
 ): ModeleDocument {
+	const base = entete('Compte de résultat', 'compte-de-resultat', e, association);
+	if (comparaison === null) return { ...base, sections: sectionsResultat(cr, true) };
 	return {
-		...entete('Compte de résultat', 'compte-de-resultat', e, association),
-		sections: sectionsResultat(cr, true)
+		...base,
+		nomFichier: `${base.nomFichier}-comparaison`,
+		paysage: true,
+		sections: [
+			sectionComparee(cr, comparaison),
+			...sectionsResultat(cr, true).filter((s) => s.titre !== 'Compte de résultat')
+		]
 	};
 }
 

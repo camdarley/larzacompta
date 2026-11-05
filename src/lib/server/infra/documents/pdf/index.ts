@@ -16,16 +16,15 @@ import { formaterMontant, formaterMontantSigne } from '#lib/domaine/montant.ts';
 
 const MM = 72 / 25.4;
 const MARGE = 20 * MM;
-const LARGEUR_PAGE = 210 * MM;
-const HAUTEUR_PAGE = 297 * MM;
-const LARGEUR = LARGEUR_PAGE - 2 * MARGE;
 /** Réservé en bas de page au pied : nom de l'APE, Exercice, pagination. */
-const BAS = HAUTEUR_PAGE - MARGE - 18;
+const PIED = 18;
 const CORPS = 11;
 const INTERLIGNE = 15;
 const RANGEE = 18;
 const DECALAGE_NIVEAU = 12;
 const LARGEUR_MONTANT = 82;
+/** Le libellé garde cette place : s'il reste moins aux montants, ils se resserrent. */
+const LARGEUR_LIBELLE_MIN = 170;
 const ECART_PARTIES = 24;
 const NOIR = '#000000';
 const GRIS = '#444444';
@@ -35,6 +34,10 @@ const OPACITE_FILIGRANE = 0.1;
 type Doc = InstanceType<typeof PDFDocument>;
 type Struct = ReturnType<Doc['struct']>;
 
+/** La page en cours : un document à l'italienne a d'autres mesures qu'en A4 debout. */
+const largeurDe = (doc: Doc) => doc.page.width - 2 * MARGE;
+const basDe = (doc: Doc) => doc.page.height - MARGE - PIED;
+
 const texteCellule = (c: Cellule): string => {
 	if (c === null) return '';
 	if (typeof c === 'string') return c;
@@ -42,18 +45,26 @@ const texteCellule = (c: Cellule): string => {
 };
 
 function nouvelleSiBesoin(doc: Doc, hauteur: number) {
-	if (doc.y + hauteur > BAS) {
+	if (doc.y + hauteur > basDe(doc)) {
 		doc.addPage();
 		doc.y = MARGE;
 	}
 }
 
-function largeurs(t: TableauDocument): number[] {
+function largeurs(doc: Doc, t: TableauDocument): number[] {
 	const montants = t.colonnes.filter((c) => c.montant).length;
 	const textes = t.colonnes.length - montants;
-	const libre = (LARGEUR - montants * LARGEUR_MONTANT) / textes;
-	return t.colonnes.map((c) => (c.montant ? LARGEUR_MONTANT : libre));
+	const largeur = largeurDe(doc);
+	const montant = Math.min(LARGEUR_MONTANT, (largeur - LARGEUR_LIBELLE_MIN * textes) / montants);
+	const libre = (largeur - montants * montant) / textes;
+	return t.colonnes.map((c) => (c.montant ? montant : libre));
 }
+
+/** Beaucoup d'Exercices comparés : le chiffre se resserre avec sa colonne, sans se couper. */
+const corpsDe = (t: TableauDocument, l: number[]) => {
+	const i = t.colonnes.findIndex((c) => c.montant);
+	return i < 0 ? CORPS : Math.min(CORPS, (CORPS * (l[i] as number)) / LARGEUR_MONTANT);
+};
 
 function ecrireCellule(
 	doc: Doc,
@@ -62,13 +73,13 @@ function ecrireCellule(
 	x: number,
 	y: number,
 	largeur: number,
-	o: { droite: boolean; fort: boolean; decalage: number }
+	o: { droite: boolean; fort: boolean; decalage: number; corps: number }
 ) {
 	cellule.add(
 		doc.struct('P', {}, () => {
 			doc
 				.font(o.fort ? 'corps-fort' : 'corps')
-				.fontSize(CORPS)
+				.fontSize(o.corps)
 				.fillColor(NOIR)
 				.text(texte, x + o.decalage, y, {
 					width: largeur - o.decalage,
@@ -98,7 +109,8 @@ function ecrireEnTetes(doc: Doc, tableau: Struct, t: TableauDocument, l: number[
 		ecrireCellule(doc, cellule, c.libelle, x, y, l[i] as number, {
 			droite: c.montant,
 			fort: true,
-			decalage: 0
+			decalage: 0,
+			corps: corpsDe(t, l)
 		});
 		x += l[i] as number;
 	});
@@ -111,7 +123,7 @@ function filet(doc: Doc, y: number, epaisseur: number) {
 	doc.markContent('Artifact', { type: 'Layout' });
 	doc
 		.moveTo(MARGE, y)
-		.lineTo(MARGE + LARGEUR, y)
+		.lineTo(MARGE + largeurDe(doc), y)
 		.lineWidth(epaisseur)
 		.strokeColor(NOIR)
 		.stroke();
@@ -126,7 +138,7 @@ function ecrireRangee(
 	l: number[]
 ) {
 	const hauteur = hauteurRangee(doc, r, l);
-	if (doc.y + hauteur > BAS) {
+	if (doc.y + hauteur > basDe(doc)) {
 		doc.addPage();
 		doc.y = MARGE;
 		ecrireEnTetes(doc, tableau, t, l);
@@ -146,7 +158,8 @@ function ecrireRangee(
 		ecrireCellule(doc, cellule, texteCellule(c), x, y, l[i] as number, {
 			droite: montant,
 			fort: r.fort ?? false,
-			decalage: i === 0 ? r.niveau * DECALAGE_NIVEAU : 0
+			decalage: i === 0 ? r.niveau * DECALAGE_NIVEAU : 0,
+			corps: corpsDe(t, l)
 		});
 		x += l[i] as number;
 	});
@@ -155,7 +168,7 @@ function ecrireRangee(
 }
 
 function ecrireTableau(doc: Doc, racine: Struct, t: TableauDocument) {
-	const l = largeurs(t);
+	const l = largeurs(doc, t);
 	// Au moins les en-têtes et deux rangées ensemble : un tableau ne commence pas en bas de page.
 	nouvelleSiBesoin(doc, RANGEE * 3);
 	const tableau = doc.struct('Table', { title: t.legende });
@@ -167,7 +180,7 @@ function ecrireTableau(doc: Doc, racine: Struct, t: TableauDocument) {
 
 /** Émetteur et destinataire : chaque bloc se lit d'un trait, le plus long donne la hauteur. */
 function ecrireParties(doc: Doc, racine: Struct, parties: NonNullable<ModeleDocument['parties']>) {
-	const largeur = (LARGEUR - ECART_PARTIES) / parties.length;
+	const largeur = (largeurDe(doc) - ECART_PARTIES) / parties.length;
 	const haut = doc.y + 10;
 	let bas = haut;
 	parties.forEach((p, i) => {
@@ -199,7 +212,7 @@ function ecrireSection(doc: Doc, racine: Struct, s: SectionDocument) {
 					.font('titre')
 					.fontSize(15)
 					.fillColor(NOIR)
-					.text(s.titre, MARGE, doc.y, { width: LARGEUR });
+					.text(s.titre, MARGE, doc.y, { width: largeurDe(doc) });
 			})
 		);
 		doc.y += 4;
@@ -211,7 +224,7 @@ function ecrireSection(doc: Doc, racine: Struct, s: SectionDocument) {
 					.font('corps')
 					.fontSize(CORPS)
 					.fillColor(GRIS)
-					.text(p, MARGE, doc.y, { width: LARGEUR, lineGap: INTERLIGNE - CORPS - 2 });
+					.text(p, MARGE, doc.y, { width: largeurDe(doc), lineGap: INTERLIGNE - CORPS - 2 });
 			})
 		);
 	}
@@ -228,16 +241,19 @@ function habiller(doc: Doc, m: ModeleDocument) {
 	const pages = doc.bufferedPageRange();
 	for (let i = 0; i < pages.count; i += 1) {
 		doc.switchToPage(pages.start + i);
+		const largeurPage = doc.page.width;
+		const hauteurPage = doc.page.height;
+		const largeur = largeurDe(doc);
 		if (m.provisoire) {
 			doc.markContent('Artifact', { type: 'Pagination' });
 			doc
 				.save()
-				.rotate(-45, { origin: [LARGEUR_PAGE / 2, HAUTEUR_PAGE / 2] })
+				.rotate(-45, { origin: [largeurPage / 2, hauteurPage / 2] })
 				.font('titre')
 				.fontSize(84)
 				.fillColor(NOIR, OPACITE_FILIGRANE)
-				.text('Provisoire', 0, HAUTEUR_PAGE / 2 - 50, {
-					width: LARGEUR_PAGE,
+				.text('Provisoire', 0, hauteurPage / 2 - 50, {
+					width: largeurPage,
 					align: 'center',
 					lineBreak: false
 				})
@@ -245,13 +261,13 @@ function habiller(doc: Doc, m: ModeleDocument) {
 			doc.endMarkedContent();
 		}
 		doc.markContent('Artifact', { type: 'Pagination' });
-		const y = HAUTEUR_PAGE - MARGE - 10;
+		const y = hauteurPage - MARGE - 10;
 		doc.font('corps').fontSize(9.5).fillColor(GRIS);
 		doc.text(reperes(m), MARGE, y, {
-			width: LARGEUR - 90,
+			width: largeur - 90,
 			lineBreak: false
 		});
-		doc.text(`Page ${i + 1} sur ${pages.count}`, MARGE + LARGEUR - 90, y, {
+		doc.text(`Page ${i + 1} sur ${pages.count}`, MARGE + largeur - 90, y, {
 			width: 90,
 			align: 'right',
 			lineBreak: false
@@ -264,6 +280,7 @@ export function genererPdf(m: ModeleDocument, polices: string): Promise<Uint8Arr
 	return new Promise((resolve, reject) => {
 		const doc = new PDFDocument({
 			size: 'A4',
+			layout: m.paysage ? 'landscape' : 'portrait',
 			margins: { top: MARGE, bottom: 0, left: MARGE, right: MARGE },
 			tagged: true,
 			lang: 'fr-FR',
@@ -293,7 +310,7 @@ export function genererPdf(m: ModeleDocument, polices: string): Promise<Uint8Arr
 					.font('titre')
 					.fontSize(24)
 					.fillColor(NOIR)
-					.text(m.titre, MARGE, MARGE, { width: LARGEUR });
+					.text(m.titre, MARGE, MARGE, { width: largeurDe(doc) });
 			})
 		);
 		const sousTitre = m.sousTitre === undefined ? reperes(m) : m.sousTitre;
@@ -304,7 +321,7 @@ export function genererPdf(m: ModeleDocument, polices: string): Promise<Uint8Arr
 						.font('corps')
 						.fontSize(CORPS)
 						.fillColor(GRIS)
-						.text(sousTitre, MARGE, doc.y + 2, { width: LARGEUR });
+						.text(sousTitre, MARGE, doc.y + 2, { width: largeurDe(doc) });
 				})
 			);
 		}

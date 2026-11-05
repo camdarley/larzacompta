@@ -32,6 +32,8 @@
 		reduit?: boolean;
 		/** Chemin d'une Action, pour rejoindre sa page depuis sa rangée. */
 		hrefAction?: (id: number) => string;
+		/** Une colonne de Résultat par Exercice comparé, sur ordinateur seulement (FR-34). */
+		colonnesComparees?: readonly { exerciceId: number; libelle: string }[];
 	};
 
 	let {
@@ -40,7 +42,8 @@
 		exerciceId = null,
 		nomExercice = () => '',
 		reduit = false,
-		hrefAction
+		hrefAction,
+		colonnesComparees = []
 	}: Props = $props();
 
 	const ouvertes = $derived(lireOuvertes(page.url.searchParams.get('ouvert')));
@@ -111,7 +114,7 @@
 	}
 
 	const montant = (r: Rangee, c: Centimes) =>
-		c === 0 && (r.type === 'nature' || r.type === 'ligne') ? '' : formaterMontant(c);
+		r.absent || (c === 0 && (r.type === 'nature' || r.type === 'ligne')) ? '' : formaterMontant(c);
 
 	/** La Pièce regardée vit dans l'URL : recharger rouvre la même visionneuse. */
 	function piecesDe(liste: readonly Noeud[]): PieceJ[] {
@@ -130,7 +133,7 @@
 	{/if}
 {/snippet}
 
-<div class="conteneur" class:reduit>
+<div class="conteneur" class:reduit class:compare={colonnesComparees.length > 0}>
 	<!-- `treegrid` explicite : la mise en page téléphone retire au tableau ses rôles implicites. -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<table role="treegrid" aria-label={legende} class="depliable">
@@ -141,6 +144,12 @@
 				<th role="columnheader" scope="col" class="droite col-detail">Recettes</th>
 				<th role="columnheader" scope="col" class="droite col-detail">Dépenses</th>
 				<th role="columnheader" scope="col" class="droite">Résultat</th>
+				{#each colonnesComparees as c (c.exerciceId)}
+					<th role="columnheader" scope="col" class="droite col-comparee">
+						<span class="visuellement-cache">Résultat</span>
+						{c.libelle}
+					</th>
+				{/each}
 			</tr>
 		</thead>
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -151,6 +160,8 @@
 				<tr
 					role="row"
 					class="rangee {r.type} niveau-{r.niveau}"
+					class:absente={r.absent}
+					class:total={r.cle === 'total'}
 					data-cle={r.cle}
 					aria-level={r.niveau}
 					aria-posinset={r.rang}
@@ -229,8 +240,14 @@
 						{@render cellule(montant(r, r.depenses), r.depenses)}
 					</td>
 					<td role="gridcell" class="montant resultat">
-						{@render cellule(formaterMontantSigne(r.resultat), r.resultat)}
+						{@render cellule(r.absent ? '' : formaterMontantSigne(r.resultat), r.resultat)}
 					</td>
+					{#each colonnesComparees as c, i (c.exerciceId)}
+						{@const valeur = r.comparaisons?.[i] ?? null}
+						<td role="gridcell" class="montant resultat col-comparee">
+							{#if valeur !== null}{@render cellule(formaterMontantSigne(valeur), valeur)}{/if}
+						</td>
+					{/each}
 				</tr>
 			{/each}
 		</tbody>
@@ -255,9 +272,32 @@
 		overflow: hidden;
 	}
 
+	/* Une colonne de plus par Exercice : au-delà de la largeur, le tableau défile, pas la page. */
+	.conteneur.compare {
+		overflow-x: auto;
+	}
+
 	.depliable {
 		width: 100%;
 		border-collapse: collapse;
+	}
+
+	.col-comparee {
+		color: var(--ink-muted);
+		white-space: nowrap;
+	}
+
+	.total {
+		cursor: default;
+		font-weight: var(--typo-body-strong-graisse);
+	}
+
+	.total td {
+		border-top: 1px solid var(--ink);
+	}
+
+	.total .montant {
+		font-weight: var(--typo-body-strong-graisse);
 	}
 
 	th {
@@ -397,8 +437,16 @@
 	}
 
 	@media (max-width: 639.98px) {
-		.conteneur {
+		.conteneur,
+		.conteneur.compare {
 			overflow: visible;
+		}
+
+		/* Sur téléphone, seul l'Exercice regardé reste (EXPERIENCE.md). */
+		.col-comparee,
+		.absente,
+		.total {
+			display: none !important;
 		}
 
 		thead {

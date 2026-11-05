@@ -182,6 +182,9 @@ const MESSAGES = {
 	groupe_utilise: 'Ce Groupe porte encore des Natures ou des Actions. Déplacez-les d’abord.',
 	element_systeme: 'Cette Nature sert au calcul de l’outil : elle reste telle quelle.',
 	element_introuvable: 'Cet élément n’existe plus. Rechargez la page.',
+	budget_cloture: 'Cet Exercice est clôturé : son Budget ne change plus.',
+	budget_deja_prepare: 'Cet Exercice a déjà un Budget. Ajustez-le directement.',
+	budget_sans_realise: 'Il n’y a aucun réalisé à reprendre : partez de zéro.',
 	association_absente: 'Décrivez d’abord votre APE.'
 } as const;
 

@@ -88,6 +88,7 @@ test('seules les entrées livrées apparaissent, sans entrée grisée', async ({
 		'Factures',
 		'Actions',
 		'États',
+		'Budget',
 		'Réglages',
 		'Journal',
 		'Aide'

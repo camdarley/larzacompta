@@ -4,7 +4,7 @@
 	import Menu from '#lib/ui/Menu.svelte';
 
 	type Props = {
-		/** État exporté, tel qu'affiché : `compte-de-resultat`, `tresorerie`, `actions`, `action`. */
+		/** État exporté, tel qu'affiché : `compte-de-resultat`, `tresorerie`, `actions`, `action`, `budget`. */
 		etat: string;
 		actionId?: number;
 	};
@@ -12,10 +12,12 @@
 
 	const adresse = (format: 'pdf' | 'xlsx') => {
 		const exercice = page.url.searchParams.get('exercice');
+		const comparer = page.url.searchParams.get('comparer');
 		const q = new URLSearchParams({
 			etat,
 			format,
 			...(exercice ? { exercice } : {}),
+			...(comparer ? { comparer } : {}),
 			...(actionId === undefined ? {} : { id: String(actionId) })
 		});
 		return `/etats/export?${q}`;

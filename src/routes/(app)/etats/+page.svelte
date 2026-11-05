@@ -5,6 +5,7 @@
 	import AideTerme from '#lib/ui/AideTerme.svelte';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import EnTete from '#lib/ui/EnTete.svelte';
+	import ComparerA from '#lib/ui/etats/ComparerA.svelte';
 	import Exporter from '#lib/ui/etats/Exporter.svelte';
 	import TableauDepliable from '#lib/ui/etats/TableauDepliable.svelte';
 
@@ -15,7 +16,10 @@
 	const groupesUtiles = $derived(
 		r?.groupes.filter((g) => g.recettes !== 0 || g.depenses !== 0) ?? []
 	);
-	const noeuds = $derived(groupesUtiles.map(noeudGroupe));
+	const comparaison = $derived(data.etat?.comparaison ?? null);
+	const noeuds = $derived(
+		comparaison ? [...comparaison.noeuds, comparaison.total] : groupesUtiles.map(noeudGroupe)
+	);
 	const anterieurs = $derived(r?.anterieurs.groupes.map(noeudAnterieur) ?? []);
 	const nomExercice = (id: number) => data.reperes.find((e) => e.id === id)?.libelle ?? '';
 	const avecExercice = (href: string) => {
@@ -30,7 +34,15 @@
 	sousTitre="Ce que l’Exercice a rapporté et coûté, par Groupe."
 >
 	{#snippet actions()}
-		{#if r}<Exporter etat="compte-de-resultat" />{/if}
+		{#if r}
+			<div class="actions">
+				<ComparerA
+					comparables={data.etat?.comparables ?? []}
+					choisis={comparaison?.colonnes ?? []}
+				/>
+				<Exporter etat="compte-de-resultat" />
+			</div>
+		{/if}
 	{/snippet}
 </EnTete>
 
@@ -55,9 +67,10 @@
 			legende="Compte de résultat de {data.exercice?.libelle}"
 			exerciceId={data.exercice?.id ?? null}
 			{nomExercice}
+			colonnesComparees={comparaison?.colonnes ?? []}
 			reduit
 		/>
-		<div class="pied">
+		<div class="pied" class:seulement-telephone={comparaison !== null}>
 			<p class="t-label">Résultat de l’Exercice</p>
 			<p class="montant-lg">{formaterMontantSigne(r.resultat)}</p>
 		</div>
@@ -87,6 +100,12 @@
 <style>
 	.aide {
 		max-width: var(--espace-reading-max);
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--espace-2);
 	}
 
 	.pied {
