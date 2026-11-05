@@ -19,6 +19,7 @@
 	import { creerEnvoi } from '#lib/ui/envoi.svelte.ts';
 	import EtatVide from '#lib/ui/EtatVide.svelte';
 	import Menu from '#lib/ui/Menu.svelte';
+	import { rendreFocus } from '#lib/ui/retour-focus.ts';
 	import Panneau from '#lib/ui/Panneau.svelte';
 	import { demanderReconnexion } from '#lib/ui/reconnexion.svelte.ts';
 	import Tableau from '#lib/ui/Tableau.svelte';
@@ -71,6 +72,8 @@
 			}
 		});
 		await refreshAll();
+		// La rangée et son menu sont partis : le focus va à une cible stable.
+		if (document.activeElement === document.body) rendreFocus(null);
 	}
 </script>
 

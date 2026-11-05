@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { noterDeclencheur, rendreFocus } from './retour-focus.ts';
 
 	type Props = {
 		/** Nom accessible du bouton. */
@@ -40,7 +41,17 @@
 		if (rendreFocus) declencheur?.focus();
 	}
 
-	// Différé : retirer le menu pendant le clic annulerait l'envoi d'un formulaire qu'il contient.
+	/**
+	 * Différé : retirer le menu pendant le clic annulerait l'envoi d'un formulaire qu'il contient.
+	 * Sans dialogue ni navigation, le focus n'aurait plus nulle part où être : il revient au bouton.
+	 */
+	function apresChoix() {
+		setTimeout(() => {
+			fermer();
+			noterDeclencheur(null);
+			if (document.activeElement === document.body) rendreFocus(declencheur);
+		});
+	}
 
 	/** Sur la fenêtre : Safari ne donne pas le focus à un bouton cliqué, ni donc à ce menu. */
 	function surTouche(e: KeyboardEvent) {
@@ -83,7 +94,8 @@
 			style:top={position?.top}
 			style:bottom={position?.bottom}
 			style:right={position?.right}
-			onclick={() => setTimeout(fermer)}
+			onclickcapture={() => noterDeclencheur(declencheur)}
+			onclick={apresChoix}
 		>
 			{@render children()}
 		</div>

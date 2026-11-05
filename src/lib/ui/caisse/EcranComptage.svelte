@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { CircleCheck, ChevronLeft, ChevronDown } from '@lucide/svelte';
 	import { tick, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -186,7 +187,7 @@
 </script>
 
 <svelte:head>
-	<title>{TITRES[ecran.mode]}, {ecran.caisse}</title>
+	<title>{TITRES[ecran.mode]}, {ecran.caisse}, {page.data.nomApe}</title>
 </svelte:head>
 
 {#snippet coupuresDe(valeurs: readonly Centimes[])}
@@ -294,22 +295,17 @@
 			{/if}
 		</div>
 
-		{#if reseau}
-			<div class="alerte">
+		<footer class="total-comptage" use:suivreClavier>
+			{#if reseau}
 				<Bandeau ton="regarder" alerte>
 					{TEXTES.comptage_reseau}
 					{#snippet action()}
 						<Bouton variante="secondaire" {occupe} onclick={enregistrer}>Réessayer</Bouton>
 					{/snippet}
 				</Bandeau>
-			</div>
-		{:else if erreur}
-			<div class="alerte">
+			{:else if erreur}
 				<Bandeau ton="erreur" alerte>{erreur}</Bandeau>
-			</div>
-		{/if}
-
-		<footer class="total-comptage" use:suivreClavier>
+			{/if}
 			<div class="ligne-total">
 				<span class="t-caption t-muted">{ecran.caisse}</span>
 				<output class="total" aria-live="polite" aria-label="Total du Comptage"
@@ -417,10 +413,6 @@
 		cursor: pointer;
 	}
 
-	.alerte {
-		margin-bottom: var(--espace-3);
-	}
-
 	.total-comptage {
 		position: sticky;
 		z-index: 2;
@@ -491,6 +483,48 @@
 		display: flex;
 		justify-content: space-between;
 		gap: var(--espace-3);
+	}
+
+	/* Peu de hauteur, paysage ou petit téléphone : les coupures passent avant tout le reste. */
+	@media (max-height: 600px) {
+		.tete {
+			position: static;
+			padding-block: var(--espace-1);
+		}
+
+		.ecran {
+			max-width: 720px;
+		}
+
+		.note {
+			margin-top: var(--espace-2);
+			padding: var(--espace-2);
+		}
+
+		.total-comptage {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+			align-items: center;
+			padding-block: var(--espace-2) calc(var(--espace-2) + env(safe-area-inset-bottom));
+		}
+
+		.total-comptage > :global(.bandeau),
+		.date-choisie {
+			grid-column: 1 / -1;
+		}
+
+		.ligne-total > span {
+			display: none;
+		}
+
+		.total {
+			font-size: var(--typo-heading-taille);
+		}
+	}
+
+	@media (max-height: 600px) and (max-width: 389.98px) {
+		.total-comptage :global(.bouton) {
+			padding-inline: var(--espace-2);
+		}
 	}
 
 	@media (min-width: 640px) {

@@ -23,6 +23,8 @@
 		sansConfirmation?: boolean;
 		/** Panneau de lecture : le haut reste à l'écran, le premier champ n'attire pas le défilement. */
 		lecture?: boolean;
+		/** Sélecteur du champ qui reçoit le focus, s'il en attend un autre que le premier. */
+		champInitial?: string;
 	};
 
 	let {
@@ -36,7 +38,8 @@
 		modifie = $bindable(false),
 		surTouche,
 		sansConfirmation = false,
-		lecture = false
+		lecture = false,
+		champInitial
 	}: Props = $props();
 
 	/** Une saisie commencée ne se perd pas sur un geste malheureux (EXPERIENCE.md). */
@@ -73,9 +76,9 @@
 			onOpenAutoFocus={(e) => {
 				if (lecture) return;
 				// Le premier champ plutôt que la croix : on ouvre un panneau pour y saisir.
-				const champ = corps?.querySelector<HTMLElement>(
-					'input:not([type=hidden], [hidden]), select, textarea'
-				);
+				const champ =
+					(champInitial && corps?.querySelector<HTMLElement>(champInitial)) ||
+					corps?.querySelector<HTMLElement>('input:not([type=hidden], [hidden]), select, textarea');
 				if (champ) {
 					e.preventDefault();
 					champ.focus();
@@ -180,6 +183,8 @@
 		flex: 1;
 		overflow-y: auto;
 		padding: var(--espace-5);
+		/* Un champ atteint au clavier garde sa marge au-dessus de la barre du bas. */
+		scroll-padding-block: var(--espace-5);
 	}
 
 	.pied {

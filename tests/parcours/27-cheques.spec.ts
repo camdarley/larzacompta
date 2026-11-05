@@ -325,7 +325,7 @@ test.describe('Camille dépose les chèques des Agrumes', () => {
 			page.getByRole('heading', { name: 'Vus en banque, absents du registre' })
 		).toBeVisible();
 		await page.getByRole('link', { name: 'Voir la ligne' }).click();
-		await page.getByRole('button', { name: 'Créer l’Opération' }).click();
+		await page.getByRole('button', { name: /^Créer/ }).click();
 		const panneau = page.getByRole('dialog');
 		await expect(panneau.getByLabel('N° de chèque')).toHaveValue('5000999');
 		await panneau.getByLabel('Bénéficiaire').fill('Salle imaginaire');

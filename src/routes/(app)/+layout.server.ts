@@ -40,7 +40,10 @@ export function load({ locals, url }) {
 		return r?.ok ? r.valeur : [];
 	};
 	const panneau =
-		parametre === null || !peut(acces.role, 'consulter')
+		parametre === null ||
+		!peut(acces.role, 'consulter') ||
+		// Sans droit d'écriture, « nouvelle » n'ouvre rien : la page reste calme.
+		(parametre === 'nouvelle' && !peut(acces.role, 'saisir'))
 			? null
 			: {
 					contexte: exiger(app.operations.contexteSaisie(ctx)),

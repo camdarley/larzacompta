@@ -73,7 +73,13 @@
 </script>
 
 <li class="compteur-coupure">
-	<span class="forme" class:billet class:piece={!billet} aria-hidden="true">{valeur}</span>
+	<span
+		class="forme"
+		class:billet
+		class:piece={!billet}
+		class:centimes={coupure < 100}
+		aria-hidden="true">{valeur}</span
+	>
 	<div class="reglage">
 		<button
 			type="button"
@@ -139,15 +145,19 @@
 		border: 1px solid var(--border-strong);
 		color: var(--ink);
 		font-family: var(--typo-heading-famille);
-		font-size: var(--typo-label-taille);
+		font-size: var(--typo-heading-taille);
 		font-weight: var(--typo-heading-graisse);
 		font-variant-numeric: tabular-nums;
+	}
+
+	/* « 0,50 » ne tient pas dans le cercle à la taille `heading`. */
+	.forme.centimes {
+		font-size: var(--typo-label-taille);
 	}
 
 	.billet {
 		width: var(--espace-touch-large);
 		border-radius: var(--rayon-sm);
-		font-size: var(--typo-heading-taille);
 	}
 
 	.piece {

@@ -101,6 +101,7 @@
 	const elements = $derived<Coche[]>(
 		coches.length > 0 ? coches : selectionnee ? [versCoche(selectionnee)] : []
 	);
+	const rienAPointer = $derived(active?.propositions.length === 0 && elements.length === 0);
 	const idsLignes = $derived(
 		active && !lignesCochees.includes(active.id) ? [...lignesCochees, active.id] : lignesCochees
 	);
@@ -222,11 +223,13 @@
 
 	async function pointer() {
 		if (occupe || !active || active.etat !== 'a_pointer') return;
+		// Sans proposition, l'action attendue est de créer l'Opération : Entrée la lance.
+		if (rienAPointer) {
+			creer();
+			return;
+		}
 		if (elements.length === 0) {
-			indication =
-				active.propositions.length > 0
-					? 'Choisissez une proposition, ou reliez une Opération.'
-					: 'Reliez une Opération, ou créez-la.';
+			indication = 'Choisissez une proposition, ou reliez une Opération.';
 			return;
 		}
 		if (difference !== 0) {
@@ -871,10 +874,9 @@
 					{:else}
 						{#if active.chequeAbsent}
 							<Bandeau ton="regarder">
-								{message('cheque_absent', { numero: active.chequeAbsent })}
-								{#snippet action()}
-									<Bouton variante="secondaire" onclick={() => creer()}>Créer l’Opération</Bouton>
-								{/snippet}
+								{message(active.chequeAnnule ? 'cheque_annule_en_banque' : 'cheque_absent', {
+									numero: active.chequeAbsent
+								})}
 							</Bandeau>
 						{/if}
 						{#if active.sumup}
@@ -901,7 +903,7 @@
 									/>
 								{/each}
 							</ol>
-						{:else}
+						{:else if !active.chequeAbsent}
 							<p class="t-muted">Aucune Opération ne correspond. Créez-la, ou reliez-en une.</p>
 						{/if}
 
@@ -961,10 +963,14 @@
 						{#if indication}<p class="indication t-caption" role="status">{indication}</p>{/if}
 
 						<div class="actions">
-							<Bouton {occupe} onclick={pointer}>Pointer <Touche>Entrée</Touche></Bouton>
-							<Bouton variante="secondaire" onclick={() => creer()}>
-								Créer <Touche>c</Touche>
-							</Bouton>
+							{#if rienAPointer}
+								<Bouton onclick={() => creer()}>Créer <Touche>Entrée</Touche></Bouton>
+							{:else}
+								<Bouton {occupe} onclick={pointer}>Pointer <Touche>Entrée</Touche></Bouton>
+								<Bouton variante="secondaire" onclick={() => creer()}>
+									Créer <Touche>c</Touche>
+								</Bouton>
+							{/if}
 							<Bouton variante="secondaire" onclick={ouvrirRelier}>
 								Relier <Touche>r</Touche>
 							</Bouton>

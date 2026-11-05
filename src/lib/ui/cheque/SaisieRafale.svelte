@@ -124,7 +124,8 @@
 	}
 
 	function surTouche(e: KeyboardEvent) {
-		if (e.key !== 'Enter' || e.ctrlKey || e.metaKey) return;
+		// `defaultPrevented` : Entrée vient de choisir dans une liste, la suivante enregistrera.
+		if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.defaultPrevented) return;
 		if ((e.target as HTMLElement).closest('button, a')) return;
 		e.preventDefault();
 		enregistrer();

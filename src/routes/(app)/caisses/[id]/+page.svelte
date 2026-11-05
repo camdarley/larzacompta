@@ -9,7 +9,7 @@
 	} from '@lucide/svelte';
 	import { formaterDateLongue, formaterJourMois } from '#lib/domaine/dates.ts';
 	import type { TypeEvenement } from '#lib/domaine/caisse/vues.ts';
-	import { formaterMontant } from '#lib/domaine/montant.ts';
+	import { formaterMontant, formaterMontantSigne } from '#lib/domaine/montant.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import CalculPose from '#lib/ui/CalculPose.svelte';
 	import EnTete from '#lib/ui/EnTete.svelte';
@@ -45,7 +45,6 @@
 		entree: 'Entrée',
 		transfert: 'Transfert'
 	};
-	const signe = (montant: number) => (montant > 0 ? '+' : '−');
 </script>
 
 <a class="retour" href="/caisses">
@@ -138,9 +137,9 @@
 									{#if MOTS[e.type]}<p class="t-caption t-muted">{MOTS[e.type]}</p>{/if}
 								</div>
 								<p class="montant">
-									{e.type === 'comptage' ? '' : signe(e.montant)}{formaterMontant(
-										e.montant < 0 ? (-e.montant as typeof e.montant) : e.montant
-									)}
+									{e.type === 'comptage'
+										? formaterMontant(e.montant)
+										: formaterMontantSigne(e.montant)}
 								</p>
 							</li>
 						{/each}

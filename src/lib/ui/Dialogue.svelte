@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import Bouton from './Bouton.svelte';
 	import { suivreClavierPanneau } from './clavier.ts';
+	import { rendreFocus, reprendreDeclencheur } from './retour-focus.ts';
+	import { retirerToast, toasts } from './toasts.svelte.ts';
 
 	type Props = {
 		ouvert: boolean;
@@ -38,6 +40,21 @@
 	let boutonRevenir = $state<HTMLElement | null>(null);
 	let contenu = $state<HTMLElement | null>(null);
 
+	/** Ce qui reprend le focus à la fermeture. */
+	let origine: HTMLElement | null = null;
+
+	$effect.pre(() => {
+		if (!ouvert) return;
+		untrack(() => {
+			const actif = document.activeElement as HTMLElement | null;
+			origine = reprendreDeclencheur() ?? (actif === document.body ? null : actif);
+			// Sur téléphone, la feuille monte là où se pose le toast : ses chiffres passent avant.
+			if (window.matchMedia('(max-width: 639.98px)').matches) {
+				for (const t of toasts.liste) retirerToast(t.id);
+			}
+		});
+	});
+
 	$effect(() => {
 		const panneau = contenu?.parentElement;
 		return panneau ? suivreClavierPanneau(panneau) : undefined;
@@ -61,6 +78,12 @@
 				e.preventDefault();
 				const champ = saisie ? contenu?.querySelector('input') : null;
 				(champ ?? boutonRevenir?.querySelector('button'))?.focus();
+			}}
+			onCloseAutoFocus={(e) => {
+				e.preventDefault();
+				const cible = origine;
+				origine = null;
+				setTimeout(() => rendreFocus(cible));
 			}}
 		>
 			<Dialog.Title class="t-title ape-dialogue-titre">{titre}</Dialog.Title>

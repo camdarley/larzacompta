@@ -210,6 +210,13 @@
 	const recetteSens = $derived(saisie.choix === 'recette' || saisie.choix === 'remboursement');
 
 	const repartitionSumup = $derived(sumup && ligne?.sumup != null);
+	/** Depuis le relevé, le montant est déjà juste : le focus va à ce qui reste à compléter. */
+	const champInitial = $derived.by(() => {
+		if (ligne === null) return undefined;
+		if (repartitionSumup) return `#ligne-${saisie.lignes[1]?.cle}-montant`;
+		const vide = saisie.lignes.find((l) => !l.natureId);
+		return vide ? `#ligne-${vide.cle}-nature` : undefined;
+	});
 	const titre = $derived(
 		introuvable
 			? 'Opération introuvable'
@@ -763,7 +770,7 @@
 	</SelecteurRecherche>
 {/snippet}
 
-<Panneau ouvert {titre} {fermer} bind:modifie {surTouche}>
+<Panneau ouvert {titre} {fermer} bind:modifie {surTouche} {champInitial}>
 	{#snippet actionsTete()}
 		{#if detail && peutSaisir && !detail.annulee}
 			<Menu nom="Actions de l’Opération" flottant classe="bouton-tete">

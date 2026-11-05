@@ -56,7 +56,7 @@
 <EnTete
 	titre="Remise n° {r.numero}"
 	contexte="Chèques"
-	sousTitre="{LIBELLES_ETAT_REMISE[r.etat]}, le {formaterDateLongue(r.date)}, sur {r.compte}."
+	sousTitre="{LIBELLES_ETAT_REMISE[r.etat]} le {formaterDateLongue(r.date)}, sur {r.compte}."
 >
 	{#snippet actions()}
 		{#if r.etat !== 'annulee'}

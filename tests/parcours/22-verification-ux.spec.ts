@@ -357,8 +357,9 @@ test('UJ-1 au clavier seul : focus visible, ordre de tabulation, raccourcis', as
 	await expect(page).toHaveURL(/pointage/);
 	await expect(page.locator('[data-ligne]:focus')).toHaveCount(1);
 
-	// Chaque élément tabulable du Pointage porte un contour de focus.
-	for (let i = 0; i < 6; i++) {
+	// Chaque élément tabulable du Pointage porte un contour de focus : import, saisie, puis les
+	// trois gestes d'une ligne sans proposition, où Créer tient lieu de Pointer.
+	for (let i = 0; i < 5; i++) {
 		await page.keyboard.press(toucheLiens(browserName));
 		const contour = await page.evaluate(() => {
 			const s = getComputedStyle(document.activeElement as Element);

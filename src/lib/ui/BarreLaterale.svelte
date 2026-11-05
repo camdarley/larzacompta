@@ -33,6 +33,28 @@
 
 	const actif = (e: Entree) =>
 		e.href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(e.href);
+
+	let zone = $state<HTMLElement | null>(null);
+
+	function montrerActive() {
+		const lien = zone?.querySelector<HTMLElement>('[aria-current="page"]');
+		if (!zone || !lien) return;
+		const cadre = zone.getBoundingClientRect();
+		const r = lien.getBoundingClientRect();
+		// La marge sort l'entrée de l'ombre de débordement.
+		const marge = 8;
+		if (r.top < cadre.top) zone.scrollTop -= cadre.top - r.top + marge;
+		else if (r.bottom > cadre.bottom) zone.scrollTop += r.bottom - cadre.bottom + marge;
+	}
+
+	// L'entrée de l'écran affiché reste visible, même sous le pli d'une fenêtre basse. Les polices
+	// changent la hauteur de la barre : Safari la mesure trop tôt sans cette seconde lecture.
+	$effect(() => {
+		void page.url.pathname;
+		const image = requestAnimationFrame(montrerActive);
+		void document.fonts.ready.then(montrerActive);
+		return () => cancelAnimationFrame(image);
+	});
 </script>
 
 {#snippet entree(e: Entree)}
@@ -67,7 +89,7 @@
 		</a>
 	{/if}
 
-	<nav aria-label="Navigation principale" class="principale">
+	<nav aria-label="Navigation principale" class="principale" bind:this={zone}>
 		{#each nav.groupes as g (g.titre)}
 			<div class="groupe">
 				<p class="t-caption titre-groupe">{g.titre}</p>
@@ -112,10 +134,18 @@
 		overflow-wrap: anywhere;
 	}
 
+	/* Les fonds `local` défilent avec la liste et cachent l'ombre : elle ne reste que s'il y a une suite. */
 	.principale {
+		--ombre: color-mix(in srgb, var(--ink) 16%, transparent);
 		flex: 1;
 		min-height: 0;
 		overflow-y: auto;
+		scrollbar-width: thin;
+		background:
+			linear-gradient(var(--surface-sunken) 12px, transparent) top / 100% 24px no-repeat local,
+			linear-gradient(transparent, var(--surface-sunken) 12px) bottom / 100% 24px no-repeat local,
+			linear-gradient(var(--ombre), transparent) top / 100% 10px no-repeat scroll,
+			linear-gradient(transparent, var(--ombre)) bottom / 100% 10px no-repeat scroll;
 	}
 
 	.groupe + .groupe {
@@ -184,6 +214,30 @@
 		gap: var(--espace-1);
 		padding-top: var(--espace-2);
 		border-top: 1px solid var(--border);
+	}
+
+	/* Fenêtre basse : la barre se resserre pour garder Actions et États à l'écran. */
+	@media (min-width: 1024px) and (max-height: 899.98px) {
+		.barre {
+			gap: var(--espace-2);
+			padding-block: var(--espace-2);
+		}
+
+		.groupe + .groupe {
+			margin-top: var(--espace-2);
+		}
+
+		.titre-groupe {
+			margin-bottom: 0;
+		}
+
+		a {
+			min-height: 34px;
+		}
+
+		ul {
+			gap: 0;
+		}
 	}
 
 	/* Tablette : rail d'icônes. L'en-tête compact porte le nom et l'Exercice. */

@@ -10,8 +10,9 @@
 	let { nom, question, valeur, changer }: Props = $props();
 </script>
 
-<fieldset class="question">
-	<legend class="t-label">{question}</legend>
+<!-- Pas de `legend` : Safari la pose à cheval sur le bord, même flottante. -->
+<div class="question" role="radiogroup" aria-labelledby="{nom}-question">
+	<p class="t-label" id="{nom}-question">{question}</p>
 	<div class="reponses">
 		<label>
 			<input type="radio" name={nom} checked={valeur} onchange={() => changer(true)} />
@@ -22,15 +23,13 @@
 			Non
 		</label>
 	</div>
-</fieldset>
+</div>
 
 <style>
 	.question {
 		display: grid;
 		gap: var(--espace-1);
-		margin: 0;
 		padding: var(--espace-3);
-		border: 0;
 		border-radius: var(--rayon-md);
 		background: var(--warning-soft);
 	}

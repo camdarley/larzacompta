@@ -2,12 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { ArrowLeft, Ellipsis } from '@lucide/svelte';
 	import { LIBELLES_COMPTAGE, type MouvementSession } from '#lib/domaine/caisse/vues.ts';
-	import {
-		formaterDateCourte,
-		formaterDateLongue,
-		formaterHorodatage
-	} from '#lib/domaine/dates.ts';
-	import { centimes, formaterMontant } from '#lib/domaine/montant.ts';
+	import { formaterDateCourte, formaterDateLongue, formaterDateHeure } from '#lib/domaine/dates.ts';
+	import { centimes, formaterMontant, formaterMontantSigne } from '#lib/domaine/montant.ts';
 	import AideTerme from '#lib/ui/AideTerme.svelte';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import Bouton from '#lib/ui/Bouton.svelte';
@@ -85,7 +81,7 @@
 								: ''}
 						</p>
 					</div>
-					<p class="montant">{m.montant < 0 ? '−' : '+'}{absolu(m.montant)}</p>
+					<p class="montant">{formaterMontantSigne(m.montant)}</p>
 				</li>
 			{/each}
 		</ul>
@@ -103,7 +99,7 @@
 	sousTitre={[
 		s.action?.libelle ?? 'Sans Action',
 		s.depuis ? formaterDateLongue(s.depuis) : null,
-		s.ouverte ? 'ouverte' : `clôturée le ${formaterHorodatage(s.cloturee ?? '')}`
+		s.ouverte ? 'ouverte' : `clôturée le ${formaterDateHeure(s.cloturee ?? '')}`
 	]
 		.filter(Boolean)
 		.join(', ')}
@@ -212,8 +208,7 @@
 				<p class="t-caption">
 					<a href={urlAvec({ op: String(s.recetteOperationId) })} data-sveltekit-reset="false"
 						>Voir l’Opération</a
-					>
-					{#if s.action}, dans <a href="/actions/{s.action.id}">{s.action.libelle}</a>{/if}
+					>{#if s.action}, dans <a href="/actions/{s.action.id}">{s.action.libelle}</a>{/if}
 				</p>
 			{/if}
 		{:else}

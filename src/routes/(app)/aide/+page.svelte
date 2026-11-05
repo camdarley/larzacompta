@@ -7,14 +7,25 @@
 		RACCOURCIS,
 		RACCOURCIS_POINTAGE
 	} from '#lib/aide.ts';
+	import { ChevronDown } from '@lucide/svelte';
+	import { page } from '$app/state';
 	import EnTete from '#lib/ui/EnTete.svelte';
 	import Touche from '#lib/ui/Touche.svelte';
 
 	let { data } = $props();
 
+	/** Le·la compteur·se vient pour compter : son article passe avant le reste. */
+	const compteur = $derived(page.data.acces?.role === 'compteur');
+	const articles = $derived.by(() => {
+		const tous = [...ARTICLES, ...ARTICLES_ETATS];
+		if (!compteur) return tous;
+		return [...tous.filter((a) => a.id === 'comptage'), ...tous.filter((a) => a.id !== 'comptage')];
+	});
+
 	const sommaire = $derived([
-		{ id: 'premiere-annee', titre: 'Votre première année' },
-		...[...ARTICLES, ...ARTICLES_ETATS].map((a) => ({ id: a.id, titre: a.titre })),
+		...(compteur ? [] : [{ id: 'premiere-annee', titre: 'Votre première année' }]),
+		...articles.map((a) => ({ id: a.id, titre: a.titre })),
+		...(compteur ? [{ id: 'premiere-annee', titre: 'Votre première année' }] : []),
 		{ id: 'glossaire', titre: 'Glossaire' },
 		{ id: 'raccourcis', titre: 'Raccourcis du clavier' },
 		...(data.codeSource ? [{ id: 'code-source', titre: 'Code source' }] : [])
@@ -29,14 +40,30 @@
 	</ol>
 {/snippet}
 
+{#snippet premiereAnnee()}
+	<section id="premiere-annee">
+		<h2 class="t-heading">Votre première année</h2>
+		<ol class="annee">
+			{#each PREMIERE_ANNEE as e (e.titre)}
+				<li><strong>{e.titre}.</strong> {e.texte}</li>
+			{/each}
+		</ol>
+	</section>
+{/snippet}
+
 <EnTete
 	titre="Aide"
-	sousTitre="Tout ce qu’il faut pour tenir la trésorerie, sans formation. Cette aide reste sur votre instance."
+	sousTitre={compteur
+		? 'Tout ce qu’il faut pour compter une caisse, sans formation. Cette aide reste sur votre instance.'
+		: 'Tout ce qu’il faut pour tenir la trésorerie, sans formation. Cette aide reste sur votre instance.'}
 />
 
 <div class="aide">
 	<details class="sommaire-replie">
-		<summary class="t-label">Sommaire</summary>
+		<summary class="t-label">
+			Sommaire
+			<ChevronDown class="chevron" size={20} strokeWidth={1.75} aria-hidden="true" />
+		</summary>
 		<nav aria-label="Sommaire de l’Aide">{@render liens()}</nav>
 	</details>
 	<nav class="sommaire-colonne" aria-label="Sommaire de l’Aide">
@@ -44,21 +71,16 @@
 		{@render liens()}
 	</nav>
 	<div class="lecture">
-		<section id="premiere-annee">
-			<h2 class="t-heading">Votre première année</h2>
-			<ol class="annee">
-				{#each PREMIERE_ANNEE as e (e.titre)}
-					<li><strong>{e.titre}.</strong> {e.texte}</li>
-				{/each}
-			</ol>
-		</section>
+		{#if !compteur}{@render premiereAnnee()}{/if}
 
-		{#each [...ARTICLES, ...ARTICLES_ETATS] as a (a.id)}
+		{#each articles as a (a.id)}
 			<section id={a.id}>
 				<h2 class="t-heading">{a.titre}</h2>
 				{#each a.paragraphes as p (p)}<p>{p}</p>{/each}
 			</section>
 		{/each}
+
+		{#if compteur}{@render premiereAnnee()}{/if}
 
 		<section id="glossaire">
 			<h2 class="t-heading">Glossaire</h2>
@@ -121,8 +143,18 @@
 	.sommaire-replie summary {
 		display: flex;
 		align-items: center;
+		justify-content: space-between;
 		min-height: var(--espace-touch);
 		cursor: pointer;
+	}
+
+	.sommaire-replie summary :global(.chevron) {
+		color: var(--ink-muted);
+		transition: transform var(--mouvement-etat);
+	}
+
+	.sommaire-replie[open] summary :global(.chevron) {
+		transform: rotate(180deg);
 	}
 
 	.sommaire-colonne {
