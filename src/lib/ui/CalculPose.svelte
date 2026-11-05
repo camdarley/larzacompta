@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { formaterMontant, lectureMontant, type Centimes } from '#lib/domaine/montant.ts';
 
-	type Terme = { libelle: string; montant: Centimes; signe?: '+' | '−' };
+	/** `href` : le terme mène à son détail (EXPERIENCE.md). */
+	type Terme = { libelle: string; montant: Centimes; signe?: '+' | '−'; href?: string };
 	type Props = { termes: Terme[]; totalLibelle: string; total: Centimes };
 
 	let { termes, totalLibelle, total }: Props = $props();
+
+	const liens = $derived(termes.some((t) => t.href));
 
 	/** Lu comme une phrase, une addition posée ne s'écoute pas colonne par colonne. */
 	const phrase = $derived(
@@ -19,11 +22,15 @@
 	);
 </script>
 
-<div class="calcul-pose" role="img" aria-label={phrase}>
+<!-- Avec des liens, la phrase reste lue à part : un rôle `img` les rendrait inatteignables. -->
+{#if liens}<p class="visuellement-cache">{phrase}</p>{/if}
+<div class="calcul-pose" role={liens ? undefined : 'img'} aria-label={liens ? undefined : phrase}>
 	{#each termes as t (t.libelle)}
 		<div class="ligne">
 			<span class="signe" aria-hidden="true">{t.signe ?? ''}</span>
-			<span class="libelle t-caption">{t.libelle}</span>
+			<span class="libelle t-caption">
+				{#if t.href}<a href={t.href}>{t.libelle}</a>{:else}{t.libelle}{/if}
+			</span>
 			<span class="montant">{formaterMontant(t.montant)}</span>
 		</div>
 	{/each}

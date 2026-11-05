@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
 		ARTICLES,
+		ARTICLES_ETATS,
 		GLOSSAIRE,
 		PREMIERE_ANNEE,
 		RACCOURCIS,
@@ -25,7 +26,7 @@
 		</ol>
 	</section>
 
-	{#each ARTICLES as a (a.id)}
+	{#each [...ARTICLES, ...ARTICLES_ETATS] as a (a.id)}
 		<section id={a.id}>
 			<h2 class="t-heading">{a.titre}</h2>
 			{#each a.paragraphes as p (p)}<p>{p}</p>{/each}

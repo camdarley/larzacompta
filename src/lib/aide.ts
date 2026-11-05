@@ -151,6 +151,69 @@ export const ARTICLES: readonly Article[] = [
 	}
 ];
 
+export const ARTICLES_ETATS: readonly Article[] = [
+	{
+		id: 'tableau-de-controle',
+		titre: 'Tableau de contrôle',
+		paragraphes: [
+			'La phrase du haut dit où vous en êtes. Elle n’est jamais rassurante si un Compte ne tombe pas juste : « 1 Compte ne tombe pas juste » veut dire qu’un Écart reste sans explication.',
+			'Chaque carte pose l’addition : solde de départ, plus les mouvements, égale le solde calculé, comparé au solde constaté sur le relevé. Un Écart expliqué par des lignes non pointées n’est pas une erreur : il reste à pointer.',
+			'Un contrôle de plus de 45 jours passe en À regarder : il manque sans doute un relevé.',
+			'Avant l’arrivée des Sessions de caisse, une caisse se compte à la main : le montant saisi sur sa carte devient son solde constaté.'
+		]
+	},
+	{
+		id: 'resultat-actions',
+		titre: 'Résultat par Action',
+		paragraphes: [
+			'L’écran Actions range vos activités par Groupe. Dépliez un Groupe, une Action, une Nature, puis ouvrez une Ligne : vous arrivez à l’Opération, à sa Pièce et à son mouvement bancaire.',
+			'Les Lignes sans Action sont réunies à part, par Nature. Le pied de page se raccorde au résultat de l’Exercice : c’est la preuve que rien n’a été oublié.',
+			'Les sommes neutres n’apparaissent pas ici, et les Lignes rattachées à un Exercice antérieur forment un bloc séparé, sous le pied.'
+		]
+	},
+	{
+		id: 'compte-de-resultat',
+		titre: 'Compte de résultat',
+		paragraphes: [
+			'Il dit ce que l’Exercice a rapporté et coûté, Groupe par Groupe, dans l’ordre choisi dans les Réglages. Une dépense remboursée vient en moins des Dépenses, pas en Recettes.',
+			'Une Ligne compte toujours dans l’Exercice de sa date. Rattachée à un Exercice antérieur, elle rejoint le bloc « Sur Exercices antérieurs » et sort du résultat de l’année.'
+		]
+	},
+	{
+		id: 'etat-de-tresorerie',
+		titre: 'État de trésorerie',
+		paragraphes: [
+			'Il donne, pour chaque Compte, le solde de départ, le solde de fin et leur variation, avec les totaux des Créances et Dettes à la fin de l’Exercice.',
+			'La trésorerie ne bouge pas toujours du résultat : l’Explication résultat et variation le détaille, avec les Lignes sur Exercices antérieurs, les sommes neutres et les Mouvements internes à cheval sur deux Exercices. Si une différence restait sans explication, l’état le signalerait.'
+		]
+	},
+	{
+		id: 'document-ag',
+		titre: 'Document d’AG',
+		paragraphes: [
+			'Il réunit le Compte de résultat et l’État de trésorerie en un PDF à présenter en assemblée générale, avec les Écarts qui restent. D’une année à l’autre, les Groupes gardent leur ordre.',
+			'Tant que l’Exercice est ouvert, il porte le filigrane « Provisoire ». Une fois l’Exercice clôturé, il ne change plus.'
+		]
+	},
+	{
+		id: 'exports',
+		titre: 'Exports',
+		paragraphes: [
+			'Le menu Exporter d’un état donne un PDF, ou un fichier XLSX pour un tableur, avec l’Exercice regardé et les chiffres de l’écran.',
+			'L’export complet, dans Réglages, Sauvegardes, emporte toutes vos données dans une archive lisible sans l’outil : les Opérations, les Lignes et les Pointages en CSV, avec les Pièces.'
+		]
+	},
+	{
+		id: 'cloture',
+		titre: 'Clôturer un Exercice',
+		paragraphes: [
+			'La page de clôture liste les Écarts, les Lignes de relevé non pointées et les Pièces manquantes. Rien de tout cela n’empêche de clôturer. Seuls deux cas bloquent : l’Exercice le plus ancien se clôture en premier, et une Session de caisse ouverte doit être clôturée avant.',
+			'Une fois clôturé, un Exercice ne se modifie plus, ne se rouvre pas, et ses états restent identiques, même si vous renommez un Groupe. Une correction passe par une nouvelle Opération dans un Exercice ouvert.',
+			'Restent permis : ajouter une Pièce, dire qu’une Pièce n’est pas nécessaire, relier deux paiements, et pointer une Ligne de relevé arrivée après coup. Un relevé importé après la clôture entre normalement : son solde est seulement ignoré s’il est daté dans l’Exercice clôturé.'
+		]
+	}
+];
+
 export type Terme = { terme: string; ancre: string; definition: string };
 
 /** Repris du Glossaire du PRD (§3). */
@@ -303,7 +366,8 @@ export const GLOSSAIRE: readonly Terme[] = [
 	{
 		terme: 'Compte de résultat, État de trésorerie, Document d’AG',
 		ancre: 'etats',
-		definition: 'États calculés. Le Document d’AG réunit les deux premiers.'
+		definition:
+			'États calculés. Le Document d’AG réunit les deux premiers pour l’assemblée générale.'
 	}
 ];
 

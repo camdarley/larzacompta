@@ -432,9 +432,12 @@ describe('Lignes de relevé', () => {
 				libelle: 'A'
 			})
 		).toMatchObject({ ok: false, erreur: { code: 'pointage_incoherent' } });
+	});
+
+	it('accepte le solde constaté d’une caisse, avant le jalon 2 (AD-10)', () => {
 		expect(
 			b.app.pointage.saisirSolde(b.ctx(), { compteId: caisse, date: '2026-10-05', solde: c(1) })
-		).toMatchObject({ ok: false, erreur: { code: 'pointage_incoherent' } });
+		).toMatchObject({ ok: true });
 	});
 
 	it('P5 : chaque doublon se confirme ou s’écarte, une ligne importée reste sinon', () => {

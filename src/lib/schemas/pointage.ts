@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { dateValide } from '#lib/domaine/dates.ts';
 import { centimes } from '#lib/domaine/montant.ts';
 import { saisieOperation, cleSaisie, piecesDeposees } from './operations.ts';
+import { montantFacultatif } from './parametrage.ts';
 
 const MONTANT_MAX = 100_000_000_00;
 const identifiant = z.number({ message: 'champ_requis' }).int().positive();
@@ -26,6 +27,12 @@ export const schemaLigneReleve = z.object({
 });
 
 export const schemaSolde = z.object({ date, solde: signe.transform(centimes) });
+/** Constat d'une caisse, saisi en formulaire dans `solde-compte` avant le jalon 2 (AD-10). */
+export const schemaConstat = z.object({
+	compteId: z.coerce.number().int().positive(),
+	date,
+	solde: montantFacultatif
+});
 
 export const schemaDepuisLigne = z.object({
 	ligneId: identifiant,

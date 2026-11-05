@@ -5,7 +5,8 @@ import { application } from '#lib/server/composition.ts';
 const USAGE = `Usage : ape <commande>
 
   lien-initial                     Émet le lien de création du premier Accès
-  reinitialiser-acces <identifiant> Émet un lien de réinitialisation, valable 7 jours`;
+  reinitialiser-acces <identifiant> Émet un lien de réinitialisation, valable 7 jours
+  verifier                         Rejoue les contrôles, l'équation et les empreintes de clôture`;
 
 function origine() {
 	return process.env.ORIGIN ?? 'http://localhost:5173';
@@ -43,10 +44,30 @@ function reinitialiser(identifiant: string | undefined): number {
 	return 0;
 }
 
+/** Code de sortie 0 seulement si tout tombe juste : un script de restauration s'y fie (AD-17). */
+function verifier(): number {
+	const app = application();
+	const r = app.etats.verifier(app.ctx(null));
+	if (!r.ok) {
+		console.error(messageErreur(r.erreur));
+		return 1;
+	}
+	if (r.valeur.length === 0) {
+		console.log('Tout est juste : invariants, équation de contrôle, empreintes de clôture.');
+		return 0;
+	}
+	for (const v of r.valeur) {
+		console.log(`${v.exercice ? `${v.exercice} : ` : ''}[${v.invariant}] ${v.message}`);
+	}
+	console.log(`${r.valeur.length} contrôle(s) en échec.`);
+	return 2;
+}
+
 function principal(args: string[]): number {
 	const [commande, parametre] = args;
 	if (commande === 'lien-initial') return lienInitial();
 	if (commande === 'reinitialiser-acces') return reinitialiser(parametre);
+	if (commande === 'verifier') return verifier();
 	console.log(USAGE);
 	return commande ? 1 : 0;
 }

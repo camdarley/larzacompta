@@ -187,10 +187,11 @@ export function bilan(
 ): Bilan {
 	const faux = cartes.filter((c) => c.etat === 'ecart').length;
 	if (faux > 0) return { type: 'ecart', comptes: faux };
-	const pointables = (c: CarteCompte) => !premierReleve || !estPointable(c.compte);
+	// Sans relevé, on commence : un Compte sans solde constaté n'est pas encore une tâche.
+	const regardes = (c: CarteCompte) => !premierReleve || c.constate !== null;
 	const nombre =
 		taches.reduce((n, t) => n + t.compteur, 0) +
-		cartes.filter((c) => pointables(c) && aRegarderSeul(c)).length;
+		cartes.filter((c) => regardes(c) && aRegarderSeul(c)).length;
 	if (nombre > 0) return { type: 'taches', nombre };
 	return premierReleve ? { type: 'premier_releve' } : { type: 'a_jour' };
 }

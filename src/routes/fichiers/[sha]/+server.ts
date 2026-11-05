@@ -2,12 +2,7 @@ import { error } from '@sveltejs/kit';
 import { message } from '#lib/messages.ts';
 import { application } from '#lib/server/composition.ts';
 import { exiger } from '#lib/server/http.ts';
-
-/** `filename*` : un nom accentué passe, et rien ne sort de la valeur de l'en-tête. */
-function disposition(type: 'inline' | 'attachment', nom: string) {
-	const ascii = nom.replace(/[^\w.-]/g, '_');
-	return `${type}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nom)}`;
-}
+import { reponseFichier } from '#lib/server/telechargement.ts';
 
 /**
  * Service d'une Pièce, jamais depuis un chemin public (AD-16).
@@ -20,14 +15,5 @@ export function GET({ locals, params, url }) {
 	const app = application();
 	const piece = exiger(app.pieces.fichier(app.ctx(locals.acces), params.sha));
 	const type = url.searchParams.has('telecharger') ? 'attachment' : 'inline';
-	return new Response(piece.octets as Uint8Array<ArrayBuffer>, {
-		headers: {
-			'Content-Type': piece.mime,
-			'Content-Length': String(piece.octets.length),
-			'Content-Disposition': disposition(type, piece.nom),
-			'X-Content-Type-Options': 'nosniff',
-			'Cache-Control': 'private, no-store',
-			'Content-Security-Policy': "frame-ancestors 'self'"
-		}
-	});
+	return reponseFichier(piece.octets, { mime: piece.mime, nom: piece.nom, type });
 }

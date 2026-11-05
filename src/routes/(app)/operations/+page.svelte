@@ -29,7 +29,18 @@
 
 	const f = $derived(data.filtres);
 	const r = $derived(data.resultats);
-	const CRITERES = ['q', 'du', 'au', 'montant', 'compte', 'nature', 'action', 'piece'] as const;
+	const CRITERES = [
+		'q',
+		'du',
+		'au',
+		'montant',
+		'compte',
+		'nature',
+		'action',
+		'piece',
+		'anciennes',
+		'internes'
+	] as const;
 
 	const nom = (l: readonly { id: number; libelle: string }[], id: number | undefined) =>
 		l.find((x) => x.id === id)?.libelle ?? '';
@@ -43,7 +54,9 @@
 			f.compte && { nom: 'compte', texte: nom(data.comptes, f.compte) },
 			f.nature && { nom: 'nature', texte: nom(data.natures, f.nature) },
 			f.action && { nom: 'action', texte: nom(data.actions, f.action) },
-			f.piece && { nom: 'piece', texte: f.piece === 'avec' ? 'Avec Pièce' : 'Sans Pièce' }
+			f.piece && { nom: 'piece', texte: f.piece === 'avec' ? 'Avec Pièce' : 'Sans Pièce' },
+			f.anciennes && { nom: 'anciennes', texte: 'Anciennes, à pointer' },
+			f.internes && { nom: 'internes', texte: 'Mouvements internes' }
 		].filter((c) => !!c)
 	);
 	const filtre = $derived(criteres.length > 0);

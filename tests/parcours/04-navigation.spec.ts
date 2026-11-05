@@ -70,6 +70,8 @@ test('seules les entrées livrées apparaissent, sans entrée grisée', async ({
 		'Pointage',
 		'Créances et Dettes',
 		'Pièces',
+		'Actions',
+		'États',
 		'Réglages',
 		'Journal',
 		'Aide'
@@ -231,6 +233,8 @@ test('une URL interdite au rôle affiche une page calme', async ({ page, context
 		'Opérations',
 		'Créances et Dettes',
 		'Pièces',
+		'Actions',
+		'États',
 		'Journal',
 		'Aide'
 	]);

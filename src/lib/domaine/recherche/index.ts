@@ -15,6 +15,10 @@ export type FiltresRecherche = {
 	natureId?: number;
 	actionId?: number;
 	piece?: 'avec' | 'sans';
+	/** Mouvements internes seuls : un terme de l'explication résultat et variation. */
+	internes?: boolean;
+	/** Liste déjà calculée : les Opérations anciennes de la tuile `À faire`. */
+	ids?: readonly number[];
 };
 
 export type Trouvee = {
@@ -52,6 +56,8 @@ function retenir(op: OperationJ, f: FiltresRecherche, annulee: boolean): Trouvee
 	if (f.actionId !== undefined && !op.lignes.some((l) => l.actionId === f.actionId)) return null;
 	if (f.piece === 'avec' && op.pieces.length === 0) return null;
 	if (f.piece === 'sans' && op.pieces.length > 0) return null;
+	if (f.internes && op.genre !== 'interne') return null;
+	if (f.ids !== undefined && !f.ids.includes(op.id)) return null;
 
 	let ligne: LigneJ | null = null;
 	if (f.montant !== undefined) {

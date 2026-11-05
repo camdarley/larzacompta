@@ -9,7 +9,10 @@ export async function load({ locals, url, parent }) {
 	const filtres = filtresDepuisUrl(url, exercice);
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 	const contexte = exiger(app.operations.contexteSaisie(ctx));
-	const resultats = exiger(app.operations.rechercher(ctx, filtres.recherche, page));
+	const ids =
+		filtres.url.anciennes && exercice ? exiger(app.etats.anciennes(ctx, exercice)) : undefined;
+	const recherche = ids ? { ...filtres.recherche, ids } : filtres.recherche;
+	const resultats = exiger(app.operations.rechercher(ctx, recherche, page));
 	const sansFiltre = Object.values(filtres.url).every((v) => !v);
 	return {
 		filtres: filtres.url,

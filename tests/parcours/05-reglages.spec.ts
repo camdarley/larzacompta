@@ -37,6 +37,7 @@ test('chaque onglet a son URL et se parcourt aux flèches', async ({ page }) => 
 	await expect(sections.getByRole('link', { name: 'Comptes' })).toBeFocused();
 	await page.keyboard.press('ArrowLeft');
 	await page.keyboard.press('ArrowLeft');
+	await page.keyboard.press('ArrowLeft');
 	await expect(sections.getByRole('link', { name: 'Exercices' })).toBeFocused();
 	await page.keyboard.press('Enter');
 	await expect(page).toHaveURL(/reglages\/exercices$/);

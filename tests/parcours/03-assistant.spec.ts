@@ -80,7 +80,9 @@ test('l’assistant prépare le cahier, étape par étape', async ({ page }) => 
 	await expect(page.getByRole('link', { name: 'Saisir une Opération' })).toBeVisible();
 	await axeSansViolation(page);
 	await page.getByRole('link', { name: 'Aller au Tableau de contrôle' }).click();
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Votre cahier est prêt.');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+		'Importez votre premier relevé pour commencer le contrôle.'
+	);
 	await expect(page.getByRole('main')).toContainText('1 500,50');
 
 	const b = base();

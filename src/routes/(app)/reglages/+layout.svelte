@@ -11,7 +11,8 @@
 		{ libelle: 'Actions', href: '/reglages/actions' },
 		{ libelle: 'Groupes', href: '/reglages/groupes' },
 		{ libelle: 'Accès', href: '/reglages/acces' },
-		{ libelle: 'Exercices', href: '/reglages/exercices' }
+		{ libelle: 'Exercices', href: '/reglages/exercices' },
+		{ libelle: 'Sauvegardes', href: '/reglages/sauvegardes' }
 	];
 </script>
 

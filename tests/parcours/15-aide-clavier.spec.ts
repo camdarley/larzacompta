@@ -145,7 +145,7 @@ test('2.14 : Ctrl+K ouvre la palette : écran, Opération, Action, commande, mon
 	await champ.fill('olympiades');
 	await expect(palette.getByRole('option', { name: 'Olympiades' })).toBeVisible();
 	await palette.getByRole('option', { name: 'Olympiades' }).click();
-	await expect(page).toHaveURL(/\/operations\?action=\d+/);
+	await expect(page).toHaveURL(/\/actions\/\d+/);
 
 	await page.keyboard.press('Control+k');
 	await champ.fill('nouvelle');

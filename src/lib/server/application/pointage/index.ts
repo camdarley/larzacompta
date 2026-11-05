@@ -271,7 +271,10 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 	const casSolde: CasUsage<EntreeSolde, { id: number }> = {
 		droit: 'saisir',
 		faire(o, e) {
-			if (compteDe(o.depots.operations.journal(), e.compteId) === undefined) {
+			// Avant le jalon 2, une caisse se suit par constat, sans Pointage (AD-10).
+			const j = o.depots.operations.journal();
+			const caisse = j.comptes.some((c) => c.id === e.compteId && c.type === 'caisse');
+			if (!caisse && compteDe(j, e.compteId) === undefined) {
 				return echec('pointage_incoherent');
 			}
 			const id = o.depots.pointage.creerConstat({

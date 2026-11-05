@@ -310,7 +310,9 @@ function dateDe(jour: number): string {
 	return new Date(t).toISOString().slice(0, 10);
 }
 
-function genere(ops: fc.TypeOf<typeof arbitraireOperation>[]): GrandJournal {
+type OperationGeneree = typeof arbitraireOperation extends fc.Arbitrary<infer T> ? T : never;
+
+function genere(ops: OperationGeneree[]): GrandJournal {
 	return journal({
 		exercices: [REPERE, E2025, E2026],
 		comptes: [CCP, LIVRET],

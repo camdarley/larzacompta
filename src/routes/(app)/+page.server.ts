@@ -1,22 +1,43 @@
-import { application } from '#lib/server/composition.ts';
-import { exiger } from '#lib/server/http.ts';
 import { ETAPE_ASSISTANT_TERMINE } from '#lib/domaine/assistant.ts';
 import { peut } from '#lib/domaine/droits.ts';
+import { phraseBilan } from '#lib/domaine/etats/controle.ts';
 import { fonctionLivree } from '#lib/fonctions.ts';
+import { schemaConstat } from '#lib/schemas/pointage.ts';
+import { action } from '#lib/server/action.ts';
+import { application } from '#lib/server/composition.ts';
+import { accesRequis, exiger } from '#lib/server/http.ts';
 
 export async function load({ locals, parent }) {
 	const app = application();
-	const ctx = app.ctx(locals.acces);
-	const { exercice } = await parent();
+	const acces = accesRequis(locals.acces);
+	const ctx = app.ctx(acces);
+	const { exercice, exercices } = await parent();
 	const association = app.parametrage.association();
 	const pret = (association?.etapeAssistant ?? 0) >= ETAPE_ASSISTANT_TERMINE && exercice !== null;
-	const pointage =
-		fonctionLivree('pointage') && locals.acces !== null && peut(locals.acces.role, 'saisir');
-	const j = pret && pointage ? exiger(app.operations.journal(ctx)) : null;
+	if (!pret || exercice === null) return { pret: false as const };
+
+	const tableau = exiger(app.etats.tableau(ctx, exercice));
+	const saisir = peut(acces.role, 'saisir');
+	// L'Exercice terminé le plus ancien : c'est lui qui se clôture en premier (E3).
+	const aClore = [...exercices]
+		.filter((e) => e.statut === 'ouvert' && e.fin !== null && e.fin < ctx.aujourdhui)
+		.sort((a, b) => a.anneeDebut - b.anneeDebut)[0];
 	return {
-		pointage,
-		premierReleve: j !== null && j.lignesReleve.length === 0,
-		pret,
-		soldes: pret && exercice ? exiger(app.operations.soldes(ctx, exercice)) : []
+		pret: true as const,
+		...tableau,
+		phrase: phraseBilan(tableau.bilan),
+		pointage: fonctionLivree('pointage') && saisir,
+		/** Jour du constat de caisse : aujourd'hui, ou le dernier jour d'un Exercice terminé. */
+		constatDu:
+			saisir && exercice.statut === 'ouvert'
+				? ctx.aujourdhui < (exercice.fin as string)
+					? ctx.aujourdhui
+					: exercice.fin
+				: null,
+		aClore: saisir ? (aClore ?? null) : null
 	};
 }
+
+export const actions = {
+	constat: action(schemaConstat, (app, ctx, e) => app.pointage.saisirSolde(ctx, e))
+};

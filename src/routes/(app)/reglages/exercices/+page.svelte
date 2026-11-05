@@ -131,6 +131,9 @@
 							<a href={urlAvec({ panneau: `balance-${e.id}` })} data-sveltekit-reset="false">
 								Balance d’ouverture
 							</a>
+							<a class="cloture" href="/reglages/exercices/{e.id}/cloture">Clôturer</a>
+						{:else if e.statut === 'cloture'}
+							<a href="/reglages/exercices/{e.id}/cloture">Voir la clôture</a>
 						{/if}
 					</td>
 				</tr>
@@ -243,5 +246,9 @@
 	.droite {
 		text-align: right;
 		white-space: nowrap;
+	}
+
+	.cloture {
+		margin-left: var(--espace-3);
 	}
 </style>

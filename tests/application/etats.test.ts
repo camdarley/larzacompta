@@ -77,6 +77,42 @@ describe('jeu fictif complet (5.1)', () => {
 		const { resultat, anomalies } = valeur(i.app.etats.compteDeResultat(i.ctx(), e));
 		expect(anomalies[0]).toMatch(/diffèrent de 10,00/);
 		expect(resultat.resultat).toBe(-90_00);
+		const tableau = valeur(i.app.etats.tableau(i.ctx(), e));
+		expect(tableau.anomalies).toHaveLength(1);
+		expect(tableau.bilan.type).not.toBe('a_jour');
+	});
+
+	it('le Tableau de contrôle ne dit jamais « Tout est à jour » sur une équation fausse', () => {
+		const i = instanceFictive();
+		const id = creerOperation(i, { ...depenseSimple(i), sansPiece: true } as never);
+		const cote = i.app.socle.depots.operations.parId(id)!.cotes[0]!;
+		const ligne = valeur(
+			i.app.pointage.saisirLigne(i.ctx(), {
+				compteId: i.banque,
+				date: cote.date,
+				montant: cote.montant,
+				libelle: 'Papeterie'
+			})
+		);
+		valeur(
+			i.app.pointage.pointer(i.ctx(), {
+				compteId: i.banque,
+				coteIds: [cote.id],
+				ligneIds: [ligne.id]
+			})
+		);
+		const e = i.exercice('2026-2027');
+		for (const [compteId, solde] of [
+			[i.banque, c(1100_00)],
+			[i.livret, c(9000_00)]
+		] as const) {
+			valeur(i.app.pointage.saisirSolde(i.ctx(), { compteId, date: '2026-10-31', solde }));
+		}
+		valeur(i.app.operations.definirSansPiece(i.ctx(), { id, sansPiece: true }));
+		expect(valeur(i.app.etats.tableau(i.ctx(), e)).bilan.type).toBe('a_jour');
+
+		i.base.exec(`UPDATE ligne SET montant_centimes = -9000 WHERE operation_id = ${id}`);
+		expect(valeur(i.app.etats.tableau(i.ctx(), e)).bilan).toEqual({ type: 'taches', nombre: 1 });
 	});
 });
 
@@ -90,6 +126,15 @@ describe('page d’Action', () => {
 		expect(k.groupe).not.toBe('');
 		const r = i.app.etats.action(i.ctx(), e, 9999);
 		expect(!r.ok && r.erreur.code).toBe('element_introuvable');
+	});
+});
+
+describe('écran Actions', () => {
+	it('dit qu’aucune Action n’existe encore', () => {
+		const i = instanceFictive();
+		i.base.exec('DELETE FROM action');
+		const a = valeur(i.app.etats.actions(i.ctx(), i.exercice('2026-2027')));
+		expect(a.aucuneAction).toBe(true);
 	});
 });
 

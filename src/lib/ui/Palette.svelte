@@ -88,7 +88,7 @@
 				choix: distant.actions.map((a) => ({
 					cle: `action-${a.id}`,
 					libelle: a.libelle,
-					lancer: aller(lien(`/operations?action=${a.id}`))
+					lancer: aller(lien(`/actions/${a.id}`))
 				}))
 			}
 		];

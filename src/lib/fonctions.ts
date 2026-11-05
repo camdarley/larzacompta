@@ -26,6 +26,8 @@ const LIVREES: ReadonlySet<Fonction> = new Set<Fonction>([
 	'pointage',
 	'creances_dettes',
 	'pieces',
+	'actions',
+	'etats',
 	'reglages',
 	'journal',
 	'aide'

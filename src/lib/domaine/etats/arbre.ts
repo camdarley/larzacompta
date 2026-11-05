@@ -97,6 +97,30 @@ export function noeudGroupe(g: NoeudGroupe): Noeud {
 	};
 }
 
+/** Bloc « Sur Exercices antérieurs » : ses clés ne se mêlent pas à celles du tableau principal. */
+export function noeudAnterieur(g: NoeudGroupe): Noeud {
+	const prefixer = (n: Noeud): Noeud => ({
+		...n,
+		cle: `x-${n.cle}`,
+		enfants: n.enfants.map(prefixer)
+	});
+	return prefixer(noeudGroupe(g));
+}
+
+/** « Sans Action », à part, par Nature (écran Actions). */
+export function noeudSansAction(natures: readonly NoeudNature[], t: Totaux): Noeud {
+	const { recettes, depenses, resultat } = t;
+	return {
+		cle: 's',
+		type: 'section',
+		libelle: 'Sans Action',
+		recettes,
+		depenses,
+		resultat,
+		enfants: natures.map((n) => noeudNature(n, 's'))
+	};
+}
+
 /** Seules les rangées dont tous les parents sont dépliés sont rendues. */
 export function aplatir(
 	noeuds: readonly Noeud[],

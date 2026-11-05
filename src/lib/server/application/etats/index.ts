@@ -12,7 +12,8 @@ import {
 	dernierPointage,
 	lignesNonPointees,
 	operationsAnciennes,
-	sansReleve
+	sansReleve,
+	type Bilan
 } from '#lib/domaine/etats/controle.ts';
 import {
 	modeleAction,
@@ -30,8 +31,10 @@ import {
 	lisezMoi
 } from '#lib/domaine/etats/export-complet.ts';
 import {
+	anomaliesEquation,
 	compteDeResultat,
 	detailAction,
+	equationDeControle,
 	resultatParAction,
 	type ParametrageEtats
 } from '#lib/domaine/etats/resultat.ts';
@@ -58,6 +61,8 @@ export function parametrageDe(
 		? (JSON.parse(cloture.parametrageFigeJson) as ParametrageEtats)
 		: parametrageCourant(depots);
 }
+
+const anormal = (nombre: number): Bilan => ({ type: 'taches', nombre });
 
 export type TypeEtat = 'compte-de-resultat' | 'tresorerie' | 'actions' | 'action' | 'document-ag';
 
@@ -92,11 +97,15 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 			{ id: 'anciennes' as const, compteur: anciennes.length }
 		];
 		const premierReleve = sansReleve(j, cartes, e);
+		const anomalies = anomaliesEquation(equationDeControle(j, e, parametrageDe(depots, e)));
+		const lu = bilan(cartes, taches, premierReleve);
 		return {
 			cartes,
 			taches,
 			premierReleve,
-			bilan: bilan(cartes, taches, premierReleve),
+			// Une équation fausse n'est jamais « Tout est à jour » (AD-4).
+			bilan: anomalies.length > 0 && lu.type === 'a_jour' ? anormal(anomalies.length) : lu,
+			anomalies: anomalies.map(messageAnomalie),
 			dernierPointage: dernierPointage(j, e)
 		};
 	}

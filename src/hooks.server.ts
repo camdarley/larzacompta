@@ -30,6 +30,9 @@ function refusJson(code: string, status: number) {
 	return json({ code, details: {} }, { status });
 }
 
+/** Fichiers affichés en iframe : une Pièce, l'aperçu du Document d'AG. */
+const APERCUS = new Set(['/fichiers/[sha]', '/(app)/etats/document-ag/pdf']);
+
 const estAction = (request: Request) => request.headers.get('x-sveltekit-action') === 'true';
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -89,7 +92,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Une Pièce s'affiche dans le `panneau`, en iframe : `frame-ancestors 'self'` la garde (AD-16).
 	reponse.headers.set(
 		'X-Frame-Options',
-		event.route.id === '/fichiers/[sha]' ? 'SAMEORIGIN' : 'DENY'
+		event.route.id !== null && APERCUS.has(event.route.id) ? 'SAMEORIGIN' : 'DENY'
 	);
 	return reponse;
 };

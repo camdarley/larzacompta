@@ -94,9 +94,9 @@
 		top: 0;
 		display: flex;
 		flex-direction: column;
-		gap: var(--espace-4);
+		gap: var(--espace-3);
 		height: 100dvh;
-		padding: var(--espace-4) var(--espace-3);
+		padding: var(--espace-3);
 		background: var(--surface-sunken);
 		color: var(--ink-muted);
 	}
@@ -119,7 +119,7 @@
 	}
 
 	.groupe + .groupe {
-		margin-top: var(--espace-4);
+		margin-top: var(--espace-3);
 	}
 
 	.titre-groupe {
