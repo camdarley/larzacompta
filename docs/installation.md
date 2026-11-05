@@ -42,7 +42,16 @@ AWS_ACCESS_KEY_ID=identifiant-fourni-par-l-hebergeur
 AWS_SECRET_ACCESS_KEY=secret-fourni-par-l-hebergeur
 ```
 
-Pour un serveur SFTP, indiquez `RESTIC_REPOSITORY=sftp:ape@sauvegarde.exemple.org:/depot`, puis donnez sa clé à l'application dans un fichier `compose.override.yaml` :
+Pour un serveur SFTP, indiquez `RESTIC_REPOSITORY=sftp:ape@sauvegarde.exemple.org:/depot`, ou `sftp://ape@sauvegarde.exemple.org:2222//depot` si son port n'est pas le 22. Préparez ensuite une clé pour l'application, sans mot de passe, et autorisez sa partie publique (`id_ed25519.pub`) sur le serveur SFTP :
+
+```sh
+mkdir cle-sftp
+ssh-keygen -t ed25519 -N "" -f cle-sftp/id_ed25519
+ssh-keyscan sauvegarde.exemple.org > cle-sftp/known_hosts
+chown -R 1000:1000 cle-sftp
+```
+
+Ajoutez `-p 2222` à `ssh-keyscan` pour un port différent. Le `chown` compte : l'application tourne sous l'utilisateur 1000 et doit pouvoir lire sa clé. Donnez-lui ce dossier dans un fichier `compose.override.yaml` :
 
 ```yaml
 services:

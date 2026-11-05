@@ -63,19 +63,16 @@ function sur(machine: string, script: string) {
 }
 
 async function attendre(machine: string, script: string, quoi: string, essais = 120) {
+	let dernier = '';
 	for (let i = 0; i < essais; i++) {
-		const r = spawnSync('docker', ['exec', '-w', '/root', machine, 'sh', '-c', script]);
+		const r = spawnSync('docker', ['exec', '-w', '/root', machine, 'sh', '-c', script], {
+			encoding: 'utf8'
+		});
 		if (r.status === 0) return;
+		dernier = `${r.stdout}${r.stderr}`;
 		await new Promise((f) => setTimeout(f, 1000));
 	}
-	const journal = spawnSync(
-		'docker',
-		['exec', '-w', '/root/ape-compta', machine, 'sh', '-c', 'docker compose logs --tail 20'],
-		{
-			encoding: 'utf8'
-		}
-	);
-	throw new Error(`Jamais vu : ${quoi}\n${journal.stdout}`);
+	throw new Error(`Jamais vu : ${quoi}\n${dernier.slice(-2000)}`);
 }
 
 /** Une machine neuve : Linux, Git, Docker et Compose. Rien d'autre. */
@@ -278,7 +275,7 @@ docker image rm ${REGISTRE}/ape-compta:suivante >/dev/null`
 	sur(a, `cd ape-compta && echo 'APE_IMAGE=${REGISTRE}/ape-compta:suivante' >> .env`);
 	sur(
 		a,
-		'cd ape-compta && docker compose pull app caddy 2>&1 | tail -2 && docker compose pull 2>&1 | tail -1 && docker compose up -d 2>&1 | tail -3'
+		'cd ape-compta && docker compose pull 2>&1 | tail -1 && docker compose up -d 2>&1 | tail -1'
 	);
 	await attendre(
 		a,
@@ -363,12 +360,9 @@ console.log(b.prepare('SELECT count(*) FROM schema_migrations').pluck().get(), b
 		b,
 		`cd ape-compta
 sed -i "/^RESTIC_REPOSITORY=/d" .env
-echo 'RESTIC_REPOSITORY=sftp:ape@sftp.exemple.test:/config/depot' >> .env
-cat >> cle-sftp/config <<'F'
-Host sftp.exemple.test
-  Port 2222
-F
+echo 'RESTIC_REPOSITORY=sftp://ape@sftp.exemple.test:2222//config/depot' >> .env
 ssh-keyscan -p 2222 sftp.exemple.test 2>/dev/null > cle-sftp/known_hosts
+chown -R 1000:1000 cle-sftp
 cat >> compose.override.yaml <<'F'
     volumes:
       - ./cle-sftp:/home/node/.ssh:ro

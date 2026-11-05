@@ -394,7 +394,8 @@
 
 	.champs {
 		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
+		/* À 200 % de zoom, un champ de date ne se comprime pas : il passe à la ligne. */
+		grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
 		gap: var(--espace-3);
 	}
 
