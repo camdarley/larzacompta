@@ -15,7 +15,7 @@ test('2.4 : chaque rangée montre tout, se clique, et son libellé est un vrai l
 	page
 }) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
-	await page.goto('/operations');
+	await page.goto('/operations', { waitUntil: 'networkidle' });
 	await expect(page.locator('thead th')).toHaveText([
 		'Date',
 		'Libellé',

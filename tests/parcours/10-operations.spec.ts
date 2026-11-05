@@ -164,7 +164,8 @@ test('2.2 : Enregistrer, puis Enregistrer et continuer avec même date et même 
 test('2.2 : un montant manquant s’explique, et une saisie en cours ne se perd pas', async ({
 	page
 }) => {
-	await page.goto('/operations');
+	// Hydratée d'abord : sinon Entrée recharge toute la page et le lien n'a plus de focus à reprendre.
+	await page.goto('/operations', { waitUntil: 'networkidle' });
 	const lien = page.getByRole('link', { name: 'Nouvelle Opération' }).first();
 	await lien.focus();
 	await lien.press('Enter');

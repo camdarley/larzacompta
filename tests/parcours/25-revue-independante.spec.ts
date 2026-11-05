@@ -10,6 +10,7 @@ import { expect, test, type Page } from '@playwright/test';
 import Database from 'better-sqlite3';
 import { chargerDansDossier, COMPTES_FICTIFS, type JeuCharge } from '../jeux/charger.ts';
 import { ofxCp1252, ofxTexte } from '../jeux/releve-fictif.ts';
+import { toucheLiens } from './aides.ts';
 import { demarrerServeur } from './aides-instance.ts';
 
 const PORT = 4181;
@@ -68,7 +69,10 @@ const nomDuFocus = (page: Page) =>
 		return (label ?? e?.getAttribute('aria-label') ?? e?.textContent ?? e?.tagName ?? '').trim();
 	});
 
-test('Tab parcourt tout le panneau Opération, de `n` à Enregistrer', async ({ page }) => {
+test('Tab parcourt tout le panneau Opération, de `n` à Enregistrer', async ({
+	page,
+	browserName
+}) => {
 	await connecter(page);
 	await page.goto('/');
 	await page.waitForLoadState('networkidle');
@@ -76,7 +80,7 @@ test('Tab parcourt tout le panneau Opération, de `n` à Enregistrer', async ({ 
 	await expect(page.getByRole('dialog')).toBeVisible();
 	const vus: string[] = [];
 	for (let i = 0; i < 40; i++) {
-		await page.keyboard.press('Tab');
+		await page.keyboard.press(toucheLiens(browserName));
 		const nom = await nomDuFocus(page);
 		vus.push(nom);
 		if (nom.startsWith('Enregistrer')) break;
