@@ -7,6 +7,8 @@
 		titre: string;
 		/** Complète le titre de l'onglet : « Comptes, Réglages ». */
 		contexte?: string;
+		/** Précède le titre dans l'onglet, quand une page en a plusieurs : « Toutes, Pièces ». */
+		onglet?: string;
 		sousTitre?: string;
 		/** `title` au lieu de `display` : page dans une carte. */
 		petit?: boolean;
@@ -20,6 +22,7 @@
 	let {
 		titre,
 		contexte,
+		onglet,
 		sousTitre,
 		petit = false,
 		sansTitre = false,
@@ -28,7 +31,7 @@
 	}: Props = $props();
 
 	const titreOnglet = $derived(
-		[titre, contexte, page.data.nomApe as string | undefined].filter(Boolean).join(', ')
+		[onglet, titre, contexte, page.data.nomApe as string | undefined].filter(Boolean).join(', ')
 	);
 </script>
 

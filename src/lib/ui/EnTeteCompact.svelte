@@ -75,6 +75,17 @@
 		}
 	}
 
+	/* À 320 px, le nom tiendrait en « A… » : il cède sa place, l'écran porte déjà son titre. */
+	@media (max-width: 379.98px) {
+		.compact:has(.nouvelle) .nom {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+		}
+	}
+
 	@media (max-width: 639.98px) {
 		.compact {
 			padding: var(--espace-2) var(--espace-page-mobile);

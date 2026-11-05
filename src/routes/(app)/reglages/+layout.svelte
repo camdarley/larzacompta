@@ -1,10 +1,16 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { TEXTES } from '#lib/messages.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import Onglets from '#lib/ui/Onglets.svelte';
 	import ReserveOrdinateur from '#lib/ui/ReserveOrdinateur.svelte';
 
 	let { children, data } = $props();
+
+	/** Rien à y travailler : ces deux sections se lisent et se téléchargent aussi sur téléphone. */
+	const consultation = $derived(
+		['/reglages/sauvegardes', '/reglages/a-propos'].some((c) => page.url.pathname.startsWith(c))
+	);
 
 	const onglets = [
 		{ libelle: 'Association', href: '/reglages' },
@@ -27,7 +33,7 @@
 		{#if data.versionObsolete}
 			<Bandeau ton="regarder">{TEXTES.version_obsolete}</Bandeau>
 		{/if}
-		<ReserveOrdinateur />
+		{#if !consultation}<ReserveOrdinateur />{/if}
 		{@render children()}
 	</div>
 </div>

@@ -25,7 +25,7 @@
 			<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 			<pre tabindex="0"><code>{b.texte}</code></pre>
 		{:else}
-			<svelte:element this={b.ordonnee ? 'ol' : 'ul'}>
+			<svelte:element this={b.ordonnee ? 'ol' : 'ul'} start={b.ordonnee ? b.debut : undefined}>
 				{#each b.elements as e, j (j)}
 					<li>{@render texte(e)}</li>
 				{/each}

@@ -26,6 +26,19 @@ describe('lireMarkdown', () => {
 		expect(blocs[5]).toMatchObject({ niveau: 3 });
 	});
 
+	it('garde le numéro d’une liste coupée par un bloc de code', () => {
+		const blocs = lireMarkdown('1. un\n\n```sh\nape\n```\n\n2. deux\n');
+		expect(blocs[0]).toMatchObject({ debut: 1 });
+		expect(blocs[2]).toMatchObject({ debut: 2 });
+	});
+
+	it('rend l’apostrophe typographique, sauf dans le code', () => {
+		expect(morceaux("l'outil `l'outil`")).toEqual([
+			{ type: 'texte', texte: 'l’outil ' },
+			{ type: 'code', texte: "l'outil" }
+		]);
+	});
+
 	it('découpe le code et le gras en ligne', () => {
 		expect(morceaux('Lancez `ape` **maintenant**.')).toEqual([
 			{ type: 'texte', texte: 'Lancez ' },

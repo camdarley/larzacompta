@@ -5,13 +5,16 @@
 
 	let { manquantes, toutes }: { manquantes: number; toutes: number } = $props();
 
+	/** Deux onglets, deux titres de page : « Toutes, Pièces, APE des Tilleuls ». */
+	const onglet = $derived(page.url.pathname.endsWith('/toutes') ? 'Toutes' : 'Manquantes');
+
 	const lien = (href: string) => {
 		const choisi = page.url.searchParams.get('exercice');
 		return choisi ? `${href}?exercice=${encodeURIComponent(choisi)}` : href;
 	};
 </script>
 
-<EnTete titre="Pièces" aide={{ ancre: 'piece', texte: 'Qu’est-ce qu’une Pièce ?' }} />
+<EnTete titre="Pièces" {onglet} aide={{ ancre: 'piece', texte: 'Qu’est-ce qu’une Pièce ?' }} />
 
 <div class="onglets">
 	<Onglets

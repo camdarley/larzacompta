@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { reprendreToast, retirerToast, suspendreToast, toasts } from './toasts.svelte.ts';
 
 	/**
@@ -9,7 +10,8 @@
 
 	$effect(() => {
 		if (!dansPanneau) return;
-		toasts.panneaux += 1;
+		// Hors suivi : ce compteur se lit et s'écrit ici, l'effet ne doit pas dépendre de lui.
+		untrack(() => (toasts.panneaux += 1));
 		return () => {
 			toasts.panneaux -= 1;
 		};
