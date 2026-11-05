@@ -84,6 +84,36 @@ export const ARTICLES: readonly Article[] = [
 		]
 	},
 	{
+		id: 'importer',
+		titre: 'Importer un relevé',
+		paragraphes: [
+			'Déposez le fichier OFX ou CSV téléchargé depuis votre banque dans la page Pointage. Réimportez sans crainte : une ligne déjà connue n’est jamais ajoutée deux fois, même si deux fichiers se chevauchent.',
+			'Pour un CSV, indiquez une fois les colonnes de votre fichier. Le réglage reste retenu pour ce Compte. Si votre banque change ses colonnes, l’outil le dit et vous les redemande.',
+			'Deux lignes identiques sont À regarder : même date, même montant, même libellé. Gardez-les si ce sont deux mouvements réels, écartez celle qui est en trop.',
+			'Sans fichier à importer, « Saisir une ligne » recopie une ligne de votre relevé à la main. Elle se pointe comme les autres.'
+		]
+	},
+	{
+		id: 'pointer',
+		titre: 'Pointer un relevé',
+		paragraphes: [
+			'Pointer, c’est relier une ligne de votre relevé à l’Opération qui lui correspond. L’outil propose, vous décidez : rien n’est jamais pointé sans votre geste.',
+			'Chaque proposition dit pourquoi elle apparaît. Si elle repose sur un n° de facture ou un montant unique, elle est déjà sélectionnée : Entrée la valide, et la ligne suivante s’active. Le message « Pointé. Annuler » permet de revenir en arrière aussitôt.',
+			'Rien ne correspond ? La touche c crée l’Opération depuis la ligne, sans ressaisir la date, le montant et le libellé. La touche r cherche une Opération non proposée. Espace coche plusieurs éléments pour relier une ligne à plusieurs Opérations, ou l’inverse.',
+			'Une différence de quelques centimes se traite avec « Créer un ajustement » : une petite Opération couvre l’écart et entre dans le Pointage.',
+			'Une Opération pointée garde son montant et son Compte. Pour les changer, annulez d’abord le Pointage depuis la file ou depuis l’Opération.'
+		]
+	},
+	{
+		id: 'ecart',
+		titre: 'Comprendre un Écart',
+		paragraphes: [
+			'L’Écart compare le solde du relevé au solde calculé par l’outil, à la date du relevé. À 0,00 €, vos Opérations et la banque disent la même chose, au centime.',
+			'Un clic sur l’Écart ouvre ses causes : les Lignes de relevé et les Opérations non pointées, et la somme qu’elles expliquent. Une Opération non pointée plus ancienne que le dernier relevé est à regarder en premier.',
+			'Si votre fichier ne donne pas de solde, l’outil vous le demande : recopiez celui de votre relevé.'
+		]
+	},
+	{
 		id: 'journal',
 		titre: 'Journal des modifications',
 		paragraphes: [
@@ -256,6 +286,18 @@ export const RACCOURCIS: readonly { touche: string; effet: string }[] = [
 	{ touche: 'Échap', effet: 'Ferme la couche du dessus' },
 	{ touche: 'Ctrl+Entrée', effet: 'Dans le panneau : enregistre (⌘Entrée sur Mac)' },
 	{ touche: '=', effet: 'Dans un montant de Ligne : insère le reste à répartir' }
+];
+
+/** Raccourcis propres à la page Pointage : la file ou le volet doit avoir le focus. */
+export const RACCOURCIS_POINTAGE: readonly { touche: string; effet: string }[] = [
+	{ touche: '↓ ↑ ou j k', effet: 'Ligne de relevé suivante, précédente' },
+	{ touche: '1 2 3', effet: 'Sélectionne une proposition' },
+	{ touche: 'Entrée', effet: 'Pointe avec la proposition sélectionnée' },
+	{ touche: 'Espace', effet: 'Coche pour relier plusieurs éléments' },
+	{ touche: 'c', effet: 'Crée une Opération depuis la ligne' },
+	{ touche: 'r', effet: 'Cherche une Opération à relier' },
+	{ touche: 'p', effet: 'Passe cette ligne, sans la pointer' },
+	{ touche: 'Ctrl+Z', effet: 'Annule le dernier Pointage (⌘Z sur Mac)' }
 ];
 
 /** Pour un·e successeur·e : l'année racontée dans l'ordre (UJ-4). */

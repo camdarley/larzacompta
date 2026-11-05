@@ -19,7 +19,12 @@
 		compte: 'Compte',
 		exercice: 'Exercice',
 		groupe: 'Groupe',
-		nature: 'Nature'
+		nature: 'Nature',
+		operation: 'Opération',
+		pointage: 'Pointage',
+		import_releve: 'Relevé',
+		ligne_releve: 'Ligne de relevé',
+		constat_solde: 'Solde du relevé'
 	};
 	const CHEMINS: Record<string, (id: number) => string> = {
 		acces: () => '/reglages/acces',

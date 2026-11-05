@@ -7,7 +7,7 @@ import type { ErreurMetier } from '#lib/domaine/resultat.ts';
 const MESSAGES = {
 	// Messages d'erreur et d'alerte.
 	fichier_illisible:
-		"Ce fichier n'a pas pu être lu : il ne ressemble pas à un relevé OFX ou CSV. Rien n'a été importé. Vérifiez que vous avez choisi le bon fichier.",
+		'Ce fichier n’a pas pu être lu : il ne ressemble pas à un relevé OFX ou CSV. Rien n’a été importé. Vérifiez que vous avez choisi le bon fichier.',
 	format_change:
 		'La colonne {colonne} est introuvable dans ce fichier. Rien n’a été importé. Indiquez les colonnes pour continuer.',
 	fichier_connu: 'Toutes les lignes de ce fichier sont déjà connues. Rien n’a été ajouté.',
@@ -80,6 +80,8 @@ const MESSAGES = {
 		'Ces éléments ne se pointent pas ensemble : ils doivent porter sur le même Compte, et n’être pas déjà pointés.',
 	ligne_releve_conservee:
 		'Cette Ligne de relevé vient de votre banque : seule une ligne en double s’écarte.',
+	solde_egal_releve: 'Le solde calculé égale le relevé du {date}, au centime.',
+	lignes_traitees_ecart: 'Toutes les lignes sont traitées, mais il reste un Écart de {montant}.',
 	ligne_avant_ancre:
 		'Cette date précède le solde de départ de ce Compte : la ligne n’entrerait pas dans le contrôle.',
 
@@ -117,7 +119,10 @@ export const TEXTES = {
 	exercice_cloture_bandeau: 'Exercice clôturé, lecture seule',
 	sur_ordinateur: 'Cet écran se travaille sur ordinateur.',
 	quitter_sans_enregistrer: 'Quitter sans enregistrer ?',
-	cahier_pret: 'Votre cahier est prêt.'
+	cahier_pret: 'Votre cahier est prêt.',
+	tout_pointe: 'Tout est pointé',
+	premier_releve: 'Importez votre premier relevé pour commencer le contrôle.',
+	solde_ignore: 'Le solde de ce relevé tombe dans un Exercice clôturé : il est ignoré.'
 } as const;
 
 function remplir(gabarit: string, details: Record<string, unknown> | undefined) {

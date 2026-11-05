@@ -69,6 +69,21 @@
 		occupe = false;
 	}
 
+	async function annulerPointage() {
+		if (occupe) return;
+		occupe = true;
+		for (const id of detail.pointageIds) {
+			const r = await envoyer(`/api/pointage/annuler/${id}`);
+			if (r.type !== 'ok') {
+				occupe = false;
+				await suivre(r, '');
+				return;
+			}
+		}
+		occupe = false;
+		await suivre({ type: 'ok', valeur: null }, 'Pointage annulé.');
+	}
+
 	async function delier() {
 		if (occupe) return;
 		occupe = true;
@@ -146,6 +161,12 @@
 					</li>
 				{/each}
 			</ul>
+		{/if}
+		{#if erreur && !relierOuvert}<Bandeau ton="erreur" alerte>{erreur}</Bandeau>{/if}
+		{#if peutSaisir}
+			<div class="boutons">
+				<Bouton variante="discret" {occupe} onclick={annulerPointage}>Annuler le Pointage</Bouton>
+			</div>
 		{/if}
 	</section>
 {/if}

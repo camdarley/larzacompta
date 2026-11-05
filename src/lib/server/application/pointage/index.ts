@@ -36,6 +36,8 @@ import {
 	vuePointage,
 	type ComptePointable,
 	type ElementRelie,
+	type LigneASaisir,
+	type Recapitulatif,
 	type VuePointage
 } from '#lib/domaine/releve/vues.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
@@ -48,20 +50,6 @@ export type EntreeImport = {
 	octets: Uint8Array;
 	/** Réglage validé à l'écran de correspondance. Sinon, celui du Compte. */
 	reglage?: ReglageCsv | null;
-};
-
-export type Recapitulatif = {
-	type: 'recapitulatif';
-	lues: number;
-	nouvelles: number;
-	connues: number;
-	ecartees: number;
-	aConfirmer: number;
-	/** Solde daté dans un Exercice clôturé : les lignes passent, le solde est ignoré. */
-	soldeIgnore: boolean;
-	/** Le fichier n'a pas de solde : il se demande à l'écran. */
-	soldeDemande: { date: DateCivile } | null;
-	trou: Trou | null;
 };
 
 export type DemandeCorrespondance = {
@@ -90,11 +78,6 @@ export type CandidatPointage = ElementRelie & { coteId: number };
 export type PagePointage = VuePointage & {
 	compte: ComptePointable;
 	comptes: ComptePointable[];
-};
-
-export type LigneASaisir = Pick<LigneReleveJ, 'id' | 'compteId' | 'libelle' | 'montant'> & {
-	date: DateCivile;
-	rattachementId: number | null;
 };
 
 const acteur = (o: Pick<Outils, 'ctx'>) => (o.ctx.acces as NonNullable<Ctx['acces']>).id;

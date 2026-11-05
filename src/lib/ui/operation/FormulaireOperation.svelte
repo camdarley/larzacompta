@@ -12,6 +12,7 @@
 	import { centimes, formaterMontant, lireMontant, type Centimes } from '#lib/domaine/montant.ts';
 	import { dateProposee } from '#lib/domaine/operations/lecture.ts';
 	import type { ContexteSaisie, DetailOperation } from '#lib/domaine/operations/vues.ts';
+	import type { LigneASaisir } from '#lib/domaine/releve/vues.ts';
 	import { message, messageErreur, TEXTES, type CodeMessage } from '#lib/messages.ts';
 	import { demander, envoyer } from '#lib/ui/api.ts';
 	import AideTerme from '#lib/ui/AideTerme.svelte';
@@ -41,6 +42,8 @@
 		detail: DetailOperation | null;
 		/** Modèle d'une duplication, ou Opération reçue d'un « Rendre cette somme ». */
 		modele: DetailOperation | null;
+		/** Ligne de relevé d'où part l'Opération : enregistrer la pointe aussi (FR-14). */
+		ligne: LigneASaisir | null;
 		rendre: boolean;
 		introuvable: boolean;
 		intention: string | null;
@@ -53,6 +56,7 @@
 		contexte,
 		detail,
 		modele,
+		ligne,
 		rendre,
 		introuvable,
 		intention,
@@ -102,11 +106,33 @@
 			s.libelle = `Rendu : ${modele.operation.libelle}`;
 			s.montant = montantTexte(modele.resteARendre ?? centimes(0));
 			s.date = date;
+		} else if (ligne) {
+			reprendreLigne(s, ligne);
 		} else if (detail === null && modele === null) {
 			const voulue = intention as Choix | null;
 			if (voulue && [...ACTIFS, ...AUTRES.map((a) => a.choix)].includes(voulue)) s.choix = voulue;
 		}
 		return s;
+	}
+
+	/** Date, montant, libellé et intention viennent du relevé : rien à ressaisir. */
+	function reprendreLigne(s: Saisie, l: LigneASaisir) {
+		const sortie = l.montant < 0;
+		s.choix = sortie ? 'depense' : 'recette';
+		s.compteId = l.compteId;
+		s.deId = sortie ? l.compteId : null;
+		s.versId = sortie ? null : l.compteId;
+		s.date = l.date;
+		s.parti = l.date;
+		s.arrive = l.date;
+		s.libelle = l.libelle;
+		s.montant = montantTexte(centimes(Math.abs(l.montant)));
+		s.surMontant();
+		const [premiere] = s.lignes;
+		if (premiere && l.rattachementId !== null) {
+			premiere.rattachementId = l.rattachementId;
+			premiere.rattachementOuvert = true;
+		}
 	}
 
 	function montantTexte(c: Centimes) {
@@ -435,14 +461,26 @@
 						cle: saisie.cle,
 						saisie: corps
 					})
-				: await envoyer<{ id: number }>('/api/operations', { ...corps, cle: saisie.cle });
+				: ligne
+					? await envoyer<{ id: number }>('/api/pointage/depuis-ligne', {
+							ligneId: ligne.id,
+							cle: saisie.cle,
+							saisie: corps
+						})
+					: await envoyer<{ id: number }>('/api/operations', { ...corps, cle: saisie.cle });
 			occupe = false;
 			if (r.type !== 'ok') {
 				traiterEchec(r, lancer);
 				return;
 			}
-			afficherToast(TEXTES.enregistre);
 			modifie = false;
+			if (ligne) {
+				// La file voit le Pointage avant que le panneau se ferme, et active la ligne suivante.
+				await refreshAll();
+				fermer();
+				return;
+			}
+			afficherToast(TEXTES.enregistre);
 			if (continuer) {
 				const garde = { date: saisie.date, compte: saisie.compteId, choix: saisie.choix };
 				saisie = new Saisie(garde.date, garde.compte);
@@ -956,9 +994,10 @@
 	{#snippet pied()}
 		{#if !lectureSeule}
 			<Bouton {occupe} onclick={() => envoyerSaisie(false)}>
-				Enregistrer <span class="touches"><Touche>Ctrl</Touche><Touche>Entrée</Touche></span>
+				{ligne ? 'Enregistrer et pointer' : 'Enregistrer'}
+				<span class="touches"><Touche>Ctrl</Touche><Touche>Entrée</Touche></span>
 			</Bouton>
-			{#if estNouvelle}
+			{#if estNouvelle && !ligne}
 				<Bouton variante="discret" onclick={() => envoyerSaisie(true)}>
 					Enregistrer et continuer
 				</Bouton>

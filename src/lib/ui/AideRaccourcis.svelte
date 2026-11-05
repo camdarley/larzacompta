@@ -1,10 +1,15 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { Dialog } from 'bits-ui';
-	import { RACCOURCIS } from '#lib/aide.ts';
+	import { RACCOURCIS, RACCOURCIS_POINTAGE } from '#lib/aide.ts';
 	import Bouton from './Bouton.svelte';
 	import Touche from './Touche.svelte';
 
 	let { ouvert = $bindable(false) }: { ouvert?: boolean } = $props();
+
+	const liste = $derived(
+		page.url.pathname.startsWith('/pointage') ? [...RACCOURCIS_POINTAGE, ...RACCOURCIS] : RACCOURCIS
+	);
 </script>
 
 <Dialog.Root bind:open={ouvert}>
@@ -16,7 +21,7 @@
 				Une touche seule n’agit jamais pendant une saisie.
 			</Dialog.Description>
 			<ul class="liste">
-				{#each RACCOURCIS as r (r.touche)}
+				{#each liste as r (r.touche)}
 					<li><span><Touche contenu>{r.touche}</Touche></span><span>{r.effet}</span></li>
 				{/each}
 			</ul>

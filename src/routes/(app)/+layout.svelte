@@ -80,6 +80,7 @@
 		exercice={data.exercice}
 		nomAcces={data.acces.nomAffiche}
 		peutSaisir={data.peutSaisir}
+		compteurs={data.compteurs}
 		{lien}
 	/>
 	<div class="colonne">

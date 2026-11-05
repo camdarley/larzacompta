@@ -37,6 +37,15 @@ export async function envoyer<T>(url: string, corps?: unknown): Promise<Reponse<
 	}
 }
 
+/** Dépôt de fichier : le corps est un formulaire multipart, seul moyen de porter les octets. */
+export async function envoyerFichier<T>(url: string, corps: FormData): Promise<Reponse<T>> {
+	try {
+		return await interpreter<T>(await fetch(url, { method: 'POST', body: corps }));
+	} catch {
+		return { type: 'reseau' };
+	}
+}
+
 export async function demander<T>(url: string): Promise<Reponse<T>> {
 	try {
 		return await interpreter<T>(await fetch(url));

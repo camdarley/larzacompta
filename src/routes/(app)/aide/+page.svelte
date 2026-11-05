@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { ARTICLES, GLOSSAIRE, PREMIERE_ANNEE, RACCOURCIS } from '#lib/aide.ts';
+	import {
+		ARTICLES,
+		GLOSSAIRE,
+		PREMIERE_ANNEE,
+		RACCOURCIS,
+		RACCOURCIS_POINTAGE
+	} from '#lib/aide.ts';
 	import EnTete from '#lib/ui/EnTete.svelte';
 	import Touche from '#lib/ui/Touche.svelte';
 </script>
@@ -42,6 +48,12 @@
 		<h2 class="t-heading">Raccourcis du clavier</h2>
 		<ul>
 			{#each RACCOURCIS as r (r.touche)}
+				<li><Touche contenu>{r.touche}</Touche> {r.effet}</li>
+			{/each}
+		</ul>
+		<h3 class="t-label">Dans le Pointage</h3>
+		<ul>
+			{#each RACCOURCIS_POINTAGE as r (r.touche)}
 				<li><Touche contenu>{r.touche}</Touche> {r.effet}</li>
 			{/each}
 		</ul>

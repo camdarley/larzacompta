@@ -4,6 +4,7 @@ import type { ReglageCsv } from '#lib/domaine/releve/csv.ts';
 import { composer } from '#lib/server/composition.ts';
 import { baseAvecCloture } from './aides/base.ts';
 import { banc, type Banc } from './aides/app.ts';
+import { sources } from '../projet/fichiers.ts';
 import { LIGNES_FICTIVES, ofxCp1252, ofxTexte, type LigneOfx } from '../jeux/releve-fictif.ts';
 
 const NOM = 'releve-fictif.ofx';
@@ -722,13 +723,21 @@ describe('créer depuis une Ligne de relevé (story 3.9)', () => {
 });
 
 describe('aucun « tout valider » (story 3.6)', () => {
-	it('le module n’expose qu’un pointer explicite, et proposer n’y mène à aucune écriture', async () => {
-		const { readFileSync } = await import('node:fs');
-		const code = readFileSync('src/lib/server/application/pointage/index.ts', 'utf8');
-		expect(code).not.toMatch(/import\s*\{[^}]*\bproposer\b[^}]*\}/);
-		expect(code).not.toMatch(/tout[_ ]?valider|pointerTout|valider_tout/i);
-		const usages = /creerPointage\(/g;
-		// La fabrique, et le seul appel au dépôt.
-		expect(code.match(usages)).toHaveLength(2);
+	const code = sources('src', ['.ts', '.svelte']);
+
+	it('rien n’écrit à partir de proposer() : elle n’atteint que la vue en lecture', () => {
+		const appelants = code
+			.filter((f) => /import\s*\{[^}]*\bproposer\b[^}]*\}/.test(f.contenu))
+			.filter((f) => !f.chemin.startsWith('src/lib/domaine/releve/'))
+			.map((f) => f.chemin);
+		expect(appelants).toEqual([]);
+	});
+
+	it('un seul appel crée un Pointage, et il part d’une action explicite', () => {
+		const appels = code
+			.filter((f) => /depot\.creerPointage|pointage\.creerPointage/.test(f.contenu))
+			.map((f) => f.chemin);
+		expect(appels).toEqual(['src/lib/server/application/pointage/index.ts']);
+		expect(code.filter((f) => /tout[_ ]?valider|pointerTout/i.test(f.contenu))).toEqual([]);
 	});
 });

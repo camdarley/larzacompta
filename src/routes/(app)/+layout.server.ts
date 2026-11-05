@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { peut } from '#lib/domaine/droits.ts';
 import { exerciceSelectionne } from '#lib/domaine/exercices.ts';
-import { entreesMobile, navigation } from '#lib/fonctions.ts';
+import { entreesMobile, fonctionLivree, navigation } from '#lib/fonctions.ts';
 import { message } from '#lib/messages.ts';
 import { application } from '#lib/server/composition.ts';
 import { accesRequis, exiger } from '#lib/server/http.ts';
@@ -25,6 +25,11 @@ export function load({ locals, url }) {
 		return r.ok ? r.valeur : null;
 	};
 	const detail = parametre === 'nouvelle' ? null : lireDetail(parametre);
+	const lireLigne = (id: string | null) => {
+		if (id === null) return null;
+		const r = app.pointage.ligneASaisir(ctx, Number(id));
+		return r.ok ? r.valeur : null;
+	};
 	const panneau =
 		parametre === null || !peut(acces.role, 'consulter')
 			? null
@@ -32,6 +37,7 @@ export function load({ locals, url }) {
 					contexte: exiger(app.operations.contexteSaisie(ctx)),
 					detail,
 					modele: lireDetail(url.searchParams.get('depuis') ?? url.searchParams.get('rendre')),
+					ligne: lireLigne(url.searchParams.get('releve')),
 					introuvable: parametre !== 'nouvelle' && detail === null
 				};
 
@@ -42,6 +48,12 @@ export function load({ locals, url }) {
 			identifiant: acces.identifiant
 		},
 		peutSaisir: peut(acces.role, 'saisir'),
+		compteurs: {
+			pointage:
+				fonctionLivree('pointage') && peut(acces.role, 'saisir')
+					? exiger(app.pointage.aPointer(ctx))
+					: 0
+		},
 		raccourcis: acces.preferences.raccourcis,
 		panneau,
 		theme: acces.preferences.theme,

@@ -15,10 +15,21 @@
 		exercice: Exercice | null;
 		nomAcces: string;
 		peutSaisir: boolean;
+		/** Ce qu'il reste à traiter, par fonction. */
+		compteurs?: Partial<Record<Entree['fonction'], number>>;
 		lien: (href: string) => string;
 	};
 
-	let { nomApe, nav, exercices, exercice, nomAcces, peutSaisir, lien }: Props = $props();
+	let {
+		nomApe,
+		nav,
+		exercices,
+		exercice,
+		nomAcces,
+		peutSaisir,
+		compteurs = {},
+		lien
+	}: Props = $props();
 
 	const actif = (e: Entree) =>
 		e.href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(e.href);
@@ -29,6 +40,11 @@
 		<a href={lien(e.href)} aria-current={actif(e) ? 'page' : undefined}>
 			<Icone nom={e.icone} />
 			<span class="libelle">{e.libelle}</span>
+			{#if compteurs[e.fonction]}
+				<span class="compteur t-caption">
+					{compteurs[e.fonction]}<span class="visuellement-cache"> à traiter</span>
+				</span>
+			{/if}
 		</a>
 	</li>
 {/snippet}
@@ -139,6 +155,18 @@
 		font-weight: var(--typo-label-graisse);
 	}
 
+	.compteur {
+		min-width: 22px;
+		margin-left: auto;
+		padding: 0 var(--espace-1);
+		border-radius: var(--rayon-full);
+		background: var(--surface-raised);
+		color: var(--ink);
+		font-variant-numeric: tabular-nums;
+		font-weight: var(--typo-label-graisse);
+		text-align: center;
+	}
+
 	a.nouvelle {
 		justify-content: center;
 		background: var(--primary);
@@ -179,10 +207,18 @@
 		}
 
 		a {
+			position: relative;
 			justify-content: center;
 			width: var(--espace-touch);
 			height: var(--espace-touch);
 			padding: 0;
+		}
+
+		.compteur {
+			position: absolute;
+			top: 0;
+			right: 0;
+			border: 1px solid var(--border);
 		}
 
 		.groupe + .groupe {

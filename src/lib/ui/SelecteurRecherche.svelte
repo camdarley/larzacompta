@@ -21,6 +21,8 @@
 		libelleCreer?: (texte: string) => string;
 		/** Recherche déportée, pour les Opérations. */
 		chercher?: (texte: string) => Promise<OptionRecherche[]>;
+		/** Montre la liste dès l'ouverture, avant toute frappe. */
+		listerAOuverture?: boolean;
 		/** Valeur suggérée, pas encore acceptée. Tab accepte, taper remplace. */
 		suggere?: boolean;
 		descriptionId?: string;
@@ -46,6 +48,7 @@
 		creer,
 		libelleCreer,
 		chercher,
+		listerAOuverture = false,
 		suggere = false,
 		descriptionId,
 		onaccepter,
@@ -134,6 +137,7 @@
 		placer();
 		active = 0;
 		ouvert = true;
+		if (listerAOuverture && saisie === null) rechercherDistant('');
 	}
 
 	function fermer() {
@@ -153,6 +157,14 @@
 	});
 
 	let attente: ReturnType<typeof setTimeout> | undefined;
+	let derniereDemande = 0;
+
+	/** Seule la dernière demande compte : une réponse lente ne remplace pas une liste plus récente. */
+	async function rechercherDistant(texte: string) {
+		const demande = ++derniereDemande;
+		const trouves = await chercher?.(texte);
+		if (trouves && demande === derniereDemande) distants = trouves;
+	}
 
 	function surSaisie(e: Event & { currentTarget: HTMLInputElement }) {
 		saisie = e.currentTarget.value;
@@ -160,10 +172,9 @@
 		if (!ouvert) ouvrir();
 		if (chercher) {
 			clearTimeout(attente);
+			derniereDemande += 1;
 			const texte = saisie;
-			attente = setTimeout(async () => {
-				distants = await chercher(texte);
-			}, 150);
+			attente = setTimeout(() => rechercherDistant(texte), 150);
 		}
 	}
 

@@ -35,12 +35,25 @@
 				Soldes de <AideTerme ancre="exercice">l’Exercice</AideTerme>
 				{data.exercice?.libelle}.
 			</p>
+			{#if data.premierReleve}
+				<p class="suite">
+					<span>{TEXTES.premier_releve}</span>
+					<Bouton href="/pointage">Importer un relevé</Bouton>
+				</p>
+			{/if}
 		</div>
 	</header>
 
 	<ul class="soldes">
 		{#each data.soldes as s (s.compte.id)}
-			<li><SoldeCompte {...s} /></li>
+			<li>
+				<SoldeCompte
+					{...s}
+					href={data.pointage && ['banque', 'epargne'].includes(s.compte.type)
+						? `/pointage/${s.compte.id}`
+						: null}
+				/>
+			</li>
 		{/each}
 	</ul>
 {/if}
@@ -55,6 +68,15 @@
 	}
 
 	.bilan h1 {
+		color: var(--ink);
+	}
+
+	.suite {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--espace-2) var(--espace-3);
+		margin-top: var(--espace-3);
 		color: var(--ink);
 	}
 

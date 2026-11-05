@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import type { Exercice } from '#lib/domaine/exercices.ts';
 	import type { ContexteSaisie, DetailOperation } from '#lib/domaine/operations/vues.ts';
+	import type { LigneASaisir } from '#lib/domaine/releve/vues.ts';
 	import { urlAvec } from '#lib/ui/url.ts';
 	import FormulaireOperation from './FormulaireOperation.svelte';
 
@@ -10,6 +11,7 @@
 		contexte: ContexteSaisie;
 		detail: DetailOperation | null;
 		modele: DetailOperation | null;
+		ligne: LigneASaisir | null;
 		introuvable: boolean;
 	};
 
@@ -22,10 +24,12 @@
 	let { donnees, exerciceRegarde, peutSaisir }: Props = $props();
 
 	const q = $derived(page.url.searchParams);
-	const cle = $derived(`${q.get('op')}|${q.get('depuis')}|${q.get('rendre')}`);
+	const cle = $derived(`${q.get('op')}|${q.get('depuis')}|${q.get('rendre')}|${q.get('releve')}`);
 
 	function fermer() {
-		goto(urlAvec({ op: null, depuis: null, rendre: null, intention: null }), { reset: false });
+		goto(urlAvec({ op: null, depuis: null, rendre: null, intention: null, releve: null }), {
+			reset: false
+		});
 	}
 
 	// Le focus revient à l'élément d'origine : le panneau vit dans l'URL, rien ne le rend tout seul.
@@ -51,6 +55,7 @@
 			contexte={donnees.contexte}
 			detail={donnees.detail}
 			modele={donnees.modele}
+			ligne={donnees.ligne}
 			rendre={q.has('rendre')}
 			introuvable={donnees.introuvable}
 			intention={q.get('intention')}

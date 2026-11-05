@@ -86,19 +86,23 @@ export const schemaCompensee = z.object({
 	ligneVentes: ligneCompensee
 });
 
-const saisie = z.discriminatedUnion('forme', [schemaStandard, schemaInterne, schemaCompensee]);
+export const saisieOperation = z.discriminatedUnion('forme', [
+	schemaStandard,
+	schemaInterne,
+	schemaCompensee
+]);
 
-const cle = z.string().min(8).max(64).optional();
+export const cleSaisie = z.string().min(8).max(64).optional();
 
 export const schemaCreation = z.intersection(
-	saisie,
-	z.object({ cle, rendDe: identifiant.optional() })
+	saisieOperation,
+	z.object({ cle: cleSaisie, rendDe: identifiant.optional() })
 );
 
 export const schemaModification = z.object({
 	version: z.number().int().positive(),
-	cle,
-	saisie
+	cle: cleSaisie,
+	saisie: saisieOperation
 });
 
 export const schemaRelier = z.object({ autreId: identifiant, libelle });

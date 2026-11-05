@@ -67,6 +67,7 @@ test('seules les entrées livrées apparaissent, sans entrée grisée', async ({
 	await expect(liens).toHaveText([
 		'Tableau de contrôle',
 		'Opérations',
+		'Pointage',
 		'Réglages',
 		'Journal',
 		'Aide'

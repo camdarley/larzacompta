@@ -68,6 +68,12 @@ export function formaterDateLongue(date: DateCivile): string {
 	return `${jour === 1 ? '1er' : jour} ${MOIS[mois - 1]} ${annee}`;
 }
 
+/** `12 mars`, `1er mars`. */
+export function formaterJourMois(date: DateCivile): string {
+	const { mois, jour } = parties(date);
+	return `${jour === 1 ? '1er' : jour} ${MOIS[mois - 1]}`;
+}
+
 /** `12/03/2026`. */
 export function formaterDateCourte(date: DateCivile): string {
 	const { annee, mois, jour } = parties(date);

@@ -57,6 +57,42 @@ export type VuePointage = {
 	dernierPointageId: number | null;
 };
 
+/** Résultat d'un import, sans changer d'écran. */
+export type Recapitulatif = {
+	type: 'recapitulatif';
+	lues: number;
+	nouvelles: number;
+	connues: number;
+	ecartees: number;
+	aConfirmer: number;
+	/** Solde daté dans un Exercice clôturé : les lignes passent, le solde est ignoré. */
+	soldeIgnore: boolean;
+	/** Le fichier n'a pas de solde : il se demande à l'écran. */
+	soldeDemande: { date: DateCivile } | null;
+	trou: Trou | null;
+};
+
+const accord = (n: number, singulier: string, pluriel: string) => (n > 1 ? pluriel : singulier);
+
+/** « 23 lignes lues, 18 nouvelles, 5 déjà connues. » */
+export function phraseRecapitulatif(r: Recapitulatif): string {
+	const lues = `${r.lues} ${accord(r.lues, 'ligne lue', 'lignes lues')}`;
+	const nouvelles = `${r.nouvelles} ${accord(r.nouvelles, 'nouvelle', 'nouvelles')}`;
+	const connues = `${r.connues} déjà ${accord(r.connues, 'connue', 'connues')}`;
+	return `${lues}, ${nouvelles}, ${connues}.`;
+}
+
+export function phraseEcartees(n: number): string {
+	return n > 1
+		? `${n} lignes antérieures au solde de départ sont écartées.`
+		: '1 ligne antérieure au solde de départ est écartée.';
+}
+
+export type LigneASaisir = Pick<LigneReleveJ, 'id' | 'compteId' | 'libelle' | 'montant'> & {
+	date: DateCivile;
+	rattachementId: number | null;
+};
+
 export type ComptePointable = Pick<Compte, 'id' | 'libelle' | 'type'>;
 
 export function comptesPointables(j: Pick<GrandJournal, 'comptes'>): ComptePointable[] {
