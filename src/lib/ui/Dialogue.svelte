@@ -2,6 +2,7 @@
 	import { Dialog } from 'bits-ui';
 	import type { Snippet } from 'svelte';
 	import Bouton from './Bouton.svelte';
+	import { suivreClavierPanneau } from './clavier.ts';
 
 	type Props = {
 		ouvert: boolean;
@@ -36,6 +37,11 @@
 
 	let boutonRevenir = $state<HTMLElement | null>(null);
 	let contenu = $state<HTMLElement | null>(null);
+
+	$effect(() => {
+		const panneau = contenu?.parentElement;
+		return panneau ? suivreClavierPanneau(panneau) : undefined;
+	});
 </script>
 
 <Dialog.Root
@@ -119,7 +125,8 @@
 	@media (max-width: 639.98px) {
 		:global(.ape-dialogue) {
 			top: auto;
-			bottom: 0;
+			bottom: var(--clavier, 0px);
+			max-height: calc(var(--hauteur-visible, 100dvh) - var(--espace-page-mobile));
 			left: 0;
 			transform: none;
 			width: 100%;

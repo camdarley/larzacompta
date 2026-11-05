@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defilementVersChamp, hauteurMasquee } from '#lib/ui/clavier.ts';
+import { defilementVersChamp, hauteurClavier, hauteurMasquee } from '#lib/ui/clavier.ts';
 
 describe('clavier logiciel', () => {
 	it('mesure ce que le clavier masque', () => {
@@ -11,8 +11,15 @@ describe('clavier logiciel', () => {
 		expect(hauteurMasquee(714, { height: 413, offsetTop: 120, scale: 1 })).toBe(181);
 	});
 
+	it('garde la hauteur du clavier quand iOS décale le viewport, même si rien n’est plus masqué', () => {
+		const visuel = { height: 394, offsetTop: 320, scale: 1 };
+		expect(hauteurMasquee(714, visuel)).toBe(0);
+		expect(hauteurClavier(714, visuel)).toBe(320);
+	});
+
 	it('ne prend pas un zoom pour un clavier', () => {
 		expect(hauteurMasquee(714, { height: 357, offsetTop: 0, scale: 2 })).toBe(0);
+		expect(hauteurClavier(714, { height: 357, offsetTop: 0, scale: 2 })).toBe(0);
 	});
 
 	it('ne rend jamais un nombre négatif', () => {

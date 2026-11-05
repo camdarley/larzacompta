@@ -338,7 +338,7 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 100dvh;
-		padding: 0 var(--espace-page-mobile);
+		padding: 0 var(--espace-page-mobile) var(--reserve-clavier, 0px);
 	}
 
 	.tete {

@@ -234,6 +234,32 @@ test.describe('UJ-2 sur téléphone, au toucher', () => {
 			(champ?.y ?? 0) + (champ?.height ?? 0),
 			'champ actif au-dessus du total'
 		).toBeLessThanOrEqual(await bas(barre));
+		// Safari saute à sa touche Suivant les champs couverts par la barre : les deux suivants restent
+		// découverts, jusqu'au dernier, sans défilement inutile qui ferait disparaître la barre.
+		const champs = page.locator('.coupures input');
+		const nombre = await champs.count();
+		for (let i = 0; i < nombre; i++) {
+			await champs.nth(i).focus();
+			const vise = champs.nth(Math.min(i + 2, nombre - 1));
+			await expect
+				.poll(async () => {
+					const c = await vise.boundingBox();
+					return (c?.y ?? Infinity) + (c?.height ?? 0) - (await bas(barre));
+				}, `champ ${i} : ceux à venir au-dessus du total`)
+				.toBeLessThanOrEqual(0);
+			expect(await bas(barre), `total visible au champ ${i}`).toBeLessThan(hautClavier);
+		}
+		// Le dialogue de reconnexion peut s'ouvrir en plein Comptage : ses boutons restent accessibles.
+		await page.context().clearCookies();
+		await page.getByRole('button', { name: /^Enregistrer/ }).click();
+		const action = page.getByRole('dialog').getByRole('button', { name: 'Se reconnecter' });
+		await expect(action).toBeVisible();
+		await expect
+			.poll(async () => {
+				const c = await action.boundingBox();
+				return (c?.y ?? Infinity) + (c?.height ?? 0);
+			})
+			.toBeLessThanOrEqual(hautClavier);
 		expect(erreurs).toEqual([]);
 	});
 });
