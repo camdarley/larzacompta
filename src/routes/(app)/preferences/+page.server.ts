@@ -26,7 +26,10 @@ export const actions = {
 		const entree = valider(schemaMotDePasse, champsDe(await request.formData()));
 		if (!entree.ok) return refus(entree.erreur);
 		const app = application();
-		const r = await app.acces.changerMotDePasse(app.ctx(locals.acces), entree.valeur);
+		const r = await app.acces.changerMotDePasse(app.ctx(locals.acces), {
+			...entree.valeur,
+			adresse: locals.adresse
+		});
 		if (!r.ok) return refus(r.erreur);
 		poserCookieSession(cookies, r.valeur.jeton, r.valeur.expireLe);
 		return { reussi: true };

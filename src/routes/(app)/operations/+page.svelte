@@ -191,7 +191,7 @@
 	aide={{ ancre: 'operation', texte: 'Qu’est-ce qu’une Opération ?' }}
 >
 	{#snippet actions()}
-		{#if data.peutSaisir}
+		{#if data.peutSaisir && data.exercice?.statut !== 'cloture'}
 			<span class="seulement-telephone">
 				<Bouton href={urlAvec({ op: 'nouvelle' })} conserverFocus>
 					<Plus size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -240,7 +240,14 @@
 				oninput={(e) => surTexte('q', e.currentTarget.value)}
 			/>
 		</div>
-		<div class="champs seulement-ordinateur">{@render champsFiltres('filtre')}</div>
+		<!-- Sans JavaScript aussi : les champs restent à un clic, la recherche suffit le plus souvent. -->
+		<details class="plus seulement-ordinateur">
+			<summary class="t-label">
+				<SlidersHorizontal size={20} strokeWidth={1.75} aria-hidden="true" />
+				Filtres{criteres.length > 0 ? ` (${criteres.length})` : ''}
+			</summary>
+			<div class="champs">{@render champsFiltres('filtre')}</div>
+		</details>
 		<div class="seulement-telephone bouton-filtres">
 			<Bouton variante="secondaire" pleineLargeur href={urlAvec({ filtres: '1' })} conserverFocus>
 				<SlidersHorizontal size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -359,13 +366,43 @@
 	<div class="pile">{@render champsFiltres('filtre-panneau')}</div>
 	{#snippet pied()}
 		<Bouton variante="secondaire" onclick={() => changerUrl({ filtres: null })}>
-			Voir {compteur.toLocaleLowerCase('fr')}
+			Voir {compteur}
 		</Bouton>
 	{/snippet}
 </Panneau>
 
 <style>
+	.plus summary {
+		position: absolute;
+		top: var(--espace-3);
+		right: var(--espace-3);
+		display: inline-flex;
+		align-items: center;
+		gap: var(--espace-2);
+		min-height: var(--espace-touch);
+		padding: 0 var(--espace-3);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--rayon-md);
+		background: var(--surface-raised);
+		color: var(--ink);
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.plus summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.plus summary:hover {
+		background: var(--surface-sunken);
+	}
+
+	.plus .champs {
+		margin-top: var(--espace-3);
+	}
+
 	.filtres {
+		position: relative;
 		display: grid;
 		gap: var(--espace-3);
 		margin: var(--espace-5) 0;
@@ -385,6 +422,13 @@
 		left: var(--espace-3);
 		color: var(--ink-muted);
 		pointer-events: none;
+	}
+
+	/* Le bouton Filtres se pose à droite de la recherche, sur la même rangée. */
+	@media (min-width: 640px) {
+		.recherche {
+			margin-right: 9rem;
+		}
 	}
 
 	.recherche input {

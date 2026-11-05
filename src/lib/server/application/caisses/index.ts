@@ -8,7 +8,7 @@ import {
 	prefillOuverture,
 	sessionDe,
 	sessionOuverte,
-	soldeCourantCaisse,
+	soldeAttendu,
 	termesRecette,
 	totalComptage,
 	deciderReouverture
@@ -23,7 +23,7 @@ import {
 } from '#lib/domaine/caisse/vues.ts';
 import type { DateCivile } from '#lib/domaine/dates.ts';
 import type { Exercice } from '#lib/domaine/exercices.ts';
-import { rattachementsARevoir } from '#lib/domaine/caisse/saisie.ts';
+import { cotesARattacher, rattachementsARevoir } from '#lib/domaine/caisse/saisie.ts';
 import type { ComptageJ, CoupureJ, GrandJournal, SessionJ } from '#lib/domaine/journal.ts';
 import { centimes, formaterMontant, type Centimes } from '#lib/domaine/montant.ts';
 import type { Compte } from '#lib/domaine/parametrage.ts';
@@ -93,7 +93,11 @@ function recalerPhases(o: Outils, sessionId: number, dateFinale: DateCivile) {
 }
 
 /** C12 : ce que la Session recouvre suit la date de son ouverture, avant de comparer le total. */
-function revoirRattachements(o: Outils, session: SessionJ, dateOuverture: DateCivile) {
+function revoirRattachements(
+	o: Outils,
+	session: Pick<SessionJ, 'id' | 'compteId' | 'ouverteLe'>,
+	dateOuverture: DateCivile
+) {
 	const j = o.depots.operations.journal();
 	for (const r of rattachementsARevoir(j, session, dateOuverture)) {
 		o.depots.operations.definirSessionCote(r.coteId, r.sessionCaisseId, r.sessionPhase);
@@ -141,7 +145,7 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			if (action === undefined) return echec('element_introuvable');
 			if (!action.actif || !action.avecCaisse) return echec('reference_inactive');
 		}
-		const attendu = soldeCourantCaisse(j, compte.id, { jour: e.date });
+		const attendu = soldeAttendu(j, compte.id, { jour: e.date });
 		const comparaison = comparerAuSoldeAttendu(total, attendu, e.confirmation);
 		if (!comparaison.ok) return comparaison;
 		const maintenant = o.ctx.maintenant;
@@ -161,6 +165,8 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			saisiPar: acteur(o),
 			coupures: e.coupures
 		});
+		// Une ouverture antidatée recouvre des Côtés déjà saisis : le solde attendu ne les a pas lus.
+		revoirRattachements(o, { id: sessionId, compteId: compte.id, ouverteLe: maintenant }, e.date);
 		const ecart = ecrireEcart(o, compte, e.date, comparaison.valeur.ecart);
 		if (!ecart.ok) return ecart;
 		if (ecart.valeur !== null) o.depots.caisses.lierEcart(id, ecart.valeur);
@@ -181,7 +187,7 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 		e: EntreeComptageCaisse,
 		total: Centimes
 	): Resultat<ComptageEnregistre> {
-		const attendu = soldeCourantCaisse(j, compte.id, { jour: e.date });
+		const attendu = soldeAttendu(j, compte.id, { jour: e.date });
 		const comparaison = comparerAuSoldeAttendu(total, attendu, e.confirmation);
 		if (!comparaison.ok) return comparaison;
 		const id = o.depots.caisses.creerComptage({
@@ -233,7 +239,7 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			o.depots.caisses.lierEcart(comptage.id, null);
 		}
 		if (e.date !== comptage.date) revoirRattachements(o, session, e.date);
-		const attendu = soldeCourantCaisse(o.depots.operations.journal(), compte.id, {
+		const attendu = soldeAttendu(o.depots.operations.journal(), compte.id, {
 			jour: e.date,
 			jusqua: comptage.compteLe,
 			sauf: comptage.id
@@ -350,7 +356,10 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
-	/** C7 : l'Opération de recette s'annule, la prochaine clôture la recalcule. */
+	/**
+	 * C7 : l'Opération de recette s'annule, la prochaine clôture la recalcule. Les mouvements datés
+	 * dans la Session et saisis après sa clôture y entrent : c'est pour eux qu'on la rouvre.
+	 */
 	const casReouverture: CasUsage<number, true> = {
 		droit: 'cloturer_session',
 		faire(o, id) {
@@ -363,11 +372,16 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 				if (!annule.ok) return annule;
 			}
 			o.depots.caisses.rouvrirSession(id);
+			const rattaches = cotesARattacher(j, decision.valeur);
+			for (const { cote } of rattaches) {
+				o.depots.operations.definirSessionCote(cote.id, id, 'pendant');
+			}
+			const suite = rattaches.length > 0 ? `, avec ${rattaches.length} mouvement(s) en plus` : '';
 			o.noter({
 				evenement: 'session.rouverte',
 				entiteType: 'session_caisse',
 				entiteId: id,
-				resume: `a rouvert la Session de ${caisseDe(j, compteId)?.libelle ?? 'la caisse'}.`
+				resume: `a rouvert la Session de ${caisseDe(j, compteId)?.libelle ?? 'la caisse'}${suite}.`
 			});
 			return succes(true);
 		}

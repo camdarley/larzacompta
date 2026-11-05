@@ -18,6 +18,8 @@ import {
 	type TermesRecette
 } from './index.ts';
 
+import { cotesARattacher, recettesARevoir } from './saisie.ts';
+
 type Noms = { comptes: readonly Compte[]; actions: readonly Pick<Action, 'id' | 'libelle'>[] };
 
 const nomAction = (n: Noms, id: number | null) =>
@@ -48,6 +50,8 @@ export type CarteCaisse = {
 	solde: Centimes;
 	dernierComptage: DateCivile | null;
 	session: SessionEnCours | null;
+	/** Session clôturée dont un mouvement arrivé ensuite attend de revoir la Recette. */
+	recetteARevoir: number | null;
 };
 
 export function carteCaisse(j: GrandJournal, n: Noms, c: Compte, jour: DateCivile): CarteCaisse {
@@ -58,7 +62,8 @@ export function carteCaisse(j: GrandJournal, n: Noms, c: Compte, jour: DateCivil
 		reserve: c.reserve,
 		solde: soldeCourantCaisse(j, c.id, { jour }),
 		dernierComptage: repere?.date ?? null,
-		session: enCours(j, n, c.id)
+		session: enCours(j, n, c.id),
+		recetteARevoir: recettesARevoir(j).find((r) => r.compteId === c.id)?.sessionId ?? null
 	};
 }
 
@@ -210,6 +215,8 @@ export type VueSession = {
 	termes: TermesRecette | null;
 	recetteOperationId: number | null;
 	peutRouvrir: boolean;
+	/** Datés dans la Session, saisis après sa clôture : sa Recette ne les a pas comptés. */
+	aRattacher: MouvementSession[];
 };
 
 function ligneComptage(j: GrandJournal, c: ComptageJ): LigneComptage {
@@ -262,7 +269,17 @@ export function vueSession(j: GrandJournal, n: Noms, sessionId: number): VueSess
 		apres: lignes('apres_comptage').map(sans),
 		termes: termesRecette(j, s.id),
 		recetteOperationId: s.operationRecetteId,
-		peutRouvrir: deciderReouverture(j, s.id).ok
+		peutRouvrir: deciderReouverture(j, s.id).ok,
+		aRattacher:
+			s.clotureeLe === null || !deciderReouverture(j, s.id).ok
+				? []
+				: cotesARattacher(j, s).map(({ cote, operation }) => ({
+						operationId: operation.id,
+						date: cote.date,
+						libelle: operation.libelle,
+						montant: cote.montant,
+						autreCompte: null
+					}))
 	};
 }
 

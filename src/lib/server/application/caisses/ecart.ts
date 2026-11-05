@@ -1,6 +1,12 @@
 /** Écart de caisse (C8) : son écriture, et son suivi quand un ticket en retard arrive (C11). */
-import { ecartDeComptage, soldeCourantCaisse, totalComptage } from '#lib/domaine/caisse/index.ts';
-import type { DateCivile } from '#lib/domaine/dates.ts';
+import {
+	deciderReouverture,
+	ecartDeComptage,
+	sessionDe,
+	soldeAttendu,
+	totalComptage
+} from '#lib/domaine/caisse/index.ts';
+import type { DateCivile, Instant } from '#lib/domaine/dates.ts';
 import type { ComptageJ, GrandJournal } from '#lib/domaine/journal.ts';
 import { centimes, type Centimes } from '#lib/domaine/montant.ts';
 import type { Brouillon } from '#lib/domaine/operations/validation.ts';
@@ -65,72 +71,109 @@ export function ecrireEcart(
 	return cree.ok ? succes(cree.valeur.id) : cree;
 }
 
-/** Ce que l'ouverture aurait dû constater, avec tout ce qu'on sait aujourd'hui du passé. */
-function ecartAttendu(j: GrandJournal, ouverture: ComptageJ): Centimes {
+/** Ce que ce Comptage aurait dû constater, avec tout ce qu'on sait aujourd'hui du passé. */
+function ecartAttendu(j: GrandJournal, comptage: ComptageJ): Centimes {
+	const session =
+		comptage.sessionCaisseId === null ? undefined : sessionDe(j, comptage.sessionCaisseId);
 	const sansEcart = {
 		...j,
-		operations: j.operations.filter((op) => op.id !== ouverture.operationEcartId),
-		comptages: j.comptages.filter((c) => c.sessionCaisseId !== ouverture.sessionCaisseId)
+		operations: j.operations.filter(
+			(op) => op.id !== comptage.operationEcartId && op.id !== session?.operationRecetteId
+		),
+		comptages: j.comptages.filter(
+			(c) =>
+				c.id !== comptage.id &&
+				(comptage.sessionCaisseId === null || c.sessionCaisseId !== comptage.sessionCaisseId)
+		)
 	};
-	const attendu = soldeCourantCaisse(sansEcart, ouverture.compteId, {
-		jour: ouverture.date,
-		jusqua: ouverture.compteLe,
-		sauf: ouverture.id
+	const attendu = soldeAttendu(sansEcart, comptage.compteId, {
+		jour: comptage.date,
+		jusqua: comptage.compteLe,
+		sauf: comptage.id
 	});
-	return ecartDeComptage(totalComptage(ouverture.coupures), attendu);
+	return ecartDeComptage(totalComptage(comptage.coupures), attendu);
 }
 
-function remplacerEcart(o: Outils, ouverture: ComptageJ, ecart: Centimes): Resultat<true> {
-	if (ouverture.operationEcartId !== null) {
-		const annule = annulerOperation(o, ouverture.operationEcartId, { parSonModule: true });
+function remplacerEcart(o: Outils, comptage: ComptageJ, ecart: Centimes): Resultat<true> {
+	if (comptage.operationEcartId !== null) {
+		const annule = annulerOperation(o, comptage.operationEcartId, { parSonModule: true });
 		if (!annule.ok) return annule;
-		o.depots.caisses.lierEcart(ouverture.id, null);
+		o.depots.caisses.lierEcart(comptage.id, null);
 	}
-	const compte = o.depots.parametrage.comptes().find((c) => c.id === ouverture.compteId);
+	const compte = o.depots.parametrage.comptes().find((c) => c.id === comptage.compteId);
 	if (compte === undefined) return succes(true);
-	const ecrit = ecrireEcart(o, compte, ouverture.date, ecart);
+	const ecrit = ecrireEcart(o, compte, comptage.date, ecart);
 	if (!ecrit.ok) return ecrit;
-	if (ecrit.valeur !== null) o.depots.caisses.lierEcart(ouverture.id, ecrit.valeur);
+	if (ecrit.valeur !== null) o.depots.caisses.lierEcart(comptage.id, ecrit.valeur);
 	return succes(true);
 }
 
-/** Le premier Comptage après ce jour : c'est lui qui a constaté ce que ce Côté a changé. */
-function premierComptageApres(
-	j: Pick<GrandJournal, 'comptages'>,
-	compteId: number,
-	date: DateCivile
+/** Pour une ancre : elle change le solde attendu du tout premier Comptage de la caisse. */
+export const AVANT_TOUT = '0001-01-01' as DateCivile;
+
+export type CoteTouche = {
+	compteId: number;
+	date: DateCivile;
+	sessionCaisseId?: number | null;
+};
+
+/** `saisiLe` : un Côté hors Session saisi avant ce Comptage, le même jour, y était déjà. */
+const avantLeComptage =
+	(saisiLe: Instant | undefined) =>
+	(comptage: ComptageJ, cote: CoteTouche): boolean =>
+		comptage.date > cote.date ||
+		(comptage.date === cote.date &&
+			saisiLe !== undefined &&
+			(cote.sessionCaisseId ?? null) === null &&
+			saisiLe <= comptage.compteLe);
+
+/**
+ * Le Comptage qui a constaté ce que ces Côtés changent : le premier qui les suit. Un Comptage final
+ * ne se recalcule pas, sa Session se rouvre. Quand elle ne le peut plus, c'est le Comptage suivant
+ * qui recevra la différence.
+ */
+function comptageConcerne(
+	j: GrandJournal,
+	cotes: readonly CoteTouche[],
+	saisiLe: Instant | undefined
 ): ComptageJ | undefined {
-	return j.comptages
-		.filter((c) => c.compteId === compteId && c.date > date)
+	const estApres = avantLeComptage(saisiLe);
+	const suite = j.comptages
+		.filter((c) => c.compteId === cotes[0]?.compteId && cotes.some((x) => estApres(c, x)))
 		.sort(
 			(a, b) => a.date.localeCompare(b.date) || a.compteLe.localeCompare(b.compteLe) || a.id - b.id
-		)[0];
+		);
+	const premier = suite[0];
+	if (premier?.type !== 'fin') return premier;
+	const session = sessionDe(j, premier.sessionCaisseId as number);
+	if (session?.clotureeLe === null || deciderReouverture(j, session?.id ?? 0).ok) return undefined;
+	return suite.find((c) => c.type !== 'fin');
 }
 
 /**
- * Un Côté daté avant un Comptage d'ouverture ne touche pas la Recette d'espèces, mais il change ce
- * qu'on aurait dû trouver ce jour-là. L'Écart de cette ouverture se recalcule donc, sans recomptage,
- * que la Session soit ouverte ou clôturée : les billets n'ont pas bougé, seul le solde attendu s'est
- * précisé. Sans cela, après clôture, `soldeCompte` garderait le ticket et s'écarterait de la caisse.
+ * Un Côté daté avant un Comptage d'ouverture ou de contrôle ne touche pas la Recette d'espèces, mais
+ * il change ce qu'on aurait dû trouver ce jour-là. L'Écart de ce Comptage se recalcule donc, sans
+ * recomptage, que la Session soit ouverte ou clôturée : les billets n'ont pas bougé, seul le solde
+ * attendu s'est précisé. Sans cela, `soldeCompte` garderait le ticket et s'écarterait de la caisse.
  * Les Comptages suivants repartent chacun du précédent : le premier suffit.
  */
 export function reajusterEcartOuverture(
 	o: Outils,
-	cotes: readonly { compteId: number; date: DateCivile }[]
+	cotes: readonly CoteTouche[],
+	saisiLe?: Instant
 ): Resultat<true> {
 	const j = o.depots.operations.journal();
-	const vus = new Set<number>();
-	for (const { compteId } of cotes) {
-		if (vus.has(compteId)) continue;
-		vus.add(compteId);
-		const dates = cotes.filter((c) => c.compteId === compteId).map((c) => c.date);
-		const premiere = [...dates].sort()[0] as DateCivile;
-		const ouverture = premierComptageApres(j, compteId, premiere);
-		if (ouverture?.type !== 'ouverture') continue;
-		const lie = j.operations.find((op) => op.id === ouverture.operationEcartId);
-		const ecart = ecartAttendu(j, ouverture);
+	for (const compteId of new Set(cotes.map((c) => c.compteId))) {
+		const comptage = comptageConcerne(
+			j,
+			cotes.filter((c) => c.compteId === compteId),
+			saisiLe
+		);
+		if (comptage === undefined) continue;
+		const lie = j.operations.find((op) => op.id === comptage.operationEcartId);
+		const ecart = ecartAttendu(j, comptage);
 		if (ecart === centimes(lie?.cotes[0]?.montant ?? 0)) continue;
-		const r = remplacerEcart(o, ouverture, ecart);
+		const r = remplacerEcart(o, comptage, ecart);
 		if (!r.ok) return r;
 	}
 	return succes(true);

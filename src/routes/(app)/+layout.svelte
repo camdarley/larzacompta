@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
-	import { TEXTES } from '#lib/messages.ts';
+	import { message, TEXTES } from '#lib/messages.ts';
 	import AideRaccourcis from '#lib/ui/AideRaccourcis.svelte';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import BarreLaterale from '#lib/ui/BarreLaterale.svelte';
 	import BarreMobile from '#lib/ui/BarreMobile.svelte';
+	import Bouton from '#lib/ui/Bouton.svelte';
 	import DialogueReconnexion from '#lib/ui/DialogueReconnexion.svelte';
 	import EnTeteCompact from '#lib/ui/EnTeteCompact.svelte';
 	import PanneauOperation from '#lib/ui/operation/PanneauOperation.svelte';
@@ -25,6 +26,17 @@
 		const choisi = page.url.searchParams.get('exercice');
 		return choisi ? `${href}?exercice=${encodeURIComponent(choisi)}` : href;
 	}
+
+	/** Ces écrans suivent l'argent d'aujourd'hui, quel que soit l'Exercice regardé. */
+	const ECRANS_DU_PRESENT = ['/cheques', '/caisses', '/sessions', '/factures'];
+	const cloture = $derived(data.exercice?.statut === 'cloture');
+	/** Exercice clôturé : ni bouton ni raccourci ne laissent croire qu'on écrit dedans. */
+	const saisieVisible = $derived(data.peutSaisir && !cloture);
+	const exerciceDeSaisie = $derived(
+		cloture && data.peutSaisir && ECRANS_DU_PRESENT.some((e) => page.url.pathname.startsWith(e))
+			? (data.exercices.find((e) => e.statut === 'ouvert') ?? null)
+			: null
+	);
 
 	let paletteOuverte = $state(false);
 	let raccourcisOuverts = $state(false);
@@ -47,7 +59,7 @@
 		if (!data.raccourcis || e.ctrlKey || e.metaKey || e.altKey) return;
 		if (data.acces.role === 'compteur') return;
 		if (dansUnChamp(e.target) || data.panneau || paletteOuverte || raccourcisOuverts) return;
-		if (e.key === 'n' && data.peutSaisir) {
+		if (e.key === 'n' && saisieVisible) {
 			goto(urlAvec({ op: 'nouvelle' }), { reset: false });
 		} else if (e.key === '?') {
 			e.preventDefault();
@@ -87,7 +99,7 @@
 			exercices={data.exercices}
 			exercice={data.exercice}
 			nomAcces={data.acces.nomAffiche}
-			peutSaisir={data.peutSaisir}
+			peutSaisir={saisieVisible}
 			compteurs={data.compteurs}
 			{lien}
 		/>
@@ -96,15 +108,32 @@
 				nomApe={data.nomApe}
 				exercices={data.exercices}
 				exercice={data.exercice}
-				peutSaisir={data.peutSaisir}
+				peutSaisir={saisieVisible}
 			/>
 			<main id="contenu" tabindex="-1">
 				{#if data.exercice?.statut === 'cloture'}
 					<div class="bandeau-exercice">
 						<Bandeau ton="fige">
-							{page.url.pathname.startsWith('/pieces')
-								? TEXTES.exercice_cloture_pieces
-								: TEXTES.exercice_cloture_bandeau}
+							{#if page.url.pathname.startsWith('/pieces')}
+								{TEXTES.exercice_cloture_pieces}
+							{:else if exerciceDeSaisie}
+								{message('exercice_cloture_saisies', {
+									exercice: data.exercice?.libelle ?? '',
+									ouvert: exerciceDeSaisie.libelle
+								})}
+							{:else}
+								{TEXTES.exercice_cloture_bandeau}
+							{/if}
+							{#snippet action()}
+								{#if exerciceDeSaisie}
+									<Bouton
+										variante="discret"
+										href="{page.url.pathname}?exercice={exerciceDeSaisie.libelle}"
+									>
+										Aller à {exerciceDeSaisie.libelle}
+									</Bouton>
+								{/if}
+							{/snippet}
 						</Bandeau>
 					</div>
 				{/if}
@@ -127,7 +156,7 @@
 	<Palette
 		bind:ouvert={paletteOuverte}
 		entrees={entreesPalette}
-		peutSaisir={data.peutSaisir}
+		peutSaisir={saisieVisible}
 		{lien}
 		ouvrirRaccourcis={() => (raccourcisOuverts = true)}
 	/>

@@ -1,6 +1,4 @@
-<script lang="ts">
-	import { page } from '$app/state';
-
+<script lang="ts" module>
 	type Onglet = {
 		libelle: string;
 		href: string;
@@ -8,6 +6,15 @@
 		/** Une page fille garde son onglet actif : Remise n° 3 reste dans Remises. */
 		sousPages?: boolean;
 	};
+
+	/** Contexte posé par la mise en page d'une section, lu par `EnTete`. */
+	export const CLE_ONGLETS = Symbol('onglets');
+	export type OngletsDePage = () => { nom: string; onglets: readonly Onglet[] };
+</script>
+
+<script lang="ts">
+	import { page } from '$app/state';
+
 	type Props = { nom: string; onglets: readonly Onglet[]; vertical?: boolean };
 
 	let { nom, onglets, vertical = false }: Props = $props();

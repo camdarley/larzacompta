@@ -1,6 +1,6 @@
 /** Écart et ses causes (SCHEMA-DONNEES §8). Tout se déduit du journal, rien n'est stocké (AD-4). */
 import { repereCaisse, sessionOuverteLe, soldeCourantCaisse } from '../caisse/index.ts';
-import type { DateCivile } from '../dates.ts';
+import type { DateCivile, Instant } from '../dates.ts';
 import type { Constat, CoteJ, GrandJournal, LigneReleveJ, OperationJ } from '../journal.ts';
 import { centimes, sommeCentimes, type Centimes } from '../montant.ts';
 import { soldeCompte } from './soldes.ts';
@@ -67,6 +67,21 @@ function indexPointages(j: Pick<GrandJournal, 'operations' | 'pointages' | 'lign
 
 export type ElementPointable = { type: 'cote' | 'ligne'; id: number; date: DateCivile };
 
+/**
+ * Le rapprochement tel qu'il était à la clôture. Une Ligne importée ou un Pointage posé ensuite ne
+ * refait pas l'histoire : ce que dit le Document d'AG ne bouge plus (AD-5, AD-18).
+ */
+export function arreteA<J extends Pick<GrandJournal, 'lignesReleve' | 'pointages'>>(
+	j: J,
+	instant: Instant
+): J {
+	return {
+		...j,
+		lignesReleve: j.lignesReleve.filter((l) => l.creeLe <= instant),
+		pointages: j.pointages.filter((p) => p.creeLe <= instant)
+	};
+}
+
 /** Daté au plus tard `d`, et pas pointé, ou pointé avec un élément daté après `d`. */
 export function elementOuvert(
 	j: Pick<GrandJournal, 'operations' | 'pointages' | 'lignesReleve'>,
@@ -74,7 +89,15 @@ export function elementOuvert(
 	d: DateCivile
 ): boolean {
 	if (x.date > d) return false;
-	const index = indexPointages(j);
+	return ouvertSelon(indexPointages(j), x, d);
+}
+
+function ouvertSelon(
+	index: ReturnType<typeof indexPointages>,
+	x: ElementPointable,
+	d: DateCivile
+): boolean {
+	if (x.date > d) return false;
 	const pointage = (x.type === 'cote' ? index.parCote : index.parLigne).get(x.id);
 	if (pointage === undefined) return true;
 	return (index.dernierJour.get(pointage) ?? '') > d;
@@ -87,16 +110,19 @@ export function ouverts(
 	compteId: number,
 	d: DateCivile
 ): { lignes: LigneReleveJ[]; cotes: CoteOuvert[] } {
+	// Une seule fois : ce calcul, répété par élément, figeait le serveur sur un long relevé.
+	const index = indexPointages(j);
 	return {
 		lignes: j.lignesReleve.filter(
 			(l) =>
-				l.compteId === compteId && elementOuvert(j, { type: 'ligne', id: l.id, date: l.date }, d)
+				l.compteId === compteId && ouvertSelon(index, { type: 'ligne', id: l.id, date: l.date }, d)
 		),
 		cotes: j.operations.flatMap((operation) =>
 			operation.cotes
 				.filter(
 					(c) =>
-						c.compteId === compteId && elementOuvert(j, { type: 'cote', id: c.id, date: c.date }, d)
+						c.compteId === compteId &&
+						ouvertSelon(index, { type: 'cote', id: c.id, date: c.date }, d)
 				)
 				.map((cote) => ({ cote, operation }))
 		)

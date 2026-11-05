@@ -261,10 +261,19 @@ describe('export complet', () => {
 						doublon: 'non',
 						importId: 1,
 						identifiantSource: null,
-						empreinte: 'e'
+						empreinte: 'e',
+						creeLe: '2026-11-01T10:00:00.000Z'
 					}
 				],
-				pointages: [{ id: 1, compteId: 1, coteIds: [op.cotes[0]!.id], ligneReleveIds: [7] }]
+				pointages: [
+					{
+						id: 1,
+						compteId: 1,
+						coteIds: [op.cotes[0]!.id],
+						ligneReleveIds: [7],
+						creeLe: '2026-11-01T10:00:00.000Z'
+					}
+				]
 			},
 			P
 		);
@@ -406,18 +415,30 @@ describe('vérification', () => {
 			doublon: 'non' as const,
 			importId: 1,
 			identifiantSource: null,
-			empreinte: 'e'
+			empreinte: 'e',
+			creeLe: '2026-11-01T10:00:00.000Z'
 		};
-		const pointage = { id: 1, compteId: 1, coteIds: [op.cotes[0]!.id], ligneReleveIds: [1] };
+		const pointage = {
+			id: 1,
+			compteId: 1,
+			coteIds: [op.cotes[0]!.id],
+			ligneReleveIds: [1],
+			creeLe: '2026-11-01T10:00:00.000Z'
+		};
 		const base = { ancres: [], operations: [op], lignesReleve: [ligne], pointages: [pointage] };
 		expect(codes(journal(base))).toEqual([]);
 		expect(codes(journal({ ...base, lignesReleve: [{ ...ligne, compteId: 2 }] }))).toContain('P1');
 		expect(codes(journal({ ...base, lignesReleve: [{ ...ligne, montant: c(-1) }] }))).toContain(
 			'P2'
 		);
-		expect(codes(journal({ ...base, pointages: [{ ...pointage, ligneReleveIds: [] }] }))).toContain(
-			'P3'
-		);
+		expect(
+			codes(
+				journal({
+					...base,
+					pointages: [{ ...pointage, ligneReleveIds: [], creeLe: '2026-11-01T10:00:00.000Z' }]
+				})
+			)
+		).toContain('P3');
 		expect(
 			codes(journal({ ...base, lignesReleve: [{ ...ligne, doublon: 'a_confirmer' }] }))
 		).toContain('P4');

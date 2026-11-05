@@ -24,6 +24,7 @@ import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
 import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
 import { parametrageCourant, parametrageDe } from '../etats/index.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
+import { AVANT_TOUT, reajusterEcartOuverture } from '../caisses/ecart.ts';
 import { assurerCompteCheques, poserAncre } from '../parametrage/index.ts';
 
 export type SoldeCompte = { compteId: number; solde: Centimes };
@@ -116,6 +117,8 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 				if (compte === undefined) return echec('element_introuvable');
 				const ancre = poserAncre(o, compte, exercices, e.exerciceId, s.solde);
 				if (!ancre.ok) return ancre;
+				const ecart = reajusterEcartOuverture(o, [{ compteId: s.compteId, date: AVANT_TOUT }]);
+				if (!ecart.ok) return ecart;
 			}
 			o.noter({
 				evenement: 'balance.enregistree',

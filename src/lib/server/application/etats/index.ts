@@ -2,6 +2,7 @@
  * Lectures des états (FR-15, FR-30 à FR-33, FR-35) : tout se recalcule depuis le grand journal
  * (AD-4). Un Exercice clôturé se calcule avec son paramétrage figé (AD-5).
  */
+import { recettesARevoir } from '#lib/domaine/caisse/saisie.ts';
 import { formaterDateLongue } from '#lib/domaine/dates.ts';
 import type { Exercice } from '#lib/domaine/exercices.ts';
 import type { GrandJournal } from '#lib/domaine/journal.ts';
@@ -138,13 +139,14 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 
 	function tableauDe(j: GrandJournal, e: Exercice, aujourdhui: string) {
 		const p = parametrageDe(depots, e);
-		const cartes = cartesComptes(j, e, aujourdhui, p.comptes);
+		const cartes = cartesComptes(j, e, aujourdhui, p.comptes, p.clotureLe ?? null);
 		const anciennes = operationsAnciennes(j, debutsReleve(), e);
 		const pieces = piecesManquantes(j, neutres(), e).length;
 		const cloture = e.statut === 'cloture';
 		const premierReleve = !cloture && sansReleve(j, cartes, e);
 		const caisses = cartes.filter((c) => c.compte.type === 'caisse');
 		const absents = chequesAbsents(j, e.fin as string).length;
+		const recettes = recettesARevoir(j).length;
 		const taches = cloture
 			? []
 			: [
@@ -159,7 +161,8 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 						: []),
 					...(caisses.length > 0
 						? [{ id: 'sessions' as const, compteur: sessionsNonCloturees(j, e) }]
-						: [])
+						: []),
+					...(recettes > 0 ? [{ id: 'recettes' as const, compteur: recettes }] : [])
 				];
 		const anomalies = anomaliesEquation(equationDeControle(j, e, p));
 		const { lignes, constats } = j.relevesDemesures;
@@ -222,7 +225,7 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 			association: nom,
 			resultat: compteDeResultat(j, e, p),
 			tresorerie: etatTresorerie(j, e, p),
-			cartes: cartesComptes(j, e, aujourdhui, p.comptes)
+			cartes: cartesComptes(j, e, aujourdhui, p.comptes, p.clotureLe ?? null)
 		});
 	}
 

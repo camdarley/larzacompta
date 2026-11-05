@@ -278,8 +278,12 @@ describe('rattachement au point d’écriture (C4, C12)', () => {
 			sessions: [session()],
 			comptages: [comptage(1, 'ouverture', 150_00), comptage(2, 'fin', 200_00, '17')]
 		});
-		expect(sessionsDeSaisie(j)).toEqual([{ compteId: 5, sessionId: 1, dateFinale: JOUR }]);
-		expect(sessionsDeSaisie(ouverte())).toEqual([{ compteId: 5, sessionId: 1, dateFinale: null }]);
+		expect(sessionsDeSaisie(j)).toEqual([
+			{ compteId: 5, sessionId: 1, dateFinale: JOUR, cloturee: false }
+		]);
+		expect(sessionsDeSaisie(ouverte())).toEqual([
+			{ compteId: 5, sessionId: 1, dateFinale: null, cloturee: false }
+		]);
 	});
 });
 

@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { FileUp, Plus, Undo2 } from '@lucide/svelte';
 	import { tick, untrack } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { formaterDateCourte, formaterDateLongue, formaterJourMois } from '#lib/domaine/dates.ts';
 	import {
 		centimes,
@@ -32,7 +33,7 @@
 	import { demanderReconnexion } from '#lib/ui/reconnexion.svelte.ts';
 	import ReserveOrdinateur from '#lib/ui/ReserveOrdinateur.svelte';
 	import SelecteurRecherche, { type OptionRecherche } from '#lib/ui/SelecteurRecherche.svelte';
-	import { afficherToast } from '#lib/ui/toasts.svelte.ts';
+	import { afficherToast, retirerToast } from '#lib/ui/toasts.svelte.ts';
 	import Touche from '#lib/ui/Touche.svelte';
 	import { changerUrl, urlAvec } from '#lib/ui/url.ts';
 	import BarreEcart from './BarreEcart.svelte';
@@ -205,8 +206,14 @@
 		else alerte = messageErreur(r.erreur);
 	}
 
+	/** Le toast « Annuler » d'un Pointage : il disparaît dès que ce Pointage n'existe plus. */
+	const toastsPointes = new SvelteMap<number, number>();
+
 	function toastPointe(id: number) {
-		afficherToast('Pointé.', { libelle: 'Annuler', faire: () => annuler(id) });
+		toastsPointes.set(
+			id,
+			afficherToast('Pointé.', { libelle: 'Annuler', faire: () => annuler(id) })
+		);
 	}
 
 	/** Après un Pointage : la ligne se replie, la suivante s'active, la barre se recalcule. */
@@ -222,6 +229,8 @@
 	}
 
 	async function pointer() {
+		// Sur une ligne à regarder, l'action principale du volet est de la garder.
+		if (active?.etat === 'a_regarder') return confirmer();
 		if (occupe || !active || active.etat !== 'a_pointer') return;
 		// Sans proposition, l'action attendue est de créer l'Opération : Entrée la lance.
 		if (rienAPointer) {
@@ -279,6 +288,9 @@
 		occupe = false;
 		if (r.type === 'ok') {
 			const ligne = vue.lignes.find((l) => l.pointageId === id);
+			const toast = toastsPointes.get(id);
+			if (toast !== undefined) retirerToast(toast);
+			toastsPointes.delete(id);
 			afficherToast(
 				r.valeur.ajustementsAnnules > 0 ? 'Pointage et ajustement annulés.' : 'Pointage annulé.'
 			);
@@ -348,6 +360,15 @@
 			setTimeout(focusActive, 120);
 		}
 	});
+
+	/** Un `r` lancé par erreur se défait d'une touche, et les raccourcis reviennent à la file. */
+	function surToucheRelier(e: KeyboardEvent) {
+		if (e.key !== 'Escape') return;
+		e.preventDefault();
+		e.stopPropagation();
+		relierOuvert = false;
+		tick().then(focusActive);
+	}
 
 	function ouvrirRelier() {
 		if (!active || active.etat !== 'a_pointer') return;
@@ -911,8 +932,11 @@
 							{message(active.jumelle ? 'doublon_a_confirmer' : 'ligne_identifiant_repete')}
 						</Bandeau>
 						<div class="actions">
-							<Bouton {occupe} onclick={confirmer}>Garder cette ligne</Bouton>
+							<Bouton {occupe} onclick={confirmer}>
+								Garder cette ligne <Touche>Entrée</Touche>
+							</Bouton>
 							<Bouton variante="secondaire" {occupe} onclick={retirer}>Écarter cette ligne</Bouton>
+							<Bouton variante="discret" onclick={passer}>Passer <Touche>p</Touche></Bouton>
 						</div>
 					{:else}
 						{#if active.chequeAbsent}
@@ -986,16 +1010,18 @@
 						{/if}
 
 						{#if relierOuvert}
-							<SelecteurRecherche
-								etiquette="Opération à relier"
-								id="relier-ligne"
-								options={[]}
-								bind:valeur={relierValeur}
-								chercher={chercherCotes}
-								listerAOuverture
-								onchange={relierChoisi}
-								placeholder="Libellé, référence ou montant"
-							/>
+							<div onkeydowncapture={surToucheRelier} role="presentation">
+								<SelecteurRecherche
+									etiquette="Opération à relier"
+									id="relier-ligne"
+									options={[]}
+									bind:valeur={relierValeur}
+									chercher={chercherCotes}
+									listerAOuverture
+									onchange={relierChoisi}
+									placeholder="Libellé, référence ou montant"
+								/>
+							</div>
 						{/if}
 
 						{#if elements.length > 0 && (plusieurs || difference !== 0)}

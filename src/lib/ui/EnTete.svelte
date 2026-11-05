@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { Snippet } from 'svelte';
+	import { getContext, type Snippet } from 'svelte';
 	import AideTerme from './AideTerme.svelte';
+	import Onglets, { CLE_ONGLETS, type OngletsDePage } from './Onglets.svelte';
 
 	type Props = {
 		titre: string;
@@ -30,6 +31,9 @@
 		actions
 	}: Props = $props();
 
+	/** Une section à onglets les pose ici : toujours sous le titre et sa phrase d'aide. */
+	const section = getContext<OngletsDePage | undefined>(CLE_ONGLETS);
+
 	const titreOnglet = $derived(
 		// Sans doublon : sur Connexion, le titre de la page est déjà le nom de l'APE.
 		[...new Set([onglet, titre, contexte, page.data.nomApe as string | undefined])]
@@ -56,6 +60,9 @@
 		{#if actions}<div class="actions">{@render actions()}</div>{/if}
 	</header>
 {/if}
+{#if section}
+	<div class="onglets-section"><Onglets {...section()} /></div>
+{/if}
 
 <style>
 	.entete {
@@ -64,6 +71,10 @@
 		align-items: flex-end;
 		justify-content: space-between;
 		gap: var(--espace-3) var(--espace-5);
+	}
+
+	.onglets-section {
+		margin-top: var(--espace-4);
 	}
 
 	.sous-titre {

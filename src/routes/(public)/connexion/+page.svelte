@@ -23,6 +23,7 @@
 	<form
 		method="post"
 		class="formulaire"
+		novalidate
 		use:enhance={({ cancel }) => {
 			if (occupe) return cancel();
 			occupe = true;

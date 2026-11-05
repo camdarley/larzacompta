@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { flushSync, tick, type Snippet } from 'svelte';
 	import { GLOSSAIRE } from '#lib/aide.ts';
+	import { apprendre, termesVus } from './termes-vus.svelte.ts';
 
 	let { ancre, children }: { ancre: string; children: Snippet } = $props();
 
@@ -26,13 +27,22 @@
 		}
 		const r = declencheur.getBoundingClientRect();
 		const largeur = Math.min(320, window.innerWidth - 32);
-		const enHaut = r.bottom + 200 > window.innerHeight;
+		// Au-dessus du mot d'abord : en dessous, la bulle couvrirait le champ que ce mot introduit.
+		const enHaut = r.top > 200 || r.bottom + 200 > window.innerHeight;
 		position = {
 			left: `${Math.max(16, Math.min(r.left, window.innerWidth - largeur - 16))}px`,
 			width: `${largeur}px`,
 			...(enHaut ? { bottom: `${window.innerHeight - r.top + 6}px` } : { top: `${r.bottom + 6}px` })
 		};
 		ouvert = true;
+	}
+
+	/** Une aide lue une fois ne coûte plus ni Tab ni bulle sur ce trajet (EXPERIENCE.md, Vocabulaire). */
+	const connu = $derived(termesVus.has(ancre));
+
+	function surFocus() {
+		ouvrir();
+		apprendre(ancre);
 	}
 
 	/** Différée : la souris a le temps de rejoindre la bulle (WCAG 1.4.13). */
@@ -92,7 +102,8 @@
 		class="mot"
 		aria-expanded={ouvert}
 		aria-controls={ouvert ? id : undefined}
-		onfocus={ouvrir}
+		tabindex={connu ? -1 : undefined}
+		onfocus={surFocus}
 		onclick={surClic}
 	>
 		{@render children()}

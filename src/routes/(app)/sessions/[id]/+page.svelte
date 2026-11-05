@@ -138,6 +138,23 @@
 	<div class="alerte"><Bandeau ton="erreur" alerte>{form.erreur.message}</Bandeau></div>
 {/if}
 
+{#if s.aRattacher.length > 0}
+	<div class="alerte">
+		<Bandeau ton="regarder">
+			{s.aRattacher.length === 1
+				? '1 mouvement daté de cette Session a été saisi après sa clôture'
+				: `${s.aRattacher.length} mouvements datés de cette Session ont été saisis après sa clôture`}
+			: {s.aRattacher.map((m) => `${m.libelle} (${formaterMontantSigne(m.montant)})`).join(', ')}.
+			La Recette d’espèces ne {s.aRattacher.length === 1 ? 'le' : 'les'} compte pas.
+			{#snippet action()}
+				{#if data.peutSaisir}
+					<Bouton variante="secondaire" onclick={() => (rouvrir = true)}>Rouvrir la Session</Bouton>
+				{/if}
+			{/snippet}
+		</Bandeau>
+	</div>
+{/if}
+
 <div class="colonnes">
 	<div class="pile">
 		<section aria-labelledby="titre-comptages">

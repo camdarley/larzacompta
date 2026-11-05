@@ -3,6 +3,7 @@ import {
 	formaterMontant,
 	formaterCsv,
 	centimes,
+	MONTANT_MAX,
 	sommeCentimes,
 	type Centimes
 } from '#lib/domaine/montant.ts';
@@ -160,6 +161,10 @@ export function ecrireOperation(
 ): Resultat<{ id: number }> {
 	const decision = validerOperation(brouillon, referencesSaisie(o), options.existant);
 	if (!decision.ok) return decision;
+	// Une Recette ou un Écart naissent d'un calcul : aucun schéma ne les a bornés.
+	if (decision.valeur.cotes.some((c) => Math.abs(c.montant) > MONTANT_MAX)) {
+		return echec('montant_invalide', { champ: 'montant' });
+	}
 	const acces = o.ctx.acces as NonNullable<Ctx['acces']>;
 	const id = o.depots.operations.creer({
 		...decision.valeur,
@@ -212,6 +217,42 @@ function brouillonDe(op: OperationJ): BrouillonValide {
 	};
 }
 
+/**
+ * L'Avoir a transformé cet encaissement en Dette : le reprendre laisserait l'APE devoir une somme
+ * qu'elle n'a plus. La Dette s'annule d'abord, à la main.
+ */
+function repriseParAvoir(o: Outils, j: GrandJournal, operationId: number): boolean {
+	const creances = j.creancesDettes.filter(
+		(c) =>
+			c.sens === 'creance' &&
+			c.annuleeLe !== null &&
+			(c.factureId ?? null) !== null &&
+			c.reglements.some((r) => r.operationId === operationId)
+	);
+	if (creances.length === 0) return false;
+	const avoirs = o.depots.factures
+		.lister()
+		.filter((f) => creances.some((c) => c.factureId === f.avoirDeId))
+		.map((f) => f.id);
+	return j.creancesDettes.some(
+		(d) => d.sens === 'dette' && d.annuleeLe === null && avoirs.includes(d.factureId ?? 0)
+	);
+}
+
+/** FR-8 : une correction ne fait pas sortir plus que ce qui a été reçu. */
+function renduExcessif(j: GrandJournal, op: OperationJ, nouveau: Centimes) {
+	if (op.liaisonId === null) return null;
+	if (j.liaisons.find((l) => l.id === op.liaisonId)?.type !== 'somme_a_rendre') return null;
+	const autres = j.operations
+		.filter((x) => x.liaisonId === op.liaisonId && x.id !== op.id)
+		.reduce<number>((n, x) => n + montantOperation(x), 0);
+	if (autres + nouveau >= 0) return null;
+	return echec('rendu_excessif', {
+		champ: 'montant',
+		montant: formaterMontant(centimes(Math.max(0, autres)))
+	});
+}
+
 function modifierOperation(o: Outils, e: EntreeModification): Resultat<{ id: number }> {
 	return ecrireModification(o, e, versBrouillon(e.saisie));
 }
@@ -241,6 +282,12 @@ export function ecrireModification(
 
 	const j = depot.journal();
 	if (coteFigeParSession(j, avant, validation.valeur.cotes)) return echec('session_cloturee');
+	const nouveau = sommeCentimes(validation.valeur.cotes.map((c) => c.montant));
+	if (nouveau !== montantOperation(avant)) {
+		if (repriseParAvoir(o, j, e.id)) return echec('reglement_repris_par_avoir');
+		const rendu = renduExcessif(j, avant, nouveau);
+		if (rendu !== null) return rendu;
+	}
 
 	// Une Opération qui solde une somme doit encore la couvrir, dans le même sens (F1).
 	const montant = validation.valeur.cotes[0]?.montant ?? centimes(0);
@@ -264,7 +311,7 @@ export function ecrireModification(
 	});
 	const registre = suivreChequeEmis(o, e.id, validation.valeur);
 	if (!registre.ok) return registre;
-	const ecart = reajusterEcartOuverture(o, [...avant.cotes, ...validation.valeur.cotes]);
+	const ecart = reajusterEcartOuverture(o, [...avant.cotes, ...apres.cotes], avant.creeLe);
 	return ecart.ok ? succes({ id: e.id }) : ecart;
 }
 
@@ -287,6 +334,7 @@ export function annulerOperation(
 	});
 	if (!decision.ok) return decision;
 	if (coteFigeParSession(depot.journal(), op, [])) return echec('session_cloturee');
+	if (repriseParAvoir(o, depot.journal(), id)) return echec('reglement_repris_par_avoir');
 	depot.annuler(id, o.ctx.maintenant, (o.ctx.acces as NonNullable<Ctx['acces']>).id);
 	o.noter({
 		evenement: 'operation.annulee',
@@ -296,7 +344,8 @@ export function annulerOperation(
 		avant: brouillonDe(op)
 	});
 	retirerChequeEmis(o, id);
-	const ecart = reajusterEcartOuverture(o, op.cotes);
+	if (op.origine === 'ecart_caisse') return succes({ id });
+	const ecart = reajusterEcartOuverture(o, op.cotes, op.creeLe);
 	return ecart.ok ? succes({ id }) : ecart;
 }
 

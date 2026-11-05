@@ -46,6 +46,7 @@ const ligneReleve = (partiel: Partial<LigneReleveJ> = {}): LigneReleveJ => ({
 	importId: 1,
 	identifiantSource: null,
 	empreinte: 'e',
+	creeLe: '2026-11-01T10:00:00.000Z',
 	...partiel
 });
 
@@ -61,7 +62,15 @@ describe('carteCompte', () => {
 			operations: [op],
 			constats: [constat()],
 			lignesReleve: [ligneReleve()],
-			pointages: [{ id: 1, compteId: 1, coteIds: [cote.id], ligneReleveIds: [1] }]
+			pointages: [
+				{
+					id: 1,
+					compteId: 1,
+					coteIds: [cote.id],
+					ligneReleveIds: [1],
+					creeLe: '2026-11-01T10:00:00.000Z'
+				}
+			]
 		});
 		const x = carte(j);
 		expect(x).toMatchObject({
@@ -226,9 +235,25 @@ describe('bilan', () => {
 	});
 
 	it('ne compte pas deux fois un Écart que des lignes expliquent déjà', () => {
-		const couverte = carteFictive({ etat: 'a_regarder', ecart: c(5_00), nonPointees: 2 });
+		const couverte = carteFictive({
+			etat: 'a_regarder',
+			ecart: c(5_00),
+			nonPointees: 2,
+			lignesOuvertes: 2
+		});
 		const taches = [{ id: 'lignes' as const, compteur: 2 }];
 		expect(bilan([couverte], taches, false)).toEqual({ type: 'taches', nombre: 2 });
+	});
+
+	it('un Écart que seule une Opération non pointée explique n’est jamais « Tout est à jour »', () => {
+		const expliquee = carteFictive({
+			etat: 'a_regarder',
+			ecart: c(-100_00),
+			nonExplique: c(0),
+			nonPointees: 1,
+			operationsOuvertes: 1
+		});
+		expect(bilan([expliquee], sansTache, false)).toEqual({ type: 'taches', nombre: 1 });
 	});
 
 	it('sans relevé, ne compte pas les Comptes qui l’attendent', () => {
@@ -245,7 +270,9 @@ describe('tuiles', () => {
 				ligneReleve({ id: 2 }),
 				ligneReleve({ id: 3, date: '2027-10-01' })
 			],
-			pointages: [{ id: 1, compteId: 1, coteIds: [], ligneReleveIds: [2] }]
+			pointages: [
+				{ id: 1, compteId: 1, coteIds: [], ligneReleveIds: [2], creeLe: '2026-11-01T10:00:00.000Z' }
+			]
 		});
 		expect(lignesNonPointees(j, E2026)).toBe(1);
 		expect(dernierPointage(j, E2026)).toBe('2026-10-05');
@@ -258,7 +285,15 @@ describe('tuiles', () => {
 		const recente = operationJ({ date: '2026-10-15' });
 		const j = journal({
 			operations: [vieille, pointee, recente],
-			pointages: [{ id: 1, compteId: 1, coteIds: [pointee.cotes[0]!.id], ligneReleveIds: [1] }]
+			pointages: [
+				{
+					id: 1,
+					compteId: 1,
+					coteIds: [pointee.cotes[0]!.id],
+					ligneReleveIds: [1],
+					creeLe: '2026-11-01T10:00:00.000Z'
+				}
+			]
 		});
 		const debuts = new Map([[1, '2026-10-01']]);
 		expect(operationsAnciennes(j, debuts, E2026)).toEqual([vieille.id]);

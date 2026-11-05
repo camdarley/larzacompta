@@ -27,11 +27,12 @@ function adresseDe(event: Parameters<Handle>[0]['event']) {
 	}
 }
 
-function cheminDecode(chemin: string) {
+/** `null` si l'adresse est illisible. Son résultat sert : l'empaqueteur retirerait un appel nu. */
+function cheminDecode(chemin: string): string | null {
 	try {
 		return decodeURI(chemin);
 	} catch {
-		return chemin;
+		return null;
 	}
 }
 
@@ -51,8 +52,12 @@ const APERCUS = new Set([
 const estAction = (request: Request) => request.headers.get('x-sveltekit-action') === 'true';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	const app = application();
 	const { request, url, cookies } = event;
+	// Kit appelle `handle` hors de son `try` sur une adresse illisible : un `redirect()` levé plus
+	// bas deviendrait une promesse rejetée sans suite, qui arrête le serveur.
+	const chemin = cheminDecode(url.pathname);
+	if (chemin === null) return new Response(message('adresse_illisible'), { status: 400 });
+	const app = application();
 
 	const jeton = cookies.get(COOKIE_SESSION);
 	const session = jeton ? app.acces.lireSession(app.ctx(null), jeton) : null;
@@ -67,8 +72,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Les écritures JSON ne sont pas couvertes par le contrôle CSRF de Kit (AD-19).
 	// `route.id` et non le chemin : Kit route sur le chemin décodé, `/%61pi/` mène au même endroit.
 	// Une route inconnue sous `/api/` se refuse aussi : le chemin décodé la reconnaît.
-	const api =
-		event.route.id?.startsWith('/api/') === true || cheminDecode(url.pathname).startsWith('/api/');
+	const api = event.route.id?.startsWith('/api/') === true || chemin.startsWith('/api/');
 	if (api && request.method !== 'GET' && request.method !== 'HEAD') {
 		const attendue = process.env.ORIGIN ?? url.origin;
 		if (request.headers.get('origin') !== attendue) return refusJson('origine_refusee', 403);

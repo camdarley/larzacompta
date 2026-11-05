@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Onglets from '#lib/ui/Onglets.svelte';
+	import { setContext } from 'svelte';
+	import { CLE_ONGLETS, type OngletsDePage } from '#lib/ui/Onglets.svelte';
 
 	let { children } = $props();
 
@@ -13,10 +14,10 @@
 			{ libelle: 'Document d’AG', href: `/etats/document-ag${q}` }
 		];
 	});
+	setContext<OngletsDePage>(CLE_ONGLETS, () => ({ nom: 'États', onglets }));
 </script>
 
 <div class="etats">
-	<Onglets nom="États" {onglets} />
 	{@render children()}
 </div>
 

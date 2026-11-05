@@ -244,6 +244,16 @@ export class Saisie {
 		return this.lignes.at(-1) as LigneEtat;
 	}
 
+	/** Ventiler, c'est le plus souvent la même Nature sur plusieurs Actions : elle se propose. */
+	ajouterLigneSuite(montant: Centimes): LigneEtat {
+		const natureId = this.lignes.at(-1)?.natureId ?? null;
+		const l = this.ajouterLigne(montant);
+		if (natureId === null) return l;
+		l.natureId = natureId;
+		l.suggestion = 'Comme la Ligne précédente';
+		return l;
+	}
+
 	/** D'une Opération existante, ou dupliquée, vers le formulaire. */
 	charger(op: OperationJ, exerciceCourantId: number | null) {
 		this.date = op.date;

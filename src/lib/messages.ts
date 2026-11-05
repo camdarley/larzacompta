@@ -46,6 +46,13 @@ const MESSAGES = {
 	identifiant_reserve: 'Cet identifiant est réservé. Choisissez-en un autre.',
 	connexion_refusee: 'Identifiant ou mot de passe incorrect.',
 	trop_de_tentatives: 'Trop d’essais. Réessayez dans 15 minutes.',
+	adresse_illisible: 'Cette adresse n’est pas lisible.',
+	exercice_cloture_saisies:
+		'{exercice} est clôturé. Cet écran suit l’argent d’aujourd’hui : vos saisies iront dans {ouvert}.',
+	releve_trop_long:
+		'Ce fichier compte {lignes} lignes, c’est plus que les {max} lues en une fois. Vérifiez que c’est bien un relevé, ou coupez-le en plusieurs fichiers.',
+	reglement_repris_par_avoir:
+		'Cet encaissement a été repris par un Avoir, qui en doit le montant. Annulez d’abord la Dette née de cet Avoir.',
 	mot_de_passe_perdu:
 		'Il n’y a pas de récupération par e-mail. Demandez à la personne qui gère l’installation de réinitialiser votre Accès.',
 	session_expiree:

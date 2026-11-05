@@ -26,6 +26,7 @@ import {
 	type TypeCompte
 } from '#lib/domaine/parametrage.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
+import { AVANT_TOUT, reajusterEcartOuverture } from '../caisses/ecart.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
 
 const FIN_DES_TEMPS = '9999-12-31';
@@ -234,6 +235,8 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 					e.ancre.solde
 				);
 				if (!r.ok) return r;
+				const ecart = reajusterEcartOuverture(o, [{ compteId: id, date: AVANT_TOUT }]);
+				if (!ecart.ok) return ecart;
 			}
 			return succes(true);
 		}

@@ -4,12 +4,12 @@
  */
 import { dateSession, repereCaisse, sessionOuverteLe } from '../caisse/index.ts';
 import { chequesEnAttenteLe } from '../cheques/index.ts';
-import { joursEntre, type DateCivile } from '../dates.ts';
+import { joursEntre, type DateCivile, type Instant } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal } from '../journal.ts';
 import { centimes, formaterMontant, type Centimes } from '../montant.ts';
 import type { Compte } from '../parametrage.ts';
-import { dernierConstat, ecart, ecartExplique, ouverts } from './ecart.ts';
+import { arreteA, dernierConstat, ecart, ecartExplique, ouverts } from './ecart.ts';
 import type { ParametrageEtats } from './resultat.ts';
 import { soldeCompte, soldeDepart } from './soldes.ts';
 
@@ -175,14 +175,16 @@ export const avecEcart = (c: Pick<CarteCompte, 'ecart' | 'nonExplique'>) =>
 
 /**
  * Comptes de l'Exercice regardé : un Compte ancré plus tard n'y existe pas encore.
- * Clôturé, il se lit avec les Comptes figés et à sa fin : renommer, désactiver ou laisser passer
- * le temps ne change plus ce que dit le Document d'AG (AD-5, AD-18).
+ * Clôturé, il se lit avec les Comptes figés, à sa fin et tel qu'il était arrêté : renommer,
+ * désactiver, importer un relevé ou laisser passer le temps ne change plus ce que dit le Document
+ * d'AG (AD-5, AD-18).
  */
 export function cartesComptes(
 	j: Journal,
 	e: Exercice,
 	aujourdhui: DateCivile,
-	figes: ParametrageEtats['comptes'] | null = null
+	figes: ParametrageEtats['comptes'] | null = null,
+	clotureLe: Instant | null = null
 ): CarteCompte[] {
 	const anneeAncre = (compteId: number) => {
 		const id = j.ancres.find((a) => a.compteId === compteId)?.exerciceId;
@@ -196,14 +198,22 @@ export function cartesComptes(
 			})
 		: j.comptes;
 	const jour = cloture ? (e.fin as DateCivile) : aujourdhui;
+	const lu = cloture && clotureLe !== null ? arreteA(j, clotureLe) : j;
 	return comptes
 		.filter((c) => estControle(c) && (cloture || anneeAncre(c.id) <= e.anneeDebut))
-		.map((c) => carteCompte(j, c, e, jour))
+		.map((c) => carteCompte(lu, c, e, jour))
 		.filter((c) => !muette(c));
 }
 
 export type TacheControle =
-	'lignes' | 'pieces' | 'anciennes' | 'comptages' | 'sessions' | 'cheques' | 'cheques_absents';
+	| 'lignes'
+	| 'pieces'
+	| 'anciennes'
+	| 'comptages'
+	| 'sessions'
+	| 'recettes'
+	| 'cheques'
+	| 'cheques_absents';
 export type Tache = { id: TacheControle; compteur: number };
 
 /** Non pointées, jusqu'à la fin de l'Exercice regardé : une ligne d'avant ne s'oublie pas. */
@@ -265,13 +275,14 @@ export type Bilan =
 
 /**
  * Ce qui reste à regarder sur un Compte et qu'aucune tuile ne compte déjà : un contrôle ancien,
- * un solde jamais constaté, un Écart sans aucun élément non pointé.
+ * un solde jamais constaté, un Écart que seules des Opérations non pointées expliquent.
  * Une caisse pas encore comptée a sa tuile, une Session ouverte aussi : le compte de la
  * phrase-bilan se retrouve à l'écran.
  */
 function aRegarderSeul(c: CarteCompte): boolean {
 	if (c.etat !== 'a_regarder' || caisseACompter(c) || c.sessionOuverte) return false;
-	return c.constate === null || c.ancien || c.nonPointees === 0;
+	const ecartSansTuile = (c.ecart ?? 0) !== 0 && c.lignesOuvertes === 0;
+	return c.constate === null || c.ancien || c.nonPointees === 0 || ecartSansTuile;
 }
 
 export const caisseACompter = (c: CarteCompte) =>

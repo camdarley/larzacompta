@@ -18,13 +18,19 @@
 	const abs = (c: Centimes) => centimes(Math.abs(c));
 	const totalLignes = $derived(sommeCentimes(causes.lignes.map((l) => l.montant)));
 	const totalCotes = $derived(sommeCentimes(causes.cotes.map((o) => o.montant)));
-	const phrase = $derived(
-		causes.ecart === 0
-			? 'Le solde calculé égale le relevé : il n’y a pas d’Écart.'
-			: causes.nonExplique === 0
-				? `Ces éléments expliquent tout l’Écart de ${formaterMontant(abs(causes.ecart))}.`
-				: `Ces éléments expliquent ${formaterMontant(abs(causes.explique))} sur un Écart de ${formaterMontant(abs(causes.ecart))}. Il reste ${formaterMontant(abs(causes.nonExplique))} à comprendre.`
+	/** Non pointé et relevé divergent : on ne peut pas dire « expliquent 123 € sur 32 € ». */
+	const depasse = $derived(
+		abs(causes.explique) > abs(causes.ecart) || causes.explique * causes.ecart < 0
 	);
+	const phrase = $derived.by(() => {
+		const ecart = formaterMontant(abs(causes.ecart));
+		const reste = formaterMontant(abs(causes.nonExplique));
+		if (causes.ecart === 0) return 'Le solde calculé égale le relevé : il n’y a pas d’Écart.';
+		if (causes.nonExplique === 0) return `Ces éléments expliquent tout l’Écart de ${ecart}.`;
+		return depasse
+			? `Les éléments non pointés font ${formaterMontantSigne(causes.explique)}, pour un Écart de ${formaterMontantSigne(causes.ecart)}. ${reste} restent à comprendre, dans l’autre sens.`
+			: `Ces éléments expliquent ${formaterMontant(abs(causes.explique))} sur un Écart de ${ecart}. Il reste ${reste} à comprendre.`;
+	});
 </script>
 
 {#snippet operation(o: ElementRelie)}

@@ -18,13 +18,13 @@
 	);
 </script>
 
-<div class="calme">
+<main class="calme">
 	<Carte etroite>
 		<EnTete {titre} petit />
 		<p class="texte">{texte}</p>
 		<Bouton href="/">Retour à l’accueil</Bouton>
 	</Carte>
-</div>
+</main>
 
 <style>
 	.calme {

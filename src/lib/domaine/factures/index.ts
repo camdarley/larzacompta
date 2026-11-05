@@ -37,11 +37,17 @@ export type Facture = EntreeFacture & {
 
 export type CompteurFacture = { annee: number; dernier: number; derniereDate: DateCivile };
 
+/**
+ * Un brouillon d'avant le plafond de saisie peut dépasser ce qu'un entier représente. Saturé, il reste
+ * lisible et supprimable, et `deciderValidation` le refuse toujours.
+ */
+const sature = (valeur: number) => centimes(Math.min(valeur, Number.MAX_SAFE_INTEGER));
+
 export const montantLigne = (l: Pick<LigneFacture, 'quantite' | 'prixUnitaire'>) =>
-	centimes(l.quantite * l.prixUnitaire);
+	sature(l.quantite * l.prixUnitaire);
 
 export function totalFacture(lignes: readonly LigneFacture[]): Centimes {
-	return centimes(lignes.reduce((total, l) => total + l.quantite * l.prixUnitaire, 0));
+	return sature(lignes.reduce((total, l) => total + l.quantite * l.prixUnitaire, 0));
 }
 
 const anneeDe = (date: DateCivile) => Number(date.slice(0, 4));

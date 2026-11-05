@@ -45,6 +45,7 @@
 		},
 		comptages: { libelle: 'Caisses à compter', icone: Wallet, href: '/caisses' },
 		sessions: { libelle: 'Sessions de caisse non clôturées', icone: Coins, href: '/caisses' },
+		recettes: { libelle: 'Recettes d’espèces à revoir', icone: Coins, href: '/caisses' },
 		cheques: {
 			libelle: 'Chèques reçus à remettre',
 			icone: ReceiptText,
@@ -60,7 +61,8 @@
 	/** Une liste que le rôle n'atteint pas garde son compteur, sans lien (EXPERIENCE.md). */
 	const hrefTuile = (id: TacheControle) => {
 		if (id === 'lignes' && !data.pointage) return null;
-		if ((id === 'comptages' || id === 'sessions') && !data.caisses) return null;
+		if ((id === 'comptages' || id === 'sessions' || id === 'recettes') && !data.caisses)
+			return null;
 		if ((id === 'cheques' || id === 'cheques_absents') && !data.cheques) return null;
 		return TUILES[id].href;
 	};

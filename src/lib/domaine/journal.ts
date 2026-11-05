@@ -115,6 +115,7 @@ export type LigneReleveJ = {
 	importId: number | null;
 	identifiantSource: string | null;
 	empreinte: string;
+	creeLe: Instant;
 };
 
 /**
@@ -160,6 +161,7 @@ export type PointageJ = {
 	compteId: number;
 	coteIds: number[];
 	ligneReleveIds: number[];
+	creeLe: Instant;
 };
 
 export type ReglementJ = { operationId: number; montant: Centimes };

@@ -57,6 +57,14 @@
 		min-width: 0;
 	}
 
+	/* Entre 1024 et 1200 px, la barre latérale serre déjà : les tableaux gardent leur dernière colonne. */
+	@media (max-width: 1199.98px) {
+		.reglages {
+			grid-template-columns: 148px minmax(0, 1fr);
+			gap: var(--espace-3);
+		}
+	}
+
 	@media (max-width: 1023.98px) {
 		.reglages {
 			grid-template-columns: minmax(0, 1fr);

@@ -62,6 +62,7 @@ test('2.4 : un montant se trouve aussi dans une Ligne, et le dit', async ({ page
 
 test('2.4 : les filtres se combinent, survivent au rechargement, s’effacent', async ({ page }) => {
 	await page.goto('/operations', { waitUntil: 'networkidle' });
+	await page.locator('summary', { hasText: 'Filtres' }).click();
 	await page.getByLabel('Pièce').selectOption('sans');
 	await expect(page).toHaveURL(/piece=sans/);
 	await page.locator('#filtre-nature').selectOption({ label: 'Papeterie' });

@@ -373,7 +373,15 @@ describe('lecture', () => {
 		const op = operationJ();
 		const coteId = (op.cotes[0] as { id: number }).id;
 		const avec = journal({
-			pointages: [{ id: 1, compteId: 1, coteIds: [coteId], ligneReleveIds: [1] }]
+			pointages: [
+				{
+					id: 1,
+					compteId: 1,
+					coteIds: [coteId],
+					ligneReleveIds: [1],
+					creeLe: '2026-11-01T10:00:00.000Z'
+				}
+			]
 		});
 		expect(etatPointage(avec, op)).toBe('pointe');
 		expect(etatPointage(journal(), op)).toBe('a_pointer');

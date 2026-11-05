@@ -21,11 +21,20 @@ export function exerciceDuMouvement(
 	return exerciceDeDate(j.exercices, op.date);
 }
 
-type JournalSolde = Pick<GrandJournal, 'ancres' | 'operations'>;
+type JournalSolde = Pick<GrandJournal, 'ancres' | 'operations'> &
+	Partial<Pick<GrandJournal, 'exercices'>>;
 
-/** Ancre (0 si absente) + somme des Côtés du Compte datés au plus tard `d`. */
+/** Une ancre posée sur un Exercice qui suit `d` ne dit rien de ce jour-là. */
+function ancreLue(j: JournalSolde, compteId: number, d: DateCivile): Centimes {
+	const ancre = j.ancres.find((a) => a.compteId === compteId);
+	if (ancre === undefined) return centimes(0);
+	const debut = j.exercices?.find((e) => e.id === ancre.exerciceId)?.debut ?? null;
+	return debut !== null && d < debut ? centimes(0) : ancre.solde;
+}
+
+/** Ancre (0 si absente, ou encore à venir) + somme des Côtés du Compte datés au plus tard `d`. */
 export function soldeCompte(j: JournalSolde, compteId: number, d: DateCivile): Centimes {
-	let solde: number = j.ancres.find((a) => a.compteId === compteId)?.solde ?? 0;
+	let solde: number = ancreLue(j, compteId, d);
 	for (const op of j.operations) {
 		for (const c of op.cotes) {
 			if (c.compteId === compteId && c.date <= d) solde += c.montant;

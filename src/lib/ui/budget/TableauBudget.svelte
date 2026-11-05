@@ -525,12 +525,17 @@
 		border: 1px solid var(--border);
 		border-radius: var(--rayon-lg);
 		background: var(--surface-raised);
-		overflow: hidden;
+		overflow-x: auto;
 	}
 
 	.budget {
 		width: 100%;
 		border-collapse: collapse;
+	}
+
+	/* Un montant ne se lit pas tronqué : le tableau défile plutôt que de serrer ses champs. */
+	.prevu :global(input) {
+		min-width: 7.5rem;
 	}
 
 	th {

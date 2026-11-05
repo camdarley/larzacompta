@@ -20,6 +20,23 @@ const ligne = z.object({
 		.transform(centimes)
 });
 
+/**
+ * Quantité et prix tiennent chacun sous leur limite, pas forcément leur produit. Un total hors
+ * plafond ne s'enregistre pas, même en brouillon : il casserait ce qui le relit.
+ */
+const lignes = z
+	.array(ligne)
+	.max(MAX_LIGNES, 'champ_requis')
+	.superRefine((liste, ctx) => {
+		let total = 0;
+		liste.forEach((l, i) => {
+			total += l.quantite * l.prixUnitaire;
+			if (total > MONTANT_MAX) {
+				ctx.addIssue({ code: 'custom', path: [i, 'prixUnitaire'], message: 'montant_invalide' });
+			}
+		});
+	});
+
 export const schemaFacture = z.object({
 	tiersNom: z.string().trim().min(1, 'champ_requis').max(200, 'champ_requis'),
 	tiersAdresse: z.string().trim().max(500, 'champ_requis').default(''),
@@ -28,7 +45,7 @@ export const schemaFacture = z.object({
 		.nullable()
 		.refine((d) => d === null || dateValide(d), 'date_invalide'),
 	actionId: z.number().int().positive().nullable(),
-	lignes: z.array(ligne).max(MAX_LIGNES, 'champ_requis')
+	lignes
 });
 
 /** L'aperçu suit la frappe : il montre ce qui est saisi, même sans tiers encore. */

@@ -101,6 +101,11 @@ export type PagePointage = VuePointage & {
 const acteur = (o: Pick<Outils, 'ctx'>) => (o.ctx.acces as NonNullable<Ctx['acces']>).id;
 const nouvellesLignes = (n: number) => (n > 1 ? `${n} lignes nouvelles` : `${n} ligne nouvelle`);
 
+/** Dix ans de relevé d'une APE, et davantage : au-delà, ce n'est pas le bon fichier. */
+export const MAX_LIGNES_IMPORT = 10_000;
+
+const formaterEntier = (n: number) => n.toLocaleString('fr-FR');
+
 function compteDe(j: GrandJournal, id: number) {
 	return comptesPointables(j).find((c) => c.id === id);
 }
@@ -360,6 +365,12 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 			if (ligne === undefined) return echec('element_introuvable');
 			const decision = deciderRetrait(j, ligne);
 			if (!decision.ok) return decision;
+			// Elle compte dans ce que l'Exercice clôturé a arrêté : la retirer le réécrirait.
+			const exercice = exerciceDeDate(j.exercices, ligne.date);
+			const close = exercice && o.depots.exercices.cloture(exercice.id);
+			if (exercice && close && ligne.creeLe <= close.clotureLe) {
+				return echec('exercice_cloture', { exercice: exercice.libelle });
+			}
 			o.depots.pointage.supprimerLigne(id);
 			o.noter({
 				evenement: 'ligne_releve.ecartee',
@@ -557,6 +568,12 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 			if ('type' in prepare.valeur) return succes(prepare.valeur);
 
 			const { format, releve } = prepare.valeur;
+			if (releve.lignes.length > MAX_LIGNES_IMPORT) {
+				return echec('releve_trop_long', {
+					lignes: formaterEntier(releve.lignes.length),
+					max: formaterEntier(MAX_LIGNES_IMPORT)
+				});
+			}
 			const dernier = depots.pointage.dernierCompteSource(e.compteId);
 			if (!e.autreCompte && releve.compte && dernier !== null && dernier !== releve.compte) {
 				return echec('releve_autre_compte');

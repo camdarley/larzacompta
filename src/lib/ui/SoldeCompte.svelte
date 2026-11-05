@@ -113,12 +113,11 @@
 		border-left-color: var(--border-strong);
 	}
 
+	/* La pastille a sa ligne : quelle que soit sa longueur, les additions restent alignées. */
 	header {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: var(--espace-1) var(--espace-2);
+		display: grid;
+		justify-items: start;
+		gap: var(--espace-1);
 	}
 
 	.constate {

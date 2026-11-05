@@ -87,6 +87,11 @@
 				>
 			</p>
 		{/if}
+		{#if c.recetteARevoir !== null}
+			<p class="t-caption">
+				<a href="/sessions/{c.recetteARevoir}">Recette d’espèces à revoir</a>
+			</p>
+		{/if}
 	</section>
 	{#if d.pose}
 		<section class="pose">

@@ -106,18 +106,21 @@ describe('rattachements de caisse', () => {
 	): OperationJ => ({ origine: 'standard', creeLe, cotes }) as unknown as OperationJ;
 	const session = { id: 7, compteId: 1, ouverteLe: '2026-11-01T10:00:00.000Z' };
 
-	it('C12 : un Côté daté avant l’ouverture corrigée sort, un Côté saisi depuis y entre', () => {
+	it('C12 : un Côté daté avant l’ouverture corrigée sort, un Côté daté après y entre', () => {
 		const j = {
 			operations: [
 				operation([cote(1, '2026-11-01', 7)]),
 				operation([cote(2, '2026-11-05', null)]),
 				operation([cote(3, '2026-11-05', null)], '2026-10-01T10:00:00.000Z'),
-				operation([{ ...cote(4, '2026-11-05', null), compteId: 2 }])
+				operation([{ ...cote(4, '2026-11-05', null), compteId: 2 }]),
+				operation([cote(5, '2026-11-03', null)], '2026-10-01T10:00:00.000Z')
 			]
 		};
 		expect(rattachementsARevoir(j, session, '2026-11-03')).toEqual([
 			{ coteId: 1, sessionCaisseId: null, sessionPhase: null },
-			{ coteId: 2, sessionCaisseId: 7, sessionPhase: 'pendant' }
+			{ coteId: 2, sessionCaisseId: 7, sessionPhase: 'pendant' },
+			// Daté après la date posée : le solde attendu de ce jour ne pouvait pas le contenir.
+			{ coteId: 3, sessionCaisseId: 7, sessionPhase: 'pendant' }
 		]);
 	});
 
@@ -154,7 +157,7 @@ describe('vues du Pointage', () => {
 		expect(
 			lignesAPointer({
 				lignesReleve: [{ id: 1 }, { id: 2 }],
-				pointages: [{ id: 1, ligneReleveIds: [1] }]
+				pointages: [{ id: 1, ligneReleveIds: [1], creeLe: '2026-11-01T10:00:00.000Z' }]
 			} as never)
 		).toBe(1);
 	});

@@ -139,7 +139,15 @@ function complet() {
 		],
 		remises: [{ id: 1, numero: 1, operationId: 4 }],
 		chequesRecus: [cheque(1, { remiseId: 1 }), cheque(2, { operationRejetId: 5 }), cheque(3)],
-		pointages: [{ id: 1, compteId: BANQUE, coteIds: [41], ligneReleveIds: [1] }]
+		pointages: [
+			{
+				id: 1,
+				compteId: BANQUE,
+				coteIds: [41],
+				ligneReleveIds: [1],
+				creeLe: '2026-11-01T10:00:00.000Z'
+			}
+		]
 	});
 }
 
@@ -187,7 +195,18 @@ describe('états déduits (AD-11)', () => {
 		expect(etatChequeEmis(j, e)).toBe('emis');
 		expect(
 			etatChequeEmis(
-				{ ...j, pointages: [{ id: 1, compteId: 1, coteIds: [70], ligneReleveIds: [] }] },
+				{
+					...j,
+					pointages: [
+						{
+							id: 1,
+							compteId: 1,
+							coteIds: [70],
+							ligneReleveIds: [],
+							creeLe: '2026-11-01T10:00:00.000Z'
+						}
+					]
+				},
 				e
 			)
 		).toBe('pointe');
@@ -429,7 +448,8 @@ describe('lecture d’un n° de chèque', () => {
 			doublon: 'non' as const,
 			importId: null,
 			identifiantSource: null,
-			empreinte: String(id)
+			empreinte: String(id),
+			creeLe: '2026-11-01T10:00:00.000Z'
 		});
 		const j = journal({ lignesReleve: [ligne(1, '2026-10-01'), ligne(2, '2027-10-01')] });
 		expect(chequesAbsents(j).map((a) => a.numero)).toEqual(['771', '772']);
@@ -557,7 +577,8 @@ describe('vues', () => {
 					doublon: 'non' as const,
 					importId: null,
 					identifiantSource: null,
-					empreinte: 'x'
+					empreinte: 'x',
+					creeLe: '2026-11-01T10:00:00.000Z'
 				}
 			]
 		};

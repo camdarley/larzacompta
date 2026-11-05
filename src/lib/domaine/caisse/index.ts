@@ -52,6 +52,15 @@ export const sessionOuverte = (
 	compteId: number
 ): SessionJ | undefined => j.sessions.find((s) => s.compteId === compteId && s.clotureeLe === null);
 
+export const derniereSession = (
+	j: Pick<GrandJournal, 'sessions'>,
+	compteId: number
+): SessionJ | undefined =>
+	j.sessions
+		.filter((s) => s.compteId === compteId)
+		.sort((a, b) => a.id - b.id)
+		.at(-1);
+
 export const comptageDe = (
 	j: Pick<GrandJournal, 'comptages'>,
 	sessionId: number,
@@ -203,6 +212,15 @@ function issuDuComptage(
 }
 
 /**
+ * Un Écart recalculé renaît avec un nouveau `creeLe`, mais il dit ce qu'a constaté son Comptage : il
+ * se situe à l'instant de ce Comptage, pas à celui de son écriture.
+ */
+function instantEcrit(j: Pick<GrandJournal, 'comptages'>, operation: OperationJ): Instant {
+	if (operation.origine !== 'ecart_caisse') return operation.creeLe;
+	return j.comptages.find((c) => c.operationEcartId === operation.id)?.compteLe ?? operation.creeLe;
+}
+
+/**
  * Le Côté a-t-il bougé la caisse après le repère ? Pour un Côté de la Session du repère, seule sa
  * phase répond : une kermesse tient en un jour, et la date seule ne suffit pas.
  */
@@ -220,7 +238,7 @@ function posterieur(
 	}
 	if (issuDuComptage(j, comptage, operation.id)) return false;
 	if (cote.date !== r.date) return cote.date > r.date;
-	return operation.creeLe > comptage.compteLe;
+	return instantEcrit(j, operation) > comptage.compteLe;
 }
 
 function cotesPosterieurs(
@@ -230,18 +248,21 @@ function cotesPosterieurs(
 	m: LectureCaisse
 ): CoteDeSession[] {
 	return j.operations.flatMap((operation) => {
-		const ecriteApres = m.jusqua !== undefined && operation.creeLe > m.jusqua;
-		const enRetard = (c: CoteJ) => (c.sessionCaisseId ?? null) === null && c.date < m.jour;
+		const lu = connuLe(j, operation, m);
 		return operation.cotes
 			.filter(
 				(c) =>
-					c.compteId === compteId &&
-					c.date <= m.jour &&
-					(!ecriteApres || enRetard(c)) &&
-					(r === undefined || posterieur(j, r, operation, c))
+					c.compteId === compteId && lu(c) && (r === undefined || posterieur(j, r, operation, c))
 			)
 			.map((cote) => ({ cote, operation }));
 	});
+}
+
+/** Ce que la lecture retient d'une Opération : daté d'ici là, et écrit, ou arrivé en retard. */
+function connuLe(j: Pick<GrandJournal, 'comptages'>, operation: OperationJ, m: LectureCaisse) {
+	const ecriteApres = m.jusqua !== undefined && instantEcrit(j, operation) > m.jusqua;
+	const enRetard = (c: CoteJ) => (c.sessionCaisseId ?? null) === null && c.date < m.jour;
+	return (c: CoteJ) => c.date <= m.jour && (!ecriteApres || enRetard(c));
 }
 
 const ancreDe = (ancres: readonly Ancre[], compteId: number) =>
@@ -256,6 +277,23 @@ export function soldeCourantCaisse(j: JournalCaisse, compteId: number, m: Lectur
 	const depart = r?.total ?? ancreDe(j.ancres, compteId);
 	const mouvements = cotesPosterieurs(j, compteId, r, m).map((c) => c.cote.montant);
 	return centimes(depart + sommeCentimes(mouvements));
+}
+
+/**
+ * Solde attendu d'un Comptage d'ouverture ou de contrôle (C8, C9). Entre deux Sessions, il égale
+ * `soldeCourantCaisse`, sauf quand un Côté est arrivé derrière le dernier Comptage : sans rien pour
+ * le résorber, cet Écart resterait à vie. Le Comptage suivant se compare donc à `soldeCompte`, et son
+ * Écart remet les deux lectures d'accord. Un constat garde sa règle : il fournit le solde attendu.
+ */
+export function soldeAttendu(j: JournalCaisse, compteId: number, m: LectureCaisse): Centimes {
+	if (repereCaisse(j, compteId, m)?.source !== 'comptage') {
+		return soldeCourantCaisse(j, compteId, m);
+	}
+	const mouvements = j.operations.flatMap((op) => {
+		const lu = connuLe(j, op, m);
+		return op.cotes.filter((c) => c.compteId === compteId && lu(c)).map((c) => c.montant);
+	});
+	return centimes(ancreDe(j.ancres, compteId) + sommeCentimes(mouvements));
 }
 
 /** Détail de `soldeCourantCaisse`, pour le `calcul-pose` et la frise. */
@@ -347,11 +385,7 @@ export function deciderReouverture(
 	const session = sessionDe(j, sessionId);
 	if (session === undefined) return echec('element_introuvable');
 	if (session.clotureeLe === null) return echec('session_invalide');
-	const derniere = j.sessions
-		.filter((s) => s.compteId === session.compteId)
-		.sort((a, b) => a.id - b.id)
-		.at(-1);
-	if (derniere?.id !== session.id) return echec('session_invalide');
+	if (derniereSession(j, session.compteId)?.id !== session.id) return echec('session_invalide');
 	const dates = j.comptages.filter((c) => c.sessionCaisseId === sessionId).map((c) => c.date);
 	const ouverts = dates.every((d) => exerciceDeDate(j.exercices, d)?.statut === 'ouvert');
 	return ouverts ? succes(session) : echec('session_invalide');

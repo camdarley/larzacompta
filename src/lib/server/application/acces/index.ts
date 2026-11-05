@@ -330,6 +330,8 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 			const a = o.depots.acces.parIdentifiant(identifiant);
 			if (a === null || a.identifiant === IDENTIFIANT_INITIAL) return echec('element_introuvable');
 			const jeton = emettreJeton(o, a.id);
+			// La personne qui reprend la main ne reste pas bloquée par des essais d'autrui.
+			o.depots.acces.effacerTentative(`id:${a.identifiant.toLowerCase()}`);
 			o.noter({
 				evenement: 'acces.lien_reinitialisation_emis',
 				entiteType: 'acces',
@@ -340,14 +342,28 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
+	/** Même compteur que la connexion : une session volée ne teste pas de mot de passe en série. */
+	const casEchecMotDePasse: CasUsage<{ identifiant: string; adresse: string }, true> = {
+		droit: 'etre_connecte',
+		sansJournal: true,
+		faire(o, e) {
+			for (const c of clesTentative(e)) {
+				o.depots.acces.ecrireTentative(
+					apresEchec(o.depots.acces.lireTentative(c), c, o.ctx.maintenant)
+				);
+			}
+			return succes(true);
+		}
+	};
+
 	const casMotDePasse: CasUsage<
-		{ bonActuel: boolean; hash: string },
+		{ hash: string; cles: string[] },
 		{ jeton: string; expireLe: Instant }
 	> = {
 		droit: 'etre_connecte',
 		faire(o, e) {
-			if (!e.bonActuel) return echec('mot_de_passe_faux', { champ: 'actuel' });
 			const id = (o.ctx.acces as AccesConnecte).id;
+			for (const c of e.cles) o.depots.acces.effacerTentative(c);
 			o.depots.acces.definirMotDePasse(id, e.hash);
 			// Toutes les sessions tombent, celle-ci renaît : le navigateur reçoit un nouveau jeton.
 			o.depots.acces.supprimerSessions(id);
@@ -459,14 +475,23 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 			return executer(casReinitialisation, ctx, identifiant);
 		},
 
-		async changerMotDePasse(ctx: Ctx, e: { actuel: string; nouveau: string }) {
+		async changerMotDePasse(
+			ctx: Ctx,
+			e: { actuel: string; nouveau: string; adresse?: string }
+		): Promise<Resultat<{ jeton: string; expireLe: Instant }>> {
 			const mdp = verifierMotDePasse(e.nouveau);
 			if (!mdp.ok) return echec('mot_de_passe_court', { champ: 'nouveau' });
 			const a = ctx.acces ? depots.acces.parId(ctx.acces.id) : null;
-			const bonActuel = a?.hash ? await hacheur.verifier(e.actuel, a.hash) : false;
-			if (!bonActuel) return executer(casMotDePasse, ctx, { bonActuel, hash: '' });
+			if (a === null) return echec('acces_refuse');
+			const tentative = { identifiant: a.identifiant, adresse: e.adresse ?? 'inconnue' };
+			if (bloquee(tentative, ctx.maintenant)) return echec('trop_de_tentatives');
+			const bonActuel = a.hash ? await hacheur.verifier(e.actuel, a.hash) : false;
+			if (!bonActuel) {
+				const note = executer(casEchecMotDePasse, ctx, tentative);
+				return note.ok ? echec('mot_de_passe_faux', { champ: 'actuel' }) : note;
+			}
 			const hash = await hacheur.hacher(mdp.valeur);
-			return executer(casMotDePasse, ctx, { bonActuel, hash });
+			return executer(casMotDePasse, ctx, { hash, cles: clesTentative(tentative) });
 		},
 
 		changerPreferences(ctx: Ctx, preferences: Preferences) {

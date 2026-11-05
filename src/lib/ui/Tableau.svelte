@@ -13,6 +13,8 @@
 
 <style>
 	.conteneur {
+		/* Un texte masqué pour la lecture d'écran reste dans le tableau qui défile, pas dans la page. */
+		position: relative;
 		overflow-x: auto;
 		border: 1px solid var(--border);
 		border-radius: var(--rayon-lg);
@@ -34,7 +36,7 @@
 	}
 
 	/* En dessous, un en-tête passe à la ligne plutôt que de pousser le tableau hors de l'écran. */
-	@media (min-width: 1024px) {
+	@media (min-width: 1200px) {
 		.tableau :global(th) {
 			white-space: nowrap;
 		}
@@ -51,7 +53,7 @@
 		vertical-align: middle;
 	}
 
-	@media (min-width: 640px) and (max-width: 799.98px) {
+	@media (min-width: 640px) and (max-width: 1199.98px) {
 		.tableau :global(th),
 		.tableau :global(td) {
 			padding-inline: var(--espace-2);

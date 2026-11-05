@@ -62,6 +62,11 @@
 						</a>
 					</p>
 				{/if}
+				{#if c.recetteARevoir !== null}
+					<p class="session t-caption">
+						<a href="/sessions/{c.recetteARevoir}">Recette d’espèces à revoir</a>
+					</p>
+				{/if}
 				{#if saisir}
 					<div class="actions">
 						{#if c.reserve}

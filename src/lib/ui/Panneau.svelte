@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { beforeNavigate } from '$app/navigation';
 	import { X } from '@lucide/svelte';
 	import { Dialog } from 'bits-ui';
 	import type { Snippet } from 'svelte';
@@ -57,6 +58,13 @@
 		if (modifie) confirmation = true;
 		else fermer();
 	}
+
+	// Sur téléphone, le retour arrière est le geste de fermeture : il pose la même question.
+	beforeNavigate((n) => {
+		if (!ouvert || !modifie || n.type !== 'popstate') return;
+		n.cancel();
+		confirmation = true;
+	});
 </script>
 
 <!-- L'URL décide : Bits UI demande la fermeture, il ne la fait pas seul. -->

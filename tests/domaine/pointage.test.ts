@@ -35,6 +35,7 @@ const ligneR = (partiel: Partial<LigneReleveJ> = {}): LigneReleveJ => ({
 	importId: 1,
 	identifiantSource: null,
 	empreinte: 'e',
+	creeLe: '2026-11-01T10:00:00.000Z',
 	...partiel
 });
 
@@ -110,7 +111,15 @@ describe('elementOuvert et ecartExplique (§8)', () => {
 			operations: [op],
 			lignesReleve: [ligne],
 			constats: [constat(99000)],
-			pointages: [{ id: 1, compteId: 1, coteIds: [cote(op)], ligneReleveIds: [ligne.id] }]
+			pointages: [
+				{
+					id: 1,
+					compteId: 1,
+					coteIds: [cote(op)],
+					ligneReleveIds: [ligne.id],
+					creeLe: '2026-11-01T10:00:00.000Z'
+				}
+			]
 		});
 		const d = '2026-10-31';
 		expect(elementOuvert(j, { type: 'ligne', id: ligne.id, date: ligne.date }, d)).toBe(true);
@@ -131,7 +140,15 @@ describe('elementOuvert et ecartExplique (§8)', () => {
 		const j = journal({
 			operations: [op, libre],
 			lignesReleve: [ligne],
-			pointages: [{ id: 1, compteId: 1, coteIds: [cote(op)], ligneReleveIds: [ligne.id] }]
+			pointages: [
+				{
+					id: 1,
+					compteId: 1,
+					coteIds: [cote(op)],
+					ligneReleveIds: [ligne.id],
+					creeLe: '2026-11-01T10:00:00.000Z'
+				}
+			]
 		});
 		const d = '2026-10-31';
 		expect(elementOuvert(j, { type: 'cote', id: cote(op), date: '2026-10-05' }, d)).toBe(false);
@@ -168,7 +185,8 @@ describe('elementOuvert et ecartExplique (§8)', () => {
 						id: i + 1,
 						compteId: 1,
 						coteIds: [cote(ops[lr.indexOf(l)] as OperationJ)],
-						ligneReleveIds: [l.id]
+						ligneReleveIds: [l.id],
+						creeLe: '2026-11-01T10:00:00.000Z'
 					}))
 				});
 				expect(ecartNonExplique(j, 1, '2026-10-31')).toBe(0);
@@ -318,7 +336,15 @@ describe('proposer (AD-8)', () => {
 		const inconnue = operationJ({ libelle: 'Rien', montant: -77 });
 		const j = journal({
 			operations: [pointe, ailleurs, sens, inconnue],
-			pointages: [{ id: 1, compteId: 1, coteIds: [cote(pointe)], ligneReleveIds: [] }]
+			pointages: [
+				{
+					id: 1,
+					compteId: 1,
+					coteIds: [cote(pointe)],
+					ligneReleveIds: [],
+					creeLe: '2026-11-01T10:00:00.000Z'
+				}
+			]
 		});
 		expect(proposer(j, ligneR({ libelle: 'CB' }))).toEqual([]);
 	});
@@ -419,7 +445,15 @@ describe('pointer : P1 à P4', () => {
 		const autre = ligneR();
 		const j = base(o, l, {
 			lignesReleve: [l, autre],
-			pointages: [{ id: 1, compteId: 1, coteIds: [cote(o)], ligneReleveIds: [autre.id] }]
+			pointages: [
+				{
+					id: 1,
+					compteId: 1,
+					coteIds: [cote(o)],
+					ligneReleveIds: [autre.id],
+					creeLe: '2026-11-01T10:00:00.000Z'
+				}
+			]
 		});
 		expect(deciderPointage(j, { compteId: 1, coteIds: [cote(o)], ligneIds: [l.id] })).toMatchObject(
 			{ erreur: { code: 'pointage_incoherent' } }
@@ -430,7 +464,15 @@ describe('pointer : P1 à P4', () => {
 				journal({
 					operations: [p],
 					lignesReleve: [autre],
-					pointages: [{ id: 2, compteId: 1, coteIds: [], ligneReleveIds: [autre.id] }]
+					pointages: [
+						{
+							id: 2,
+							compteId: 1,
+							coteIds: [],
+							ligneReleveIds: [autre.id],
+							creeLe: '2026-11-01T10:00:00.000Z'
+						}
+					]
 				}),
 				{ compteId: 1, coteIds: [cote(p)], ligneIds: [autre.id] }
 			)
@@ -445,16 +487,34 @@ describe('deciderAnnulationPointage', () => {
 
 	it('refuse si tout ce qu’il relie est dans un Exercice clôturé', () => {
 		const j = journal({ operations: [clos], lignesReleve: [ligneClose] });
-		const p = { id: 1, compteId: 1, coteIds: [cote(clos)], ligneReleveIds: [ligneClose.id] };
+		const p = {
+			id: 1,
+			compteId: 1,
+			coteIds: [cote(clos)],
+			ligneReleveIds: [ligneClose.id],
+			creeLe: '2026-11-01T10:00:00.000Z'
+		};
 		expect(deciderAnnulationPointage(j, p)).toMatchObject({ erreur: { code: 'pointage_fige' } });
 	});
 
 	it('accepte dès qu’un élément reste dans un Exercice ouvert', () => {
 		const j = journal({ operations: [ouvert], lignesReleve: [ligneClose] });
-		const p = { id: 1, compteId: 1, coteIds: [cote(ouvert)], ligneReleveIds: [ligneClose.id] };
+		const p = {
+			id: 1,
+			compteId: 1,
+			coteIds: [cote(ouvert)],
+			ligneReleveIds: [ligneClose.id],
+			creeLe: '2026-11-01T10:00:00.000Z'
+		};
 		expect(deciderAnnulationPointage(j, p).ok).toBe(true);
 		expect(
-			deciderAnnulationPointage(j, { id: 2, compteId: 1, coteIds: [], ligneReleveIds: [] }).ok
+			deciderAnnulationPointage(j, {
+				id: 2,
+				compteId: 1,
+				coteIds: [],
+				ligneReleveIds: [],
+				creeLe: '2026-11-01T10:00:00.000Z'
+			}).ok
 		).toBe(true);
 	});
 });
@@ -464,7 +524,17 @@ describe('P5 : retirer une Ligne de relevé', () => {
 		const l = ligneR({ doublon: 'a_confirmer' });
 		expect(
 			deciderRetrait(
-				{ pointages: [{ id: 1, compteId: 1, coteIds: [], ligneReleveIds: [l.id] }] },
+				{
+					pointages: [
+						{
+							id: 1,
+							compteId: 1,
+							coteIds: [],
+							ligneReleveIds: [l.id],
+							creeLe: '2026-11-01T10:00:00.000Z'
+						}
+					]
+				},
 				l
 			)
 		).toMatchObject({ erreur: { code: 'ligne_releve_pointee' } });
@@ -520,7 +590,15 @@ describe('vuePointage', () => {
 			journal({
 				operations: [op],
 				lignesReleve: [pointee, tardive, tot],
-				pointages: [{ id: 7, compteId: 1, coteIds: [cote(op)], ligneReleveIds: [pointee.id] }]
+				pointages: [
+					{
+						id: 7,
+						compteId: 1,
+						coteIds: [cote(op)],
+						ligneReleveIds: [pointee.id],
+						creeLe: '2026-11-01T10:00:00.000Z'
+					}
+				]
 			}),
 			1,
 			o
@@ -554,7 +632,15 @@ describe('vuePointage', () => {
 			journal({
 				operations: [op],
 				lignesReleve: [vieille, ouverte],
-				pointages: [{ id: 1, compteId: 1, coteIds: [cote(op)], ligneReleveIds: [vieille.id] }]
+				pointages: [
+					{
+						id: 1,
+						compteId: 1,
+						coteIds: [cote(op)],
+						ligneReleveIds: [vieille.id],
+						creeLe: '2026-11-01T10:00:00.000Z'
+					}
+				]
 			}),
 			1,
 			{ ...o, depuis: '2026-09-01' }
@@ -608,7 +694,15 @@ describe('vuePointage', () => {
 		expect(
 			lignesAPointer({
 				lignesReleve: [a, b],
-				pointages: [{ id: 1, compteId: 1, coteIds: [], ligneReleveIds: [a.id] }]
+				pointages: [
+					{
+						id: 1,
+						compteId: 1,
+						coteIds: [],
+						ligneReleveIds: [a.id],
+						creeLe: '2026-11-01T10:00:00.000Z'
+					}
+				]
 			})
 		).toBe(1);
 	});

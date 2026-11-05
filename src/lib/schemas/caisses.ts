@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { COUPURES } from '#lib/domaine/caisse/index.ts';
 import { dateValide } from '#lib/domaine/dates.ts';
-import { centimes } from '#lib/domaine/montant.ts';
+import { centimes, MONTANT_MAX } from '#lib/domaine/montant.ts';
 
 const date = z.string().refine(dateValide, 'date_invalide');
 const coupure = z
@@ -13,7 +13,11 @@ const coupure = z
 const coupures = z
 	.array(z.object({ coupure, quantite: z.number().int().min(1).max(1_000_000) }))
 	.max(COUPURES.length)
-	.refine((l) => new Set(l.map((c) => c.coupure)).size === l.length, 'montant_invalide');
+	.refine((l) => new Set(l.map((c) => c.coupure)).size === l.length, 'montant_invalide')
+	.refine(
+		(l) => l.reduce((total, c) => total + c.coupure * c.quantite, 0) <= MONTANT_MAX,
+		'montant_invalide'
+	);
 
 const commun = {
 	coupures,

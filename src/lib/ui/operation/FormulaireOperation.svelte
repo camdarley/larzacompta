@@ -213,6 +213,8 @@
 	const repartitionSumup = $derived(sumup && ligne?.sumup != null);
 	/** Depuis le relevé, le montant est déjà juste : le focus va à ce qui reste à compléter. */
 	const champInitial = $derived.by(() => {
+		// Pointée, seuls le texte et la Pièce se corrigent : pas de focus sur un montant verrouillé.
+		if (verrouille) return '#op-libelle';
 		if (ligne === null) return undefined;
 		if (repartitionSumup) return `#ligne-${saisie.lignes[1]?.cle}-montant`;
 		const vide = saisie.lignes.find((l) => !l.natureId);
@@ -686,9 +688,19 @@
 				]
 			: [{ compteId: saisie.compteId, date: saisie.date, sortant: !recetteSens }];
 		return cotes.filter((c) =>
-			contexte.sessions.some((s) => s.compteId === c.compteId && s.dateFinale === c.date)
+			contexte.sessions.some(
+				(s) => s.compteId === c.compteId && s.dateFinale === c.date && (!s.cloturee || !interne)
+			)
 		);
 	});
+	/** Session déjà clôturée, réponse « pendant » : sa Recette est à revoir, autant le dire ici. */
+	const recetteAReprendre = $derived(
+		cotesEnQuestion.some(
+			(c) =>
+				reponse(c) !== c.sortant &&
+				contexte.sessions.some((s) => s.compteId === c.compteId && s.cloturee)
+		)
+	);
 	/** Réponses touchées. Sinon : Oui pour un transfert ou un dépôt, Non pour une dépense. */
 	let reponses = $state<Record<string, boolean>>({});
 	const reponse = (c: { compteId: number | null; sortant: boolean }) =>
@@ -929,6 +941,11 @@
 						}}
 					/>
 				{/each}
+				{#if recetteAReprendre}
+					<p class="note-forme t-caption">
+						Cette Session est clôturée. Il faudra la rouvrir pour revoir sa Recette d’espèces.
+					</p>
+				{/if}
 				{#if interne}
 					<p class="note-forme t-caption">
 						Ne compte ni en recette, ni en dépense.
@@ -1194,7 +1211,7 @@
 				reste={saisie.reste}
 				bind:zone={zoneReste}
 				ajouter={() => {
-					const l = saisie.ajouterLigne(saisie.reste);
+					const l = saisie.ajouterLigneSuite(saisie.reste);
 					queueMicrotask(() => document.getElementById(`ligne-${l.cle}-montant`)?.focus());
 				}}
 			/>

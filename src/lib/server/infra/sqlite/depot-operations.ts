@@ -113,6 +113,7 @@ type LigneReleveBrute = {
 	import_id: number | null;
 	identifiant_source: string | null;
 	empreinte: string;
+	cree_le: string;
 };
 type CreanceBrute = {
 	id: number;
@@ -241,10 +242,10 @@ export function creerDepotOperations(
 		liaisons: base.prepare('SELECT id, type, libelle FROM liaison ORDER BY id'),
 		constats: base.prepare('SELECT * FROM constat_solde ORDER BY date, id'),
 		lignesReleve: base.prepare(
-			`SELECT id, compte_id, date, montant_centimes, libelle, doublon, import_id, identifiant_source, empreinte
+			`SELECT id, compte_id, date, montant_centimes, libelle, doublon, import_id, identifiant_source, empreinte, cree_le
 				 FROM ligne_releve ORDER BY date, id`
 		),
-		pointages: base.prepare('SELECT id, compte_id FROM pointage ORDER BY id'),
+		pointages: base.prepare('SELECT id, compte_id, cree_le FROM pointage ORDER BY id'),
 		pointageCotes: base.prepare('SELECT pointage_id, cote_id FROM pointage_cote'),
 		pointageLignes: base.prepare('SELECT pointage_id, ligne_releve_id FROM pointage_ligne'),
 		creances: base.prepare(`
@@ -351,11 +352,12 @@ export function creerDepotOperations(
 			r.pointageLignes.all() as { pointage_id: number; ligne_releve_id: number }[],
 			(l) => l.pointage_id
 		);
-		return (r.pointages.all() as { id: number; compte_id: number }[]).map((p) => ({
+		return (r.pointages.all() as { id: number; compte_id: number; cree_le: string }[]).map((p) => ({
 			id: p.id,
 			compteId: p.compte_id,
 			coteIds: (cotes.get(p.id) ?? []).map((c) => c.cote_id),
-			ligneReleveIds: (lignes.get(p.id) ?? []).map((l) => l.ligne_releve_id)
+			ligneReleveIds: (lignes.get(p.id) ?? []).map((l) => l.ligne_releve_id),
+			creeLe: p.cree_le
 		}));
 	}
 
@@ -486,7 +488,8 @@ export function creerDepotOperations(
 						doublon: l.doublon,
 						importId: l.import_id,
 						identifiantSource: l.identifiant_source,
-						empreinte: l.empreinte
+						empreinte: l.empreinte,
+						creeLe: l.cree_le
 					})),
 				relevesDemesures: {
 					lignes: lignesReleve
