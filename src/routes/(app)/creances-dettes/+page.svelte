@@ -107,7 +107,13 @@
 					{#each b.rangees as r (r.id)}
 						<tr id="somme-{r.id}">
 							<td class="principale">{r.tiers}</td>
-							<td>{r.motif}</td>
+							<td>
+								{#if r.factureId !== null && data.peutSaisir}
+									<a href="/factures/{r.factureId}">{r.motif}</a>
+								{:else}
+									{r.motif}
+								{/if}
+							</td>
 							<td class="t-muted">{r.action ?? ''}</td>
 							<td class="montant">
 								{formaterMontant(r.reste)}
@@ -124,12 +130,14 @@
 									>
 										Solder
 									</Bouton>
-									<Menu nom="Actions de {r.tiers}" flottant classe="bouton-ligne">
-										{#snippet bouton()}
-											<Ellipsis size={20} strokeWidth={1.75} aria-hidden="true" />
-										{/snippet}
-										<button type="button" onclick={() => annuler(r)}>Annuler cette somme</button>
-									</Menu>
+									{#if !r.geree}
+										<Menu nom="Actions de {r.tiers}" flottant classe="bouton-ligne">
+											{#snippet bouton()}
+												<Ellipsis size={20} strokeWidth={1.75} aria-hidden="true" />
+											{/snippet}
+											<button type="button" onclick={() => annuler(r)}>Annuler cette somme</button>
+										</Menu>
+									{/if}
 								</td>
 							{/if}
 						</tr>

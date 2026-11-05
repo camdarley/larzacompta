@@ -51,6 +51,10 @@ export type ModeleDocument = {
 	provisoire: boolean;
 	nomFichier: string;
 	sections: SectionDocument[];
+	/** Remplace la ligne « APE, Exercice » sous le titre. `null` : aucune ligne. */
+	sousTitre?: string | null;
+	/** Blocs côte à côte sous le titre : émetteur et destinataire d'une Facture. */
+	parties?: { titre: string; lignes: string[] }[];
 };
 
 const COLONNES_RESULTAT = [

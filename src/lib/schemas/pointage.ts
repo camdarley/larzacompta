@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { dateValide } from '#lib/domaine/dates.ts';
 import { MONTANT_MAX, centimes } from '#lib/domaine/montant.ts';
+import { partsReglement } from './creances.ts';
 import { saisieOperation, cleSaisie, piecesDeposees } from './operations.ts';
 import { montantFacultatif } from './parametrage.ts';
 
@@ -37,7 +38,8 @@ export const schemaDepuisLigne = z.object({
 	ligneId: identifiant,
 	cle: cleSaisie,
 	saisie: saisieOperation,
-	pieces: piecesDeposees
+	pieces: piecesDeposees,
+	parts: partsReglement.optional()
 });
 
 const colonne = z.string().min(1, 'champ_requis').max(200);

@@ -214,8 +214,10 @@ describe('triggers de 0001', () => {
 			.prepare(`SELECT name FROM sqlite_master WHERE type = 'trigger' ORDER BY name`)
 			.pluck()
 			.all() as string[];
-		// Ceux du jalon 2 ont leurs cas dans triggers-0003.test.ts.
-		const deCeFichier = presents.filter((n) => !/^(comptage|coupure)_verrou_/.test(n));
+		// Ceux des jalons 2 et 3 ont leurs cas dans triggers-0003.test.ts et triggers-0004.test.ts.
+		const deCeFichier = presents.filter(
+			(n) => !/^(comptage|coupure)_verrou_|^facture_|^creance_retablir_/.test(n)
+		);
 		expect(Object.keys(cas).sort()).toEqual(deCeFichier);
 	});
 

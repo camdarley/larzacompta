@@ -12,9 +12,11 @@
 		/** Sommes ouvertes : une même Opération peut en solder plusieurs. */
 		sommes: readonly SommeASolder[];
 		erreurs: Record<string, string>;
+		/** Depuis le relevé : le montant est celui de la banque, une autre somme le partage. */
+		montantFixe?: boolean;
 	};
 
-	let { saisie, sommes, erreurs }: Props = $props();
+	let { saisie, sommes, erreurs, montantFixe = false }: Props = $props();
 
 	const sens = $derived(saisie.sommes[0]?.somme.sens ?? 'creance');
 	const restantes = $derived(
@@ -35,7 +37,8 @@
 
 	function ajouter(id: number | null) {
 		const s = restantes.find((x) => x.id === id);
-		if (s) saisie.ajouterSomme(s);
+		if (s && montantFixe) saisie.ajouterSommeDeLigne(s);
+		else if (s) saisie.ajouterSomme(s);
 		choisie = null;
 		ajout = false;
 	}

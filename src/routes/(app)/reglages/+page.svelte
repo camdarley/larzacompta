@@ -43,6 +43,10 @@
 		<dt class="t-label">Début d’Exercice</dt>
 		<dd>{a ? nomDuMois(a.moisDebutExercice) : '—'}</dd>
 	</div>
+	<div>
+		<dt class="t-label">Mentions de facture</dt>
+		<dd class="mentions">{a?.mentionsFacture || '—'}</dd>
+	</div>
 </dl>
 
 <form method="post" class="formulaire seulement-ordinateur" use:enhance={envoi.soumettre}>
@@ -67,7 +71,15 @@
 		aide="S’applique aux Exercices à venir. Ceux déjà ouverts gardent leurs dates."
 		valeur={saisie.moisDebutExercice ?? String(a?.moisDebutExercice ?? 9)}
 	/>
-	<input type="hidden" name="mentionsFacture" value={a?.mentionsFacture ?? ''} />
+	<ChampZone
+		etiquette="Mentions de facture"
+		name="mentionsFacture"
+		lignes={5}
+		autocomplete="off"
+		aide="Vides par défaut. Elles s’impriment en bas de chaque Facture, telles quelles. À vérifier selon la situation de votre APE : TVA, SIRET, conditions de règlement."
+		valeur={saisie.mentionsFacture ?? a?.mentionsFacture ?? ''}
+		erreur={form?.erreur?.champs.mentionsFacture}
+	/>
 	<div class="actions"><Bouton type="submit" occupe={envoi.occupe}>Enregistrer</Bouton></div>
 </form>
 
@@ -89,5 +101,9 @@
 
 	dt {
 		color: var(--ink-muted);
+	}
+
+	.mentions {
+		white-space: pre-line;
 	}
 </style>

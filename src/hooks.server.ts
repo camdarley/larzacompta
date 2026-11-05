@@ -39,8 +39,14 @@ function refusJson(code: string, status: number) {
 	return json({ code, details: {} }, { status });
 }
 
-/** Fichiers affichés en iframe : une Pièce, l'aperçu du Document d'AG. */
-const APERCUS = new Set(['/fichiers/[sha]', '/(app)/etats/document-ag/pdf']);
+/** Fichiers affichés en iframe : une Pièce, l'aperçu du Document d'AG, d'une Facture, d'un Avoir. */
+const APERCUS = new Set([
+	'/fichiers/[sha]',
+	'/(app)/etats/document-ag/pdf',
+	'/(app)/factures/apercu',
+	'/(app)/factures/[id]/pdf',
+	'/(app)/factures/[id]/avoir/apercu'
+]);
 
 const estAction = (request: Request) => request.headers.get('x-sveltekit-action') === 'true';
 

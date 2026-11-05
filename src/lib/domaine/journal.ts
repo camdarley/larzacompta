@@ -165,6 +165,9 @@ export type CreanceDetteJ = {
 	note: string | null;
 	annuleeLe: Instant | null;
 	reglements: ReglementJ[];
+	/** Née d'une Facture ou d'un Avoir (AD-12). Elle n'entre pas dans l'empreinte de clôture. */
+	factureId?: number | null;
+	factureNumero?: string | null;
 };
 
 /** `numero` : suite propre aux bordereaux. Compte et total se lisent sur l'Opération interne. */

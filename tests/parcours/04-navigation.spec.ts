@@ -85,6 +85,7 @@ test('seules les entrées livrées apparaissent, sans entrée grisée', async ({
 		'Chèques',
 		'Créances et Dettes',
 		'Pièces',
+		'Factures',
 		'Actions',
 		'États',
 		'Réglages',

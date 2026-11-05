@@ -2,6 +2,7 @@
  * Seul module qui écrit le relevé, le Constat et le Pointage (AD-7).
  * Seul `pointer` crée un Pointage, toujours à partir d'une action explicite (AD-8).
  */
+import { deciderReglements, type PartReglement } from '#lib/domaine/creances/index.ts';
 import { formaterDateCourte, type DateCivile } from '#lib/domaine/dates.ts';
 import { exerciceDeDate } from '#lib/domaine/etats/soldes.ts';
 import type { GrandJournal, LigneReleveJ } from '#lib/domaine/journal.ts';
@@ -49,6 +50,7 @@ import {
 	versBrouillon,
 	type EntreeOperation
 } from '../operations/index.ts';
+import { reglerSommes } from '../creances/index.ts';
 import { rattacherPieces } from '../pieces/index.ts';
 
 export type EntreeImport = {
@@ -85,6 +87,8 @@ export type EntreeDepuisLigne = {
 	saisie: EntreeOperation;
 	cle?: string;
 	pieces?: number[];
+	/** Créances ou Dettes que l'Opération solde, dans la transaction du Pointage (FR-25). */
+	parts?: PartReglement[];
 };
 
 export type CandidatPointage = ElementRelie & { coteId: number };
@@ -449,8 +453,19 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 			if (ligne === undefined) return echec('element_introuvable');
 			if (ligne.doublon === 'a_confirmer') return echec('doublon_a_confirmer');
 
-			const cree = ecrireOperation(o, versBrouillon(e.saisie), { cle: e.cle });
+			const brouillon = versBrouillon(e.saisie);
+			const parts = e.parts ?? [];
+			if (parts.length > 0) {
+				if (e.saisie.forme !== 'standard') return echec('forme_invalide');
+				const montant = brouillon.cotes[0]?.montant;
+				if (montant === undefined) return echec('forme_invalide');
+				const decision = deciderReglements(parts, montant, depot.journal());
+				if (!decision.ok) return decision;
+			}
+
+			const cree = ecrireOperation(o, brouillon, { cle: e.cle });
 			if (!cree.ok) return cree;
+			reglerSommes(o, parts, cree.valeur.id);
 			const cote = depot.parId(cree.valeur.id)?.cotes.find((c) => c.compteId === ligne.compteId);
 			if (cote === undefined) return echec('pointage_incoherent');
 

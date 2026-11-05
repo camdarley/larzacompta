@@ -150,6 +150,7 @@ export class Saisie {
 		this.choix = s.sens === 'creance' ? 'recette' : 'depense';
 		this.tiers = s.tiers;
 		this.libelle = `${s.tiers}, ${s.motif}`;
+		this.reference = s.numero ?? '';
 		this.montant = texteDe(s.reste);
 		this.sommes = [{ somme: s, montant: texteDe(s.reste) }];
 		this.surMontant();
@@ -159,6 +160,34 @@ export class Saisie {
 			premiere.rattachementId = s.rattachementId;
 			premiere.rattachementOuvert = s.rattachementId !== null;
 		}
+	}
+
+	/**
+	 * Solder depuis une Ligne de relevé : le montant est celui de la banque et ne bouge pas. Le tiers
+	 * et l'Action viennent de la somme, le n° de Facture part en référence pour se retrouver.
+	 */
+	reprendreSommeDeLigne(s: SommeASolder) {
+		const montant = positif(this.total ?? centimes(0));
+		this.tiers = s.tiers;
+		this.libelle = `${s.tiers}, ${s.motif}`;
+		this.reference = s.numero ?? this.reference;
+		this.sommes = [{ somme: s, montant: texteDe(centimes(Math.min(s.reste, montant))) }];
+		const [premiere] = this.lignes;
+		if (premiere) {
+			premiere.actionId = s.actionId;
+			if (premiere.rattachementId === null && s.rattachementId !== null) {
+				premiere.rattachementId = s.rattachementId;
+				premiere.rattachementOuvert = true;
+			}
+		}
+	}
+
+	/** Une autre somme sur le même virement : elle prend ce que les premières ont laissé. */
+	ajouterSommeDeLigne(s: SommeASolder) {
+		const montant = positif(this.total ?? centimes(0));
+		const pris = this.sommes.reduce((t, p) => t + (lire(p.montant) ?? 0), 0);
+		const part = Math.min(s.reste, Math.max(0, montant - pris));
+		this.sommes.push({ somme: s, montant: texteDe(centimes(part)) });
 	}
 
 	/** Une autre somme sur la même Opération : son reste s'ajoute, avec sa Ligne. */

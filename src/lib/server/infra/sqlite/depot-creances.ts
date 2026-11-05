@@ -6,8 +6,8 @@ export function creerDepotCreances(base: Base): DepotCreances {
 	const r = {
 		creer: base.prepare(`
 			INSERT INTO creance_dette
-				(sens, tiers, motif, montant_centimes, date, action_id, note, cree_le, cree_par)
-			VALUES (@sens, @tiers, @motif, @montant, @date, @actionId, @note, @creeLe, @creePar)
+				(sens, tiers, motif, montant_centimes, date, action_id, note, cree_le, cree_par, facture_id)
+			VALUES (@sens, @tiers, @motif, @montant, @date, @actionId, @note, @creeLe, @creePar, @factureId)
 		`),
 		annuler: base.prepare(
 			'UPDATE creance_dette SET annulee_le = ?, annulee_par = ? WHERE id = ? AND annulee_le IS NULL'
@@ -21,7 +21,7 @@ export function creerDepotCreances(base: Base): DepotCreances {
 	};
 
 	return {
-		creer: (c) => Number(r.creer.run(c).lastInsertRowid),
+		creer: (c) => Number(r.creer.run({ factureId: null, ...c }).lastInsertRowid),
 		annuler: (id, le, par) => void r.annuler.run(le, par, id),
 		retablir: (id) => void r.retablir.run(id),
 		regler: (creanceId, operationId, montant) => void r.regler.run(creanceId, operationId, montant)

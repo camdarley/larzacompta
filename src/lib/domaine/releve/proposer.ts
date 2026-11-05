@@ -4,10 +4,11 @@
  */
 import { joursEntre, type DateCivile } from '../dates.ts';
 import { accordCheques, chequesDeRemise, montantRecu } from '../cheques/index.ts';
+import { totalRegle } from '../creances/index.ts';
 import type { CoteJ, GrandJournal, LigneReleveJ, OperationJ } from '../journal.ts';
-import type { Centimes } from '../montant.ts';
+import { centimes, type Centimes } from '../montant.ts';
 import { normaliserLibelle } from './empreinte.ts';
-import { motsParlants, referenceLue, referencesDuLibelle } from './references.ts';
+import { motsParlants, numeroFactureLu, referenceLue, referencesDuLibelle } from './references.ts';
 
 export const MAX_PROPOSITIONS = 3;
 const JOURS_PROCHES = 3;
@@ -157,4 +158,55 @@ export function proposer(j: JournalProposition, ligne: LigneReleveJ): Propositio
 				remise
 			};
 		});
+}
+
+/** Créance ou Dette ouverte qu'une Ligne de relevé semble solder (FR-25). */
+export type SommeSignalee = {
+	creanceId: number;
+	sens: 'creance' | 'dette';
+	tiers: string;
+	motif: string;
+	reste: Centimes;
+	numero: string | null;
+	raison: string;
+};
+
+/**
+ * Le volet signale, il ne solde rien (AD-8) : seule la création de l'Opération depuis la ligne
+ * règle la somme. Une entrée solde une Créance, une sortie une Dette. Le numéro lu passe devant.
+ */
+export function sommesSignalees(
+	j: Pick<GrandJournal, 'operations' | 'creancesDettes'>,
+	ligne: Pick<LigneReleveJ, 'montant' | 'libelle'>
+): SommeSignalee[] {
+	const sens = ligne.montant > 0 ? 'creance' : 'dette';
+	const montant = Math.abs(ligne.montant);
+	return j.creancesDettes
+		.flatMap((c) => {
+			if (c.sens !== sens || c.annuleeLe !== null) return [];
+			const reste = centimes(c.montant - totalRegle(c, j));
+			if (reste <= 0) return [];
+			const numero = c.factureNumero ?? null;
+			const lu = numero !== null && numeroFactureLu(ligne.libelle, numero);
+			const memeMontant = reste === montant;
+			if (!lu && !memeMontant) return [];
+			const raison =
+				lu && memeMontant
+					? 'Même montant, n° de facture lu dans le libellé'
+					: lu
+						? 'N° de facture lu dans le libellé, montant différent'
+						: 'Même montant que ce qui reste dû';
+			return [{ c, reste, numero, lu, raison }];
+		})
+		.sort((a, b) => Number(b.lu) - Number(a.lu) || a.c.date.localeCompare(b.c.date))
+		.slice(0, MAX_PROPOSITIONS)
+		.map(({ c, reste, numero, raison }) => ({
+			creanceId: c.id,
+			sens: c.sens,
+			tiers: c.tiers,
+			motif: c.motif,
+			reste,
+			numero,
+			raison
+		}));
 }

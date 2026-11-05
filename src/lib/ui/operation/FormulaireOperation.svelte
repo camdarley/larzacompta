@@ -128,6 +128,7 @@
 			s.date = date;
 		} else if (ligne) {
 			reprendreLigne(s, ligne);
+			if (solder) s.reprendreSommeDeLigne(solder);
 		} else if (solder) {
 			s.reprendreSomme(solder);
 		} else if (detail === null && modele === null) {
@@ -570,7 +571,8 @@
 							ligneId: ligne.id,
 							cle: saisie.cle,
 							saisie: corps,
-							pieces
+							pieces,
+							...(saisie.sommes.length > 0 ? { parts: partsEnvoyees() } : {})
 						})
 					: solder
 						? await envoyer<{ id: number }>('/api/creances/solder', {
@@ -877,7 +879,7 @@
 			/>
 		{:else if !lectureSeule}
 			{#if solder}
-				<BlocSommes {saisie} {sommes} {erreurs} />
+				<BlocSommes {saisie} {sommes} {erreurs} montantFixe={ligne !== null} />
 			{:else if !texteSeul && !verrouille && (estNouvelle || saisie.choix === 'depense' || saisie.choix === 'recette')}
 				<div class="intentions" role="group" aria-label="Intention">
 					<button

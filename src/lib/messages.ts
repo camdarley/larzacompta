@@ -119,9 +119,18 @@ const MESSAGES = {
 	reglement_depasse_operation:
 		'Les sommes soldées dépassent le montant de l’Opération. Corrigez un montant.',
 	creance_annulee: 'Cette somme a été annulée : elle ne se solde plus.',
+	dernier_tresorier: 'Il faut garder au moins un Accès trésorier·e actif.',
 	facture_date_anterieure:
 		'Cette date précède celle de la dernière Facture émise. La numérotation doit rester chronologique.',
-	dernier_tresorier: 'Il faut garder au moins un Accès trésorier·e actif.',
+	facture_date_future:
+		'Une Facture se date au plus tard d’aujourd’hui : une date à venir bloquerait les numéros suivants.',
+	facture_incomplete: 'Indiquez le tiers et la date avant de valider.',
+	facture_sans_montant: 'Ajoutez au moins une ligne avec un montant avant de valider.',
+	facture_validee:
+		'Cette Facture est validée : elle ne se modifie plus. Pour l’annuler, créez un Avoir.',
+	facture_deja_annulee: 'Cette Facture est déjà annulée par un Avoir.',
+	creance_de_facture:
+		'Cette Créance vient d’une Facture : elle s’annule par un Avoir, depuis la Facture.',
 	piece_utilisee: 'Cette Pièce justifie une Opération : elle ne peut pas être supprimée.',
 	pointage_fige:
 		'Ce Pointage ne relie que des éléments d’un Exercice clôturé : il ne s’annule plus.',
@@ -153,6 +162,7 @@ const MESSAGES = {
 	solde_depart_requis: 'Indiquez ce solde, même s’il vaut 0.',
 	champ_requis: 'Ce champ est à remplir.',
 	montant_invalide: 'Ce montant n’est pas lisible. Écrivez par exemple 1 000,50 ou 220+180.',
+	quantite_invalide: 'Écrivez une quantité entière, par exemple 12.',
 	date_invalide: 'Cette date n’est pas lisible. Écrivez-la sous la forme 12/03/2026.',
 	mot_de_passe_court: 'Choisissez un mot de passe de 12 caractères ou plus.',
 	mot_de_passe_faux: 'Ce mot de passe n’est pas le bon.',

@@ -11,7 +11,13 @@ import type { Compte } from '../parametrage.ts';
 import { numeroInscrit } from '../cheques/index.ts';
 import { chequeAbsent, sumupPrecedent, type ModeleSumup } from './cheques.ts';
 import { dateDepuisLigne } from './pointage.ts';
-import { libelleDuCote, proposer, type Proposition } from './proposer.ts';
+import {
+	libelleDuCote,
+	proposer,
+	sommesSignalees,
+	type Proposition,
+	type SommeSignalee
+} from './proposer.ts';
 import { estVersementSumup, numeroChequeLu } from './references.ts';
 import { trous, type Periode, type Trou } from './trous.ts';
 
@@ -30,6 +36,8 @@ export type LigneFile = Pick<LigneReleveJ, 'id' | 'date' | 'montant' | 'libelle'
 	pointageId: number | null;
 	relies: ElementRelie[];
 	propositions: Proposition[];
+	/** Créances ou Dettes ouvertes que cette ligne semble solder (FR-25). */
+	sommes: SommeSignalee[];
 	/** Une autre ligne du Compte a la même date, le même montant et le même libellé. */
 	jumelle: boolean;
 	/** Aucun Exercice n'accueille cette date : l'Opération attend qu'on ouvre le suivant. */
@@ -197,6 +205,7 @@ function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): L
 				pointageId: pointage?.id ?? null,
 				relies: pointage ? elementsRelies(j, pointage.coteIds) : [],
 				propositions: etat === 'a_pointer' ? proposer(j, l) : [],
+				sommes: etat === 'a_pointer' ? sommesSignalees(j, l) : [],
 				jumelle: duCompte.some((x) => x.id !== l.id && x.empreinte === l.empreinte),
 				horsExercice: !dateDepuisLigne(j.exercices, l.date).ok,
 				chequeAbsent: absent,

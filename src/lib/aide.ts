@@ -215,6 +215,17 @@ export const ARTICLES: readonly Article[] = [
 		]
 	},
 	{
+		id: 'factures',
+		titre: 'Factures émises',
+		paragraphes: [
+			'Une facture se prépare en brouillon : le formulaire à gauche, le PDF à droite. Un brouillon ne porte aucun numéro, ne compte nulle part et se supprime librement.',
+			'Valider donne le numéro suivant, chronologique et sans trou, puis fige la facture et son PDF. La Créance apparaît dans Créances et Dettes. La recette, elle, ne compte qu’à l’encaissement.',
+			'Quand le relevé montre le paiement, le Pointage signale la Créance. « Créer et solder » écrit l’Opération et la solde d’un seul geste.',
+			'Une facture validée ne se modifie plus. Pour l’annuler, créez un Avoir : il prend le numéro suivant, éteint ce qui reste dû, et ouvre une Dette si l’APE a déjà encaissé quelque chose.',
+			'Les mentions imprimées en bas se règlent dans Réglages, Association. Vérifiez-les selon la situation de votre APE.'
+		]
+	},
+	{
 		id: 'journal',
 		titre: 'Journal des modifications',
 		paragraphes: [

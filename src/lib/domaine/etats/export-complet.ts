@@ -9,6 +9,7 @@ import { LIBELLES_COMPTAGE } from '../caisse/vues.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, OperationJ } from '../journal.ts';
 import { LIBELLES_MODE_PAIEMENT } from '../journal.ts';
+import { totalFacture, type Facture } from '../factures/index.ts';
 import { formaterCsv, sommeCentimes } from '../montant.ts';
 import { colonneDe, exerciceDuMouvement, groupeDe } from './soldes.ts';
 import type { ParametrageEtats } from './resultat.ts';
@@ -289,6 +290,25 @@ export function csvSessions(
 	};
 }
 
+export const cheminFacture = (f: Pick<Facture, 'type' | 'numero'>) =>
+	`factures/${f.type === 'avoir' ? 'avoir' : 'facture'}-${f.numero}.pdf`;
+
+export function csvFactures(factures: readonly Facture[]): TableCsv {
+	return {
+		entetes: ['N°', 'Document', 'Date', 'Tiers', 'Adresse', 'Montant', 'État', 'Annule le n°'],
+		lignes: factures.map((f) => [
+			f.numero ?? '',
+			f.type === 'avoir' ? 'Avoir' : 'Facture',
+			f.dateEmission ?? '',
+			f.tiersNom,
+			f.tiersAdresse,
+			formaterCsv(totalFacture(f.lignes)),
+			f.numero === null ? 'Brouillon' : 'Validée',
+			factures.find((x) => x.id === f.avoirDeId)?.numero ?? ''
+		])
+	};
+}
+
 /** Texte de `LISEZMOI.txt`, sans vocabulaire de logiciel comptable. */
 /** Rien à dire si tout y est : le fichier n'existe alors pas. */
 export function listePiecesManquantes(chemins: readonly string[]): string | null {
@@ -325,6 +345,8 @@ export function lisezMoi(
 		'cheques-recus.csv : chaque Chèque reçu, avec son état et sa Remise.',
 		'remises.csv : chaque Remise, avec son Compte et son total.',
 		'cheques-emis.csv : le registre des Chèques émis, formules annulées comprises.',
+		'factures.csv : chaque Facture et chaque Avoir, brouillons compris.',
+		'factures/ : les Factures et les Avoirs validés, tels qu’ils ont été émis.',
 		'pieces/ : les Pièces, telles qu’elles ont été déposées.',
 		'PIECES-MANQUANTES.txt : présent seulement si le fichier d’une Pièce manquait à l’export.',
 		''

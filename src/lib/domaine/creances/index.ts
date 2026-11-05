@@ -73,6 +73,10 @@ export function deciderCreance(
 	return succes(e);
 }
 
+/** Une Créance de Facture suit sa Facture : seul un Avoir l'annule, et rien ne la rétablit (FR-28). */
+export const geeParSaFacture = (c: Pick<CreanceDetteJ, 'sens' | 'factureId'>) =>
+	c.sens === 'creance' && (c.factureId ?? null) !== null;
+
 export type ExerciceClos = Exercice & { clotureLe: Instant };
 
 /**
@@ -187,6 +191,9 @@ export type RangeeSuivi = {
 	montant: Centimes;
 	reste: Centimes;
 	note: string | null;
+	/** Née d'une Facture ou d'un Avoir : la rangée y mène, et ne s'annule pas ici. */
+	factureId: number | null;
+	geree: boolean;
 };
 
 export type BlocSuivi = { rangees: RangeeSuivi[]; total: Centimes };
@@ -212,7 +219,9 @@ export function suivi(
 				date: c.date,
 				montant: c.montant,
 				reste,
-				note: c.note
+				note: c.note,
+				factureId: c.factureId ?? null,
+				geree: geeParSaFacture(c)
 			}
 		];
 	});
@@ -233,6 +242,8 @@ export type SommeASolder = {
 	reste: Centimes;
 	rattachementId: number | null;
 	exerciceOrigine: string | null;
+	/** N° de la Facture d'origine : il devient la référence de l'Opération. */
+	numero: string | null;
 };
 
 export function sommeASolder(
@@ -252,7 +263,8 @@ export function sommeASolder(
 		actionId: c.actionId,
 		reste,
 		rattachementId: propose?.id ?? null,
-		exerciceOrigine: propose?.libelle ?? null
+		exerciceOrigine: propose?.libelle ?? null,
+		numero: c.factureNumero ?? null
 	};
 }
 

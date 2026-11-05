@@ -17,6 +17,7 @@ import { creerCreances } from './application/creances/index.ts';
 import { creerEtats } from './application/etats/index.ts';
 import { creerExercices } from './application/exercices/index.ts';
 import { creerExploitation } from './application/exploitation/index.ts';
+import { creerFactures } from './application/factures/index.ts';
 import { creerJournal } from './application/journal/index.ts';
 import { creerOperations } from './application/operations/index.ts';
 import { creerParametrage } from './application/parametrage/index.ts';
@@ -52,6 +53,7 @@ import { creerDepotCheques } from './infra/sqlite/depot-cheques.ts';
 import { creerDepotCreances } from './infra/sqlite/depot-creances.ts';
 import { creerDepotExercices } from './infra/sqlite/depot-exercices.ts';
 import { creerDepotExploitation } from './infra/sqlite/depot-exploitation.ts';
+import { creerDepotFactures } from './infra/sqlite/depot-factures.ts';
 import { creerDepotJournal } from './infra/sqlite/depot-journal.ts';
 import { creerDepotOperations } from './infra/sqlite/depot-operations.ts';
 import { creerDepotParametrage } from './infra/sqlite/depot-parametrage.ts';
@@ -93,6 +95,7 @@ export function composer(options: OptionsComposition) {
 			pointage: creerDepotPointage(options.base),
 			pieces: creerDepotPieces(options.base),
 			creances: creerDepotCreances(options.base),
+			factures: creerDepotFactures(options.base),
 			caisses: creerDepotCaisses(options.base),
 			cheques: creerDepotCheques(options.base),
 			exploitation: creerDepotExploitation(options.base)
@@ -138,6 +141,7 @@ export function composer(options: OptionsComposition) {
 		pointage: creerPointage(socle, executer, lire),
 		pieces: creerPieces(socle, executer, lire),
 		creances: creerCreances(socle, executer, lire),
+		factures: creerFactures(socle, executer, lire),
 		caisses: creerCaisses(socle, executer, lire),
 		cheques: creerCheques(socle, executer, lire),
 		etats: creerEtats(socle, executer, lire),

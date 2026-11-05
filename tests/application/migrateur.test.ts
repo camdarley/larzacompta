@@ -35,16 +35,18 @@ describe('migrateur', () => {
 		expect(faites).toEqual([
 			'0001_jalon_1.sql',
 			'0002_corrections_jalon_1.sql',
-			'0003_jalon_2.sql'
+			'0003_jalon_2.sql',
+			'0004_jalon_3.sql'
 		]);
 		const compter = (type: string) =>
 			base.prepare(`SELECT count(*) FROM sqlite_master WHERE type = ?`).pluck().get(type);
 		expect(compter('table')).toBeGreaterThanOrEqual(25);
-		expect(compter('trigger')).toBe(39);
+		expect(compter('trigger')).toBe(45);
 		expect(base.prepare('SELECT nom FROM schema_migrations').pluck().all()).toEqual([
 			'0001_jalon_1.sql',
 			'0002_corrections_jalon_1.sql',
-			'0003_jalon_2.sql'
+			'0003_jalon_2.sql',
+			'0004_jalon_3.sql'
 		]);
 		// Une base neuve n'a rien à protéger.
 		expect(existsSync(copies())).toBe(false);

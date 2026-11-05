@@ -29,8 +29,10 @@ import {
 } from '#lib/domaine/etats/documents.ts';
 import {
 	cheminPiece,
+	cheminFacture,
 	csvChequesEmis,
 	csvChequesRecus,
+	csvFactures,
 	csvComptages,
 	csvLignes,
 	csvOperations,
@@ -51,6 +53,7 @@ import {
 import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
 import { serialiserCloture } from '#lib/domaine/etats/cloture.ts';
 import { verifierJournal, type Violation } from '#lib/domaine/etats/verification.ts';
+import { controlerSuite, totalFacture } from '#lib/domaine/factures/index.ts';
 import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
 import { chequesAbsents } from '#lib/domaine/releve/cheques.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
@@ -74,6 +77,31 @@ export function parametrageDe(
 				clotureLe: cloture.clotureLe
 			}
 		: parametrageCourant(depots);
+}
+
+/** F3, F5, F7 : la suite sans trou, le PDF conservé, la Créance de chaque Facture validée. */
+function violationsFactures(
+	depots: Pick<Depots, 'factures'>,
+	fichiers: Socle['fichiers'],
+	j: Pick<GrandJournal, 'creancesDettes'>
+): Violation[] {
+	const factures = depots.factures.lister();
+	const suite = controlerSuite(factures, depots.factures.compteurs());
+	return [
+		...suite.map((message) => ({ invariant: 'F3', message })),
+		...factures.flatMap((f): Violation[] => {
+			if (f.numero === null) return [];
+			const v: Violation[] = [];
+			if (f.fichierSha256 === null || !fichiers.existe(f.fichierSha256)) {
+				v.push({ invariant: 'F7', message: `Le PDF de ${f.numero} est absent.` });
+			}
+			const creance = j.creancesDettes.find((c) => c.factureId === f.id && c.sens === 'creance');
+			if (f.type === 'facture' && creance?.montant !== totalFacture(f.lignes)) {
+				v.push({ invariant: 'F3', message: `La Créance de ${f.numero} ne suit pas sa Facture.` });
+			}
+			return v;
+		})
+	];
 }
 
 const anormal = (nombre: number): Bilan => ({ type: 'taches', nombre });
@@ -205,6 +233,7 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 					});
 				}
 			}
+			violations.push(...violationsFactures(o.depots, socle.fichiers, j));
 			return succes(violations);
 		}
 	};
@@ -311,7 +340,8 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 					'sessions.csv': csv(csvSessions(j, p)),
 					'cheques-recus.csv': csv(csvChequesRecus(j, p)),
 					'remises.csv': csv(csvRemises(j, p)),
-					'cheques-emis.csv': csv(csvChequesEmis(j, p))
+					'cheques-emis.csv': csv(csvChequesEmis(j, p)),
+					'factures.csv': csv(csvFactures(depots.factures.lister()))
 				};
 				// Lu après les Pièces, en dernier : le flux n'apprend qu'en route ce qui manque.
 				const manquantes: string[] = [];
@@ -325,6 +355,16 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 							return contenu;
 						}
 					})),
+					...depots.factures.lister().flatMap((f) =>
+						f.fichierSha256 === null
+							? []
+							: [
+									{
+										nom: cheminFacture(f),
+										lire: () => socle.fichiers.lire(f.fichierSha256 as string)
+									}
+								]
+					),
 					{ nom: 'PIECES-MANQUANTES.txt', lire: () => listePiecesManquantes(manquantes) }
 				];
 				return {

@@ -13,6 +13,8 @@
 		/** Contrôle à la sortie du champ : rend un message, ou rien si tout va bien. */
 		controler?: (valeur: string) => string | undefined;
 		lectureSeule?: boolean;
+		/** L'en-tête d'une grille nomme déjà la colonne : l'étiquette reste pour le lecteur d'écran. */
+		masquerEtiquette?: boolean;
 		champ?: HTMLInputElement;
 		oninput?: (valeur: string) => void;
 		onblur?: (e: FocusEvent) => void;
@@ -28,6 +30,7 @@
 		erreur,
 		controler,
 		lectureSeule = false,
+		masquerEtiquette = false,
 		type = 'text',
 		id,
 		champ = $bindable(),
@@ -72,7 +75,9 @@
 
 <div class="champ" class:en-erreur={erreurAffichee} class:lecture={lectureSeule}>
 	<div class="tete t-label">
-		<label class="t-label" class:visuellement-cache={terme} for={idAuto}>{etiquette}</label>
+		<label class="t-label" class:visuellement-cache={terme || masquerEtiquette} for={idAuto}
+			>{etiquette}</label
+		>
 		{@render terme?.()}
 	</div>
 	<div class="cadre">

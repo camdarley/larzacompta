@@ -454,6 +454,7 @@ test('5.7 : un ZIP lisible sans l’outil', async ({ page }) => {
 		'cheques-emis.csv',
 		'cheques-recus.csv',
 		'comptages.csv',
+		'factures.csv',
 		'lignes.csv',
 		'operations.csv',
 		'pieces/0001-facture-autocars-fictive.pdf',

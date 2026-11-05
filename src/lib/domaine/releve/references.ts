@@ -20,6 +20,14 @@ export function referenceLue(libelle: string, reference: string): boolean {
 	return compact(libelle).includes(cherchee);
 }
 
+/** N° de Facture `AAAA-NNN` dans un libellé : la banque écrit « 2026-007 », « 2026 007 » ou « 2026007 ». */
+export function numeroFactureLu(libelle: string, numero: string): boolean {
+	const [annee, rang] = numero.split('-');
+	if (annee === undefined || rang === undefined) return false;
+	const motif = new RegExp(`(?<![0-9])${annee}[^A-Z0-9]?0*${Number(rang)}(?![0-9])`);
+	return motif.test(normaliserLibelle(libelle));
+}
+
 const CHEQUE_LU = /\b(?:CHEQUES?|CHQ|CHEQ)\b[^A-Z0-9]*(?:N(?:O|UMERO)?\b[^A-Z0-9]*)?(\d{3,})\b/;
 
 /** N° d'un chèque payé, lu dans un libellé de relevé : « CHEQUE N° 0001234 », « CHQ 1234 ». */

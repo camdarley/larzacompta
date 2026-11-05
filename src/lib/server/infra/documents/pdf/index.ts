@@ -26,6 +26,7 @@ const INTERLIGNE = 15;
 const RANGEE = 18;
 const DECALAGE_NIVEAU = 12;
 const LARGEUR_MONTANT = 82;
+const ECART_PARTIES = 24;
 const NOIR = '#000000';
 const GRIS = '#444444';
 /** Transparent : posé sur la page, il laisse lire chaque chiffre dessous. */
@@ -164,19 +165,45 @@ function ecrireTableau(doc: Doc, racine: Struct, t: TableauDocument) {
 	tableau.end();
 }
 
+/** Émetteur et destinataire : chaque bloc se lit d'un trait, le plus long donne la hauteur. */
+function ecrireParties(doc: Doc, racine: Struct, parties: NonNullable<ModeleDocument['parties']>) {
+	const largeur = (LARGEUR - ECART_PARTIES) / parties.length;
+	const haut = doc.y + 10;
+	let bas = haut;
+	parties.forEach((p, i) => {
+		const x = MARGE + i * (largeur + ECART_PARTIES);
+		racine.add(
+			doc.struct('P', {}, () => {
+				doc
+					.font('corps-fort')
+					.fontSize(CORPS)
+					.fillColor(GRIS)
+					.text(p.titre, x, haut, { width: largeur });
+				doc.font('corps').fillColor(NOIR);
+				for (const ligne of p.lignes) doc.text(ligne, x, doc.y, { width: largeur });
+			})
+		);
+		bas = Math.max(bas, doc.y);
+	});
+	doc.y = bas + 6;
+}
+
 function ecrireSection(doc: Doc, racine: Struct, s: SectionDocument) {
 	nouvelleSiBesoin(doc, 90);
 	doc.y += 14;
-	racine.add(
-		doc.struct('H2', {}, () => {
-			doc
-				.font('titre')
-				.fontSize(15)
-				.fillColor(NOIR)
-				.text(s.titre, MARGE, doc.y, { width: LARGEUR });
-		})
-	);
-	doc.y += 4;
+	// Sans titre : une Facture n'a qu'un corps, le `H1` suffit à la nommer.
+	if (s.titre !== '') {
+		racine.add(
+			doc.struct('H2', {}, () => {
+				doc
+					.font('titre')
+					.fontSize(15)
+					.fillColor(NOIR)
+					.text(s.titre, MARGE, doc.y, { width: LARGEUR });
+			})
+		);
+		doc.y += 4;
+	}
 	for (const p of s.phrases) {
 		racine.add(
 			doc.struct('P', {}, () => {
@@ -191,6 +218,10 @@ function ecrireSection(doc: Doc, racine: Struct, s: SectionDocument) {
 	doc.y += 6;
 	if (s.tableau) ecrireTableau(doc, racine, s.tableau);
 }
+
+/** Un brouillon sans date n'a pas encore d'Exercice. */
+const reperes = (m: ModeleDocument) =>
+	m.exercice === '' ? m.association : `${m.association}, Exercice ${m.exercice}`;
 
 /** Filigrane et pied : hors de la structure, ils ne se lisent pas entre deux cellules. */
 function habiller(doc: Doc, m: ModeleDocument) {
@@ -216,7 +247,7 @@ function habiller(doc: Doc, m: ModeleDocument) {
 		doc.markContent('Artifact', { type: 'Pagination' });
 		const y = HAUTEUR_PAGE - MARGE - 10;
 		doc.font('corps').fontSize(9.5).fillColor(GRIS);
-		doc.text(`${m.association}, Exercice ${m.exercice}`, MARGE, y, {
+		doc.text(reperes(m), MARGE, y, {
 			width: LARGEUR - 90,
 			lineBreak: false
 		});
@@ -240,7 +271,10 @@ export function genererPdf(m: ModeleDocument, polices: string): Promise<Uint8Arr
 			pdfVersion: '1.7',
 			bufferPages: true,
 			font: join(polices, 'SourceSans3-Regular.ttf'),
-			info: { Title: `${m.titre}, ${m.exercice}`, Author: m.association }
+			info: {
+				Title: m.exercice === '' ? m.titre : `${m.titre}, ${m.exercice}`,
+				Author: m.association
+			}
 		} as PDFKit.PDFDocumentOptions);
 		const morceaux: Buffer[] = [];
 		doc.on('data', (b: Buffer) => morceaux.push(b));
@@ -262,16 +296,20 @@ export function genererPdf(m: ModeleDocument, polices: string): Promise<Uint8Arr
 					.text(m.titre, MARGE, MARGE, { width: LARGEUR });
 			})
 		);
-		racine.add(
-			doc.struct('P', {}, () => {
-				doc
-					.font('corps')
-					.fontSize(CORPS)
-					.fillColor(GRIS)
-					.text(`${m.association}, Exercice ${m.exercice}`, MARGE, doc.y + 2, { width: LARGEUR });
-			})
-		);
+		const sousTitre = m.sousTitre === undefined ? reperes(m) : m.sousTitre;
+		if (sousTitre !== null) {
+			racine.add(
+				doc.struct('P', {}, () => {
+					doc
+						.font('corps')
+						.fontSize(CORPS)
+						.fillColor(GRIS)
+						.text(sousTitre, MARGE, doc.y + 2, { width: LARGEUR });
+				})
+			);
+		}
 		doc.y += 6;
+		if (m.parties) ecrireParties(doc, racine, m.parties);
 		for (const s of m.sections) ecrireSection(doc, racine, s);
 		racine.end();
 		habiller(doc, m);

@@ -225,7 +225,7 @@
 		if (occupe || !active || active.etat !== 'a_pointer') return;
 		// Sans proposition, l'action attendue est de créer l'Opération : Entrée la lance.
 		if (rienAPointer) {
-			creer();
+			creer({ solder: active.sommes[0]?.creanceId });
 			return;
 		}
 		if (elements.length === 0) {
@@ -302,7 +302,7 @@
 		tick().then(focusActive);
 	}
 
-	function creer(options: { sumup?: boolean } = {}) {
+	function creer(options: { sumup?: boolean; solder?: number } = {}) {
 		if (!active || active.etat !== 'a_pointer') return;
 		if (active.horsExercice) {
 			alerte = message('ligne_hors_exercice');
@@ -315,6 +315,7 @@
 				op: 'nouvelle',
 				releve: String(active.id),
 				sumup: options.sumup ? '1' : null,
+				solder: options.solder ? String(options.solder) : null,
 				depuis: null,
 				rendre: null
 			}),
@@ -889,6 +890,28 @@
 								{/snippet}
 							</Bandeau>
 						{/if}
+						{#if active.sommes.length > 0}
+							<h3 class="t-label sous-titre">
+								{active.montant > 0 ? 'Créance ouverte' : 'Dette ouverte'}
+							</h3>
+							<ul class="sommes">
+								{#each active.sommes as s, i (s.creanceId)}
+									<li>
+										<div class="somme">
+											<p class="nom-somme">{s.tiers}, {s.motif}</p>
+											<p class="t-caption t-muted">{s.raison}</p>
+										</div>
+										<span class="montant">{formaterMontant(s.reste)}</span>
+										<Bouton
+											variante={rienAPointer && i === 0 ? 'principal' : 'secondaire'}
+											onclick={() => creer({ solder: s.creanceId })}
+										>
+											Créer et solder
+										</Bouton>
+									</li>
+								{/each}
+							</ul>
+						{/if}
 						{#if active.propositions.length > 0}
 							<h3 class="t-label sous-titre">Propositions</h3>
 							<ol class="propositions">
@@ -903,7 +926,7 @@
 									/>
 								{/each}
 							</ol>
-						{:else if !active.chequeAbsent}
+						{:else if !active.chequeAbsent && active.sommes.length === 0}
 							<p class="t-muted">Aucune Opération ne correspond. Créez-la, ou reliez-en une.</p>
 						{/if}
 
@@ -963,7 +986,11 @@
 						{#if indication}<p class="indication t-caption" role="status">{indication}</p>{/if}
 
 						<div class="actions">
-							{#if rienAPointer}
+							{#if rienAPointer && active.sommes.length > 0}
+								<Bouton variante="secondaire" onclick={() => creer()}>
+									Créer sans solder <Touche>c</Touche>
+								</Bouton>
+							{:else if rienAPointer}
 								<Bouton onclick={() => creer()}>Créer <Touche>Entrée</Touche></Bouton>
 							{:else}
 								<Bouton {occupe} onclick={pointer}>Pointer <Touche>Entrée</Touche></Bouton>
@@ -1115,6 +1142,26 @@
 		gap: var(--espace-2);
 	}
 
+	.sommes {
+		display: grid;
+		gap: var(--espace-2);
+	}
+
+	.sommes li {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		align-items: center;
+		gap: var(--espace-3);
+		padding: var(--espace-3);
+		border: 1px solid var(--border);
+		border-radius: var(--rayon-md);
+	}
+
+	.nom-somme {
+		font-weight: var(--typo-body-strong-graisse);
+		overflow-wrap: anywhere;
+	}
+
 	.relies li {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto auto;
@@ -1133,7 +1180,8 @@
 	.actions {
 		position: sticky;
 		z-index: 1;
-		bottom: 0;
+		/* Le collant se compte depuis l'intérieur du rembourrage : sans ça, la rangée mord le contenu. */
+		bottom: calc(-1 * var(--espace-4));
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--espace-2);

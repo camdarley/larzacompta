@@ -121,6 +121,8 @@ type CreanceBrute = {
 	action_id: number | null;
 	note: string | null;
 	annulee_le: string | null;
+	facture_id: number | null;
+	facture_numero: string | null;
 };
 type RemiseBrute = { id: number; numero: number; operation_id: number };
 type ChequeRecuBrut = {
@@ -243,8 +245,9 @@ export function creerDepotOperations(
 		pointageCotes: base.prepare('SELECT pointage_id, cote_id FROM pointage_cote'),
 		pointageLignes: base.prepare('SELECT pointage_id, ligne_releve_id FROM pointage_ligne'),
 		creances: base.prepare(`
-			SELECT id, sens, tiers, motif, montant_centimes, date, action_id, note, annulee_le
-			FROM creance_dette ORDER BY date, id
+			SELECT c.id, c.sens, c.tiers, c.motif, c.montant_centimes, c.date, c.action_id, c.note,
+				c.annulee_le, c.facture_id, f.numero AS facture_numero
+			FROM creance_dette c LEFT JOIN facture f ON f.id = c.facture_id ORDER BY c.date, c.id
 		`),
 		reglements: base.prepare(
 			'SELECT creance_dette_id, operation_id, montant_centimes FROM reglement ORDER BY id'
@@ -420,6 +423,8 @@ export function creerDepotOperations(
 			actionId: c.action_id,
 			note: c.note,
 			annuleeLe: c.annulee_le,
+			factureId: c.facture_id,
+			factureNumero: c.facture_numero,
 			reglements: (reglements.get(c.id) ?? []).map((x) => ({
 				operationId: x.operation_id,
 				montant: centimes(x.montant_centimes)

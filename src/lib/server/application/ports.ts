@@ -13,6 +13,12 @@ import type {
 	TypeLiaison
 } from '#lib/domaine/journal.ts';
 import type { EntreeCreance } from '#lib/domaine/creances/index.ts';
+import type {
+	CompteurFacture,
+	EntreeFacture,
+	Facture,
+	IdentiteFacture
+} from '#lib/domaine/factures/index.ts';
 import type { ModeleDocument } from '#lib/domaine/etats/documents.ts';
 import type { StatutSauvegarde } from '#lib/domaine/exploitation.ts';
 import type { BrouillonValide } from '#lib/domaine/operations/validation.ts';
@@ -386,10 +392,39 @@ export type DepotCheques = {
 
 /** Seul chemin vers `creance_dette` et `reglement` (AD-7). */
 export type DepotCreances = {
-	creer(c: EntreeCreance & { creeLe: Instant; creePar: number }): number;
+	creer(c: EntreeCreance & { creeLe: Instant; creePar: number; factureId?: number }): number;
 	annuler(id: number, le: Instant, par: number): void;
 	retablir(id: number): void;
 	regler(creanceId: number, operationId: number, montant: Centimes): void;
+};
+
+export type ValidationFacture = {
+	numero: string;
+	identite: IdentiteFacture;
+	fichierSha256: string;
+	valideLe: Instant;
+	validePar: number;
+};
+
+/** Seul chemin vers `facture`, `facture_ligne` et `compteur_facture` (AD-7). */
+export type DepotFactures = {
+	lister(): Facture[];
+	parId(id: number): Facture | null;
+	creer(e: EntreeFacture, creeLe: Instant): number;
+	modifier(id: number, e: EntreeFacture): void;
+	supprimer(id: number): void;
+	compteurs(): CompteurFacture[];
+	/** La suite avance dans la transaction de validation (F3). */
+	avancerCompteur(annee: number, dernier: number, derniereDate: DateCivile): void;
+	valider(id: number, v: ValidationFacture & { dateEmission: DateCivile }): void;
+	/** L'Avoir naît validé : il n'a pas de brouillon. */
+	creerAvoir(
+		factureId: number,
+		e: EntreeFacture & { dateEmission: DateCivile },
+		v: ValidationFacture
+	): number;
+	/** PDF figés : ils ne sont jamais des orphelins (F7). */
+	fichiers(): string[];
 };
 
 export type Exporteurs = {
@@ -412,6 +447,7 @@ export type Depots = {
 	pointage: DepotPointage;
 	pieces: DepotPieces;
 	creances: DepotCreances;
+	factures: DepotFactures;
 	caisses: DepotCaisses;
 	cheques: DepotCheques;
 	exploitation: DepotExploitation;

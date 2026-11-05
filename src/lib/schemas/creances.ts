@@ -42,16 +42,18 @@ export const schemaCreance = z.object({
 /** Reprise à l'assistant : la date est celle de la reprise, posée par le serveur. */
 export const schemaReprise = schemaCreance.omit({ date: true, note: true });
 
+export const partsReglement = z
+	.array(
+		z.object({
+			creanceId: z.number().int().positive(),
+			montant: z.number().int().positive().transform(centimes)
+		})
+	)
+	.min(1)
+	.max(20);
+
 export const schemaSolder = z.object({
-	parts: z
-		.array(
-			z.object({
-				creanceId: z.number().int().positive(),
-				montant: z.number().int().positive().transform(centimes)
-			})
-		)
-		.min(1)
-		.max(20),
+	parts: partsReglement,
 	saisie: schemaStandard,
 	pieces: piecesDeposees,
 	cle: cleSaisie
