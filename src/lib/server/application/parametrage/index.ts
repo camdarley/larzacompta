@@ -73,6 +73,14 @@ function assurerSocle(o: Outils) {
 	}
 }
 
+/** Après les Comptes de l'APE : une instance qui démarre reçoit aussi celui des chèques. */
+export function assurerCompteCheques(o: Outils) {
+	const depot = o.depots.parametrage;
+	if (!depot.comptes().some((c) => c.type === COMPTE_CHEQUES.type)) {
+		depot.creerCompte({ ...COMPTE_CHEQUES });
+	}
+}
+
 /** Écrit une ancre dans la transaction de l'appelant : seul chemin vers `balance_ouverture` (AD-7). */
 export function poserAncre(
 	o: Outils,

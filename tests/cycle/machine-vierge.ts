@@ -265,7 +265,7 @@ async function principal() {
 	sur(
 		a,
 		`git clone --quiet /source suivante && cd suivante
-cat > migrations/0002_essai_montee.sql <<'F'
+cat > migrations/0099_essai_montee.sql <<'F'
 CREATE TABLE essai_montee (id INTEGER PRIMARY KEY);
 F
 docker build --quiet --tag ${REGISTRE}/ape-compta:suivante . >/dev/null
@@ -287,7 +287,7 @@ docker image rm ${REGISTRE}/ape-compta:suivante >/dev/null`
 console.log(b.prepare('SELECT count(*) FROM schema_migrations').pluck().get(), b.prepare('SELECT count(*) FROM acces').pluck().get())`;
 	const etat = sur(a, `cd ape-compta && docker compose exec -T app node -e "${compter}"`);
 	console.log(`Migrations, Accès : ${etat}`);
-	if (etat !== '3 1') throw new Error(`Migration ou données perdues : ${etat}`);
+	if (etat !== '4 1') throw new Error(`Migration ou données perdues : ${etat}`);
 	console.log(sur(a, 'cd ape-compta && docker compose exec -T app ape verifier'));
 	const session = sur(
 		a,

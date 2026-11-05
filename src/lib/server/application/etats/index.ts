@@ -28,6 +28,7 @@ import {
 } from '#lib/domaine/etats/documents.ts';
 import {
 	cheminPiece,
+	csvComptages,
 	csvLignes,
 	csvOperations,
 	csvPointages,
@@ -290,7 +291,8 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 					'LISEZMOI.txt': lisezMoi(nomApe(), formaterDateLongue(ctx.aujourdhui), j.exercices),
 					'operations.csv': csv(csvOperations(j, p)),
 					'lignes.csv': csv(csvLignes(j, p, parExercice)),
-					'pointages.csv': csv(csvPointages(j, p))
+					'pointages.csv': csv(csvPointages(j, p)),
+					'comptages.csv': csv(csvComptages(j, p))
 				};
 				const fichiers: EntreeArchive[] = [
 					...Object.entries(textes).map(([nom, texte]) => ({ nom, lire: () => texte })),

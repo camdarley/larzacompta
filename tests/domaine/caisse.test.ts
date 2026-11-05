@@ -441,7 +441,17 @@ describe('Date d’un Comptage (FR-17)', () => {
 	});
 
 	it('refuse demain, l’avant-dernier Comptage et un Exercice clôturé', () => {
-		const code = (d: string, c2 = ctx) => {
+		const code = (
+			d: string,
+			c2:
+				| typeof ctx
+				| {
+						auPlusTot: null;
+						aujourdhui: string;
+						exercices: typeof ctx.exercices;
+						debutAncre: string | null;
+				  } = ctx
+		) => {
 			const r = controlerDateComptage(d, c2);
 			return r.ok ? null : r.erreur.code;
 		};

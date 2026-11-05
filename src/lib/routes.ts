@@ -13,6 +13,10 @@ export const ROUTES: Readonly<Record<string, RegleRoute>> = {
 
 	'/(assistant)/bienvenue': 'parametrer',
 
+	'/(compteur)/mes-caisses': 'compter',
+	'/(compteur)/caisses/[id]/comptage': 'compter',
+	'/(compteur)/sessions/[id]/comptage': 'compter',
+
 	'/fichiers/[sha]': 'consulter',
 
 	'/(app)': 'consulter',
@@ -24,6 +28,9 @@ export const ROUTES: Readonly<Record<string, RegleRoute>> = {
 	'/(app)/operations/export': 'consulter',
 	'/(app)/pointage': 'saisir',
 	'/(app)/pointage/[compte]': 'saisir',
+	'/(app)/caisses': 'consulter_suivi',
+	'/(app)/caisses/[id]': 'consulter_suivi',
+	'/(app)/sessions/[id]': 'consulter_suivi',
 	'/(app)/creances-dettes': 'consulter_suivi',
 	'/(app)/actions': 'consulter',
 	'/(app)/actions/[id]': 'consulter',
@@ -74,6 +81,8 @@ export const ROUTES: Readonly<Record<string, RegleRoute>> = {
 	'/api/creances/solder': 'saisir',
 	'/api/creances/[id]/annuler': 'saisir',
 	'/api/creances/[id]/retablir': 'saisir',
+	'/api/caisses/[id]/comptage': 'compter',
+	'/api/sessions/[id]/comptage': 'compter',
 	'/api/natures': 'parametrer',
 	'/api/natures/[id]/retirer': 'parametrer',
 	'/api/actions': 'parametrer',

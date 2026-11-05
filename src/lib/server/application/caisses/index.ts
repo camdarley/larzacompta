@@ -475,6 +475,17 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			return r.valeur === null ? echec('element_introuvable') : succes(r.valeur);
 		},
 
+		/** Compte proposé par « Déposer en banque » : la première banque active. */
+		compteDeDepot(ctx: Ctx) {
+			return lire(ctx, 'consulter_suivi', () => {
+				const comptes = depots.parametrage.comptes().filter((c) => c.actif);
+				return (
+					(comptes.find((c) => c.type === 'banque') ?? comptes.find((c) => c.type === 'epargne'))
+						?.id ?? null
+				);
+			});
+		},
+
 		sessionsDeLAction(ctx: Ctx, actionId: number, e: Exercice) {
 			return lire(ctx, 'consulter', () =>
 				e.debut === null || e.fin === null

@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import type { SommeASolder } from '#lib/domaine/creances/index.ts';
 	import type { Exercice } from '#lib/domaine/exercices.ts';
+	import type { ModePaiement } from '#lib/domaine/journal.ts';
 	import type { ContexteSaisie, DetailOperation } from '#lib/domaine/operations/vues.ts';
 	import type { LigneASaisir } from '#lib/domaine/releve/vues.ts';
 	import { urlAvec } from '#lib/ui/url.ts';
@@ -30,7 +31,9 @@
 
 	const q = $derived(page.url.searchParams);
 	const cle = $derived(
-		['op', 'depuis', 'rendre', 'releve', 'solder'].map((n) => q.get(n)).join('|')
+		['op', 'depuis', 'rendre', 'releve', 'solder', 'compte', 'de', 'vers']
+			.map((n) => q.get(n))
+			.join('|')
 	);
 
 	function fermer() {
@@ -41,7 +44,11 @@
 				rendre: null,
 				intention: null,
 				releve: null,
-				solder: null
+				solder: null,
+				compte: null,
+				mode: null,
+				de: null,
+				vers: null
 			}),
 			{ reset: false }
 		);
@@ -76,6 +83,12 @@
 			rendre={q.has('rendre')}
 			introuvable={donnees.introuvable}
 			intention={q.get('intention')}
+			preselection={{
+				compteId: Number(q.get('compte')) || null,
+				mode: q.get('mode') as ModePaiement | null,
+				deId: Number(q.get('de')) || null,
+				versId: Number(q.get('vers')) || null
+			}}
 			{exerciceRegarde}
 			{peutSaisir}
 			{fermer}

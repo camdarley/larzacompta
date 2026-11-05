@@ -43,7 +43,13 @@ test.describe('points de rupture', () => {
 		await connecter(page);
 		const mobile = page.getByRole('navigation', { name: 'Navigation mobile' });
 		await expect(mobile).toBeVisible();
-		await expect(mobile.getByRole('link')).toHaveText(['Contrôle', 'Opérations', 'Photo', 'Plus']);
+		await expect(mobile.getByRole('link')).toHaveText([
+			'Contrôle',
+			'Opérations',
+			'Caisses',
+			'Photo',
+			'Plus'
+		]);
 		await expect(page.locator('aside').first()).toBeHidden();
 		// Le thème sombre passe aussi au crible des contrastes.
 		await page.emulateMedia({ colorScheme: 'dark' });
@@ -75,6 +81,7 @@ test('seules les entrées livrées apparaissent, sans entrée grisée', async ({
 		'Tableau de contrôle',
 		'Opérations',
 		'Pointage',
+		'Caisses',
 		'Créances et Dettes',
 		'Pièces',
 		'Actions',
@@ -242,6 +249,7 @@ test('une URL interdite au rôle affiche une page calme', async ({ page, context
 	await expect(liens).toHaveText([
 		'Tableau de contrôle',
 		'Opérations',
+		'Caisses',
 		'Créances et Dettes',
 		'Pièces',
 		'Actions',

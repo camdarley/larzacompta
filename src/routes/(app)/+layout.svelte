@@ -45,6 +45,7 @@
 		}
 		// Une touche seule s'efface devant une saisie, une couche ou la préférence (WCAG 2.1.4).
 		if (!data.raccourcis || e.ctrlKey || e.metaKey || e.altKey) return;
+		if (data.acces.role === 'compteur') return;
 		if (dansUnChamp(e.target) || data.panneau || paletteOuverte || raccourcisOuverts) return;
 		if (e.key === 'n' && data.peutSaisir) {
 			goto(urlAvec({ op: 'nouvelle' }), { reset: false });
@@ -72,58 +73,66 @@
 
 <a class="evitement" href="#contenu">Aller au contenu</a>
 
-<div class="coquille">
-	<BarreLaterale
-		nomApe={data.nomApe}
-		nav={data.nav}
-		exercices={data.exercices}
-		exercice={data.exercice}
-		nomAcces={data.acces.nomAffiche}
-		peutSaisir={data.peutSaisir}
-		compteurs={data.compteurs}
-		{lien}
-	/>
-	<div class="colonne">
-		<EnTeteCompact
+{#if data.acces.role === 'compteur'}
+	<!-- Le·la compteur·se ne voit pas d'application : ni barre, ni sélecteur d'Exercice. -->
+	<main id="contenu" class="seul" tabindex="-1">
+		<a class="retour-mes-caisses" href="/mes-caisses">Mes caisses</a>
+		{@render children()}
+	</main>
+	<DialogueReconnexion identifiant={data.acces.identifiant} />
+{:else}<div class="coquille">
+		<BarreLaterale
 			nomApe={data.nomApe}
+			nav={data.nav}
 			exercices={data.exercices}
 			exercice={data.exercice}
+			nomAcces={data.acces.nomAffiche}
 			peutSaisir={data.peutSaisir}
+			compteurs={data.compteurs}
+			{lien}
 		/>
-		<main id="contenu" tabindex="-1">
-			{#if data.exercice?.statut === 'cloture'}
-				<div class="bandeau-exercice">
-					<Bandeau ton="fige">
-						{page.url.pathname.startsWith('/pieces')
-							? TEXTES.exercice_cloture_pieces
-							: TEXTES.exercice_cloture_bandeau}
-					</Bandeau>
-				</div>
-			{/if}
-			{#if attente}
-				<Squelette />
-			{:else}
-				{@render children()}
-			{/if}
-		</main>
+		<div class="colonne">
+			<EnTeteCompact
+				nomApe={data.nomApe}
+				exercices={data.exercices}
+				exercice={data.exercice}
+				peutSaisir={data.peutSaisir}
+			/>
+			<main id="contenu" tabindex="-1">
+				{#if data.exercice?.statut === 'cloture'}
+					<div class="bandeau-exercice">
+						<Bandeau ton="fige">
+							{page.url.pathname.startsWith('/pieces')
+								? TEXTES.exercice_cloture_pieces
+								: TEXTES.exercice_cloture_bandeau}
+						</Bandeau>
+					</div>
+				{/if}
+				{#if attente}
+					<Squelette />
+				{:else}
+					{@render children()}
+				{/if}
+			</main>
+		</div>
+		<BarreMobile entrees={data.entreesMobile} {lien} />
 	</div>
-	<BarreMobile entrees={data.entreesMobile} {lien} />
-</div>
 
-<PanneauOperation
-	donnees={data.panneau}
-	exerciceRegarde={data.exercice}
-	peutSaisir={data.peutSaisir}
-/>
-<DialogueReconnexion identifiant={data.acces.identifiant} />
-<Palette
-	bind:ouvert={paletteOuverte}
-	entrees={entreesPalette}
-	peutSaisir={data.peutSaisir}
-	{lien}
-	ouvrirRaccourcis={() => (raccourcisOuverts = true)}
-/>
-<AideRaccourcis bind:ouvert={raccourcisOuverts} />
+	<PanneauOperation
+		donnees={data.panneau}
+		exerciceRegarde={data.exercice}
+		peutSaisir={data.peutSaisir}
+	/>
+	<DialogueReconnexion identifiant={data.acces.identifiant} />
+	<Palette
+		bind:ouvert={paletteOuverte}
+		entrees={entreesPalette}
+		peutSaisir={data.peutSaisir}
+		{lien}
+		ouvrirRaccourcis={() => (raccourcisOuverts = true)}
+	/>
+	<AideRaccourcis bind:ouvert={raccourcisOuverts} />
+{/if}
 
 <style>
 	.evitement {
@@ -163,6 +172,15 @@
 
 	.bandeau-exercice {
 		margin-bottom: var(--espace-5);
+	}
+
+	.seul {
+		max-width: var(--espace-reading-max);
+	}
+
+	.retour-mes-caisses {
+		display: inline-block;
+		margin-bottom: var(--espace-4);
 	}
 
 	@media (max-width: 1023.98px) {

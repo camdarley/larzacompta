@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { deciderRoute } from '#lib/domaine/droits.ts';
 import { navigation } from '#lib/fonctions.ts';
 import { ROUTES } from '#lib/routes.ts';
 import { parcourir, relatif } from './fichiers.ts';
@@ -37,6 +38,24 @@ describe('table routes vers droit', () => {
 			([r, d]) => r.startsWith('/(app)') && d === 'publique'
 		);
 		expect(publiques).toEqual([]);
+	});
+
+	it('A3 : un·e compteur·se n’ouvre que ses écrans de Comptage, toute autre route lui est refusée', () => {
+		const ouvertes = Object.entries(ROUTES)
+			.filter(([, regle]) => regle !== 'publique' && deciderRoute(regle, 'compteur') === 'ouvrir')
+			.map(([route]) => route)
+			.sort();
+		expect(ouvertes).toEqual([
+			'/(app)/aide',
+			'/(app)/plus',
+			'/(app)/preferences',
+			'/(compteur)/caisses/[id]/comptage',
+			'/(compteur)/mes-caisses',
+			'/(compteur)/sessions/[id]/comptage',
+			'/api/caisses/[id]/comptage',
+			'/api/sessions/[id]/comptage',
+			'/code-source'
+		]);
 	});
 
 	it('hooks.server.ts refuse une route absente', () => {

@@ -31,6 +31,7 @@ export const schemaAssociation = z.object({
 export const schemaCompte = z.object({
 	libelle,
 	type: z.enum(['banque', 'epargne', 'caisse'], { message: 'champ_requis' }),
+	reserve: caseACocher,
 	soldeDepart: montantFacultatif,
 	exerciceId: z.coerce.number().int().positive().optional().catch(undefined)
 });

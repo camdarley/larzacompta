@@ -105,7 +105,7 @@ WHEN EXISTS (SELECT 1 FROM comptage c JOIN exercice e ON e.statut = 'cloture'
 BEGIN SELECT RAISE(ABORT, 'exercice_cloture'); END;
 
 -- Le Compte des chèques reçus, à solde nul, s'il manque à une instance déjà préparée. Une instance
--- neuve le reçoit avec ses Natures système. Rangé après tous les autres. Un Compte de l'APE peut
+-- neuve le reçoit en ouvrant son premier Exercice. Rangé après tous les autres. Un Compte de l'APE peut
 -- déjà porter ce nom : le suffixe évite le conflit, sans rien renommer.
 INSERT INTO compte (libelle, type, ordre)
 SELECT

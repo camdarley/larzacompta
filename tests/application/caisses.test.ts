@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { AccesConnecte } from '#lib/domaine/acces.ts';
 import { soldeCourantCaisse } from '#lib/domaine/caisse/index.ts';
+import { csvComptages } from '#lib/domaine/etats/export-complet.ts';
 import { soldeCompte } from '#lib/domaine/etats/soldes.ts';
 import type { CoupureJ } from '#lib/domaine/journal.ts';
 import { centimes as c, type Centimes } from '#lib/domaine/montant.ts';
@@ -571,6 +572,19 @@ describe('Compteur·se (A3, C10)', () => {
 		).toEqual({ sessionId, ecart: 0 });
 	});
 
+	it('une instance qui démarre reçoit le Compte des chèques, à solde nul, hors de la saisie', () => {
+		const cheques = i.app.socle.depots.parametrage
+			.comptes()
+			.filter((x) => x.type === 'cheques_a_remettre');
+		expect(cheques).toHaveLength(1);
+		expect(soldeCompte(j(), cheques[0]!.id, JOUR)).toBe(0);
+		const saisie = valeur(i.app.operations.contexteSaisie(i.ctx()));
+		expect(saisie.comptes.some((x) => x.id === cheques[0]!.id)).toBe(false);
+		expect(valeur(i.app.parametrage.comptes(i.ctx())).some((x) => x.id === cheques[0]!.id)).toBe(
+			false
+		);
+	});
+
 	it('la trésorerie voit toutes les caisses dans Mes caisses', () => {
 		expect(valeur(i.app.caisses.mesCaisses(i.ctx())).map((r) => r.libelle)).toEqual([
 			'Caisse 2',
@@ -674,6 +688,14 @@ describe('Caisses dans le contrôle (E4, §8)', () => {
 		expect(
 			valeur(i.app.caisses.sessionsDeLAction(i.ctx(), kermesse, i.courant)).map((s) => s.id)
 		).toEqual([sessionId]);
+	});
+
+	it('l’export complet emporte les Comptages, lisibles sans l’outil', async () => {
+		valeur(ouvrir());
+		const table = csvComptages(j(), { comptes: j().comptes });
+		expect(table.lignes).toEqual([
+			['2026-10-10', 'Caisse 2', 'Comptage d’ouverture', '150,00', '3 × 50,00', '1']
+		]);
 	});
 
 	it('ape verifier ne voit rien sur une caisse saine, et rejoue C1 à C12 sur une base altérée', () => {

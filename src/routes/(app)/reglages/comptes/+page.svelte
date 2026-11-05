@@ -7,6 +7,7 @@
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import BoutonsOrdre from '#lib/ui/BoutonsOrdre.svelte';
+	import CaseACocher from '#lib/ui/CaseACocher.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import ChampListe from '#lib/ui/ChampListe.svelte';
 	import ChampMontant from '#lib/ui/ChampMontant.svelte';
@@ -24,7 +25,7 @@
 	const nouveau = $derived(parametre === 'nouveau');
 	const compte = $derived(data.comptes.find((c) => String(c.id) === parametre) ?? null);
 	const ouvert = $derived(nouveau || compte !== null);
-	const fermer = () => changerUrl({ compte: null });
+	const fermer = () => changerUrl({ compte: null, type: null });
 	const envoi = creerEnvoi({ apres: fermer });
 	const envoiEtat = creerEnvoi({ apres: fermer });
 
@@ -32,6 +33,8 @@
 
 	const saisie = $derived((form?.saisie ?? {}) as Record<string, string>);
 	const erreurs = $derived(form?.erreur?.champs ?? {});
+	const typeDemande = $derived(page.url.searchParams.get('type'));
+	let typeChoisi = $derived(saisie.type ?? compte?.type ?? typeDemande ?? 'banque');
 	const types = [
 		{ valeur: 'banque', libelle: LIBELLES_TYPE_COMPTE.banque },
 		{ valeur: 'epargne', libelle: LIBELLES_TYPE_COMPTE.epargne },
@@ -103,7 +106,7 @@
 					<td class="principale">
 						<a href={urlAvec({ compte: String(c.id) })} data-sveltekit-reset="false">{c.libelle}</a>
 					</td>
-					<td>{LIBELLES_TYPE_COMPTE[c.type]}</td>
+					<td>{c.reserve ? 'Caisse de réserve' : LIBELLES_TYPE_COMPTE[c.type]}</td>
 					<td class="montant">{c.ancre ? formaterMontant(c.ancre.solde) : '—'}</td>
 					<td class="t-caption t-muted">{c.actif ? 'Actif' : 'Désactivé'}</td>
 					<td class="seulement-ordinateur">
@@ -151,9 +154,18 @@
 					etiquette="Type"
 					name="type"
 					options={types}
-					valeur={saisie.type ?? compte?.type ?? 'banque'}
+					bind:valeur={typeChoisi}
 					erreur={erreurs.type}
 				/>
+			{/if}
+			{#if (compte?.utilise ? compte.type : typeChoisi) === 'caisse'}
+				<CaseACocher
+					name="reserve"
+					coche={compte?.reserve ?? false}
+					aide="Elle se compte à part, sans Session ni Action."
+				>
+					Caisse de réserve
+				</CaseACocher>
 			{/if}
 			{#if soldeModifiable}
 				{#if !compte?.ancre}

@@ -69,6 +69,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	const routeId = event.route.id;
+	// Le·la compteur·se ne voit pas d'application : son accueil est Mes caisses.
+	if (routeId === '/(app)' && acces?.role === 'compteur' && request.method === 'GET') {
+		redirect(303, '/mes-caisses');
+	}
 	if (routeId !== null) {
 		switch (deciderRoute(ROUTES[routeId], acces?.role ?? null)) {
 			case 'inconnue':

@@ -3,6 +3,7 @@
 	import {
 		CircleAlert,
 		CircleCheck,
+		Coins,
 		FileUp,
 		Landmark,
 		Lock,
@@ -23,7 +24,7 @@
 	import SoldeCompte from '#lib/ui/SoldeCompte.svelte';
 	import TuileAFaire from '#lib/ui/TuileAFaire.svelte';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	const lien = (href: string) => {
 		const choisi = page.url.searchParams.get('exercice');
@@ -40,12 +41,22 @@
 			icone: History,
 			href: '/operations?anciennes=1'
 		},
-		comptages: { libelle: 'Caisses à compter', icone: Wallet, href: '#soldes' }
+		comptages: { libelle: 'Caisses à compter', icone: Wallet, href: '/caisses' },
+		sessions: { libelle: 'Sessions de caisse non clôturées', icone: Coins, href: '/caisses' }
 	} as const satisfies Record<TacheControle, unknown>;
 
 	/** Une liste que le rôle n'atteint pas garde son compteur, sans lien (EXPERIENCE.md). */
-	const hrefTuile = (id: TacheControle) =>
-		id === 'lignes' && !data.pointage ? null : TUILES[id].href;
+	const hrefTuile = (id: TacheControle) => {
+		if (id === 'lignes' && !data.pointage) return null;
+		if ((id === 'comptages' || id === 'sessions') && !data.caisses) return null;
+		return TUILES[id].href;
+	};
+
+	/** Toute la carte mène au Pointage ou au détail de caisse, si le rôle y a accès. */
+	function hrefCarte(c: { compte: { id: number; type: string } }) {
+		if (c.compte.type === 'caisse') return data.caisses ? lien(`/caisses/${c.compte.id}`) : null;
+		return data.pointage ? lien(`/pointage/${c.compte.id}`) : null;
+	}
 
 	const icones = {
 		ecart: TriangleAlert,
@@ -100,24 +111,11 @@
 	{#each data.anomalies as a (a)}
 		<div class="erreur"><Bandeau ton="erreur" alerte>{a}</Bandeau></div>
 	{/each}
-	{#if form?.erreur}
-		<div class="erreur"><Bandeau ton="erreur" alerte>{form.erreur.message}</Bandeau></div>
-	{/if}
 
 	<ul class="soldes" id="soldes">
 		{#each data.cartes as c (c.compte.id)}
 			<li>
-				<SoldeCompte
-					carte={c}
-					href={data.pointage && ['banque', 'epargne'].includes(c.compte.type)
-						? lien(`/pointage/${c.compte.id}`)
-						: null}
-					constatDu={c.compte.type === 'caisse' ? data.constatDu : null}
-					aujourdhui={data.aujourdhui}
-					erreur={form?.saisie?.compteId === String(c.compte.id)
-						? form.erreur?.champs?.solde
-						: undefined}
-				/>
+				<SoldeCompte carte={c} href={hrefCarte(c)} />
 			</li>
 		{/each}
 	</ul>
@@ -134,11 +132,7 @@
 							libelle={TUILES[t.id].libelle}
 							compteur={t.compteur}
 							icone={TUILES[t.id].icone}
-							href={t.id === 'comptages'
-								? TUILES.comptages.href
-								: hrefTuile(t.id) === null
-									? null
-									: lien(hrefTuile(t.id) as string)}
+							href={hrefTuile(t.id) === null ? null : lien(hrefTuile(t.id) as string)}
 						/>
 					</li>
 				{/each}

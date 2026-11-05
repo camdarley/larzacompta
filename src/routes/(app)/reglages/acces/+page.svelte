@@ -5,6 +5,7 @@
 	import { formaterHorodatage } from '#lib/domaine/dates.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import Bouton from '#lib/ui/Bouton.svelte';
+	import CaseACocher from '#lib/ui/CaseACocher.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import ChampListe from '#lib/ui/ChampListe.svelte';
 	import Dialogue from '#lib/ui/Dialogue.svelte';
@@ -18,9 +19,15 @@
 
 	const LIBELLES_ROLE = { tresorier: 'Trésorerie', lecteur: 'Lecture', compteur: 'Comptage' };
 
-	const ouvert = $derived(page.url.searchParams.get('acces') === 'nouveau');
+	const parametre = $derived(page.url.searchParams.get('acces'));
+	const ouvert = $derived(parametre === 'nouveau');
 	const fermer = () => changerUrl({ acces: null });
 	const envoi = creerEnvoi({ toast: false });
+	const compteurVise = $derived(
+		data.liste.find((a) => String(a.id) === parametre && a.role === 'compteur') ?? null
+	);
+	const envoiCaisses = creerEnvoi({ apres: fermer });
+	const nomCaisse = (id: number) => data.caisses.find((c) => c.id === id)?.libelle ?? '';
 
 	let aRevoquer = $state<{ id: number; nomAffiche: string } | null>(null);
 	let copie = $state(false);
@@ -29,6 +36,7 @@
 	const erreurs = $derived(form?.erreur?.champs ?? {});
 	const lien = $derived(form?.lien);
 	const roles = $derived(data.roles.map((r) => ({ valeur: r, libelle: LIBELLES_ROLE[r] })));
+	let roleChoisi = $state<string>('tresorier');
 
 	async function copier() {
 		await navigator.clipboard.writeText(lien ?? '');
@@ -62,6 +70,7 @@
 			<th scope="col">Personne</th>
 			<th scope="col">Identifiant</th>
 			<th scope="col">Rôle</th>
+			<th scope="col">Caisses autorisées</th>
 			<th scope="col">Dernier accès</th>
 			<th scope="col" class="seulement-ordinateur"
 				><span class="visuellement-cache">Actions</span></th
@@ -74,6 +83,13 @@
 				<td class="principale">{a.nomAffiche}</td>
 				<td>{a.identifiant}</td>
 				<td>{LIBELLES_ROLE[a.role]}</td>
+				<td>
+					{#if a.role === 'compteur'}
+						<a href={urlAvec({ acces: String(a.id) })} data-sveltekit-reset="false">
+							{a.caisses.map(nomCaisse).filter(Boolean).join(', ') || 'Aucune'}
+						</a>
+					{/if}
+				</td>
 				<td class="t-caption t-muted">
 					{#if a.revoqueLe}Révoqué{:else if a.enAttente}En attente du mot de passe{:else if a.dernierAccesLe}{formaterHorodatage(
 							a.dernierAccesLe
@@ -129,12 +145,20 @@
 				erreur={erreurs.nomAffiche}
 			/>
 			{#if roles.length > 1}
-				<ChampListe
-					etiquette="Rôle"
-					name="role"
-					options={roles}
-					valeur={saisie.role ?? roles[0]?.valeur}
-				/>
+				<ChampListe etiquette="Rôle" name="role" options={roles} bind:valeur={roleChoisi} />
+				{#if roleChoisi === 'compteur'}
+					<fieldset class="caisses">
+						<legend class="t-label">Caisses autorisées</legend>
+						{#if data.caisses.length === 0}
+							<p class="t-caption t-muted">
+								Aucune caisse pour l’instant. Créez-en une dans Comptes.
+							</p>
+						{/if}
+						{#each data.caisses as c (c.id)}
+							<CaseACocher name="caisses" value={String(c.id)}>{c.libelle}</CaseACocher>
+						{/each}
+					</fieldset>
+				{/if}
 			{:else}
 				<input type="hidden" name="role" value={roles[0]?.valeur} />
 			{/if}
@@ -146,6 +170,37 @@
 		{:else}
 			<Bouton type="submit" form="form-acces" occupe={envoi.occupe}>Créer l’Accès</Bouton>
 		{/if}
+	{/snippet}
+</Panneau>
+
+<Panneau
+	ouvert={compteurVise !== null}
+	titre="Caisses de {compteurVise?.nomAffiche ?? ''}"
+	{fermer}
+>
+	{#key compteurVise?.id}
+		<form
+			id="form-caisses"
+			method="post"
+			action="?/caisses"
+			class="pile"
+			use:enhance={envoiCaisses.soumettre}
+		>
+			<input type="hidden" name="id" value={compteurVise?.id} />
+			<fieldset class="caisses">
+				<legend class="t-label">Caisses autorisées</legend>
+				{#each data.caisses as c (c.id)}
+					<CaseACocher
+						name="caisses"
+						value={String(c.id)}
+						coche={compteurVise?.caisses.includes(c.id) ?? false}>{c.libelle}</CaseACocher
+					>
+				{/each}
+			</fieldset>
+		</form>
+	{/key}
+	{#snippet pied()}
+		<Bouton type="submit" form="form-caisses" occupe={envoiCaisses.occupe}>Enregistrer</Bouton>
 	{/snippet}
 </Panneau>
 
@@ -178,6 +233,14 @@
 	.pile {
 		display: grid;
 		gap: var(--espace-4);
+	}
+
+	.caisses {
+		display: grid;
+		gap: var(--espace-2);
+		margin: 0;
+		padding: 0;
+		border: 0;
 	}
 
 	.lien {

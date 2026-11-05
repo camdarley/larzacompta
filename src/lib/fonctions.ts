@@ -24,6 +24,7 @@ const LIVREES: ReadonlySet<Fonction> = new Set<Fonction>([
 	'tableau_controle',
 	'operations',
 	'pointage',
+	'caisses',
 	'creances_dettes',
 	'pieces',
 	'actions',
@@ -34,7 +35,7 @@ const LIVREES: ReadonlySet<Fonction> = new Set<Fonction>([
 ]);
 
 /** Rôles proposés à la création d'un Accès. Compteur·se au jalon 2, Lecteur·rice au jalon 3. */
-const ROLES_LIVRES: readonly Role[] = ['tresorier'];
+const ROLES_LIVRES: readonly Role[] = ['tresorier', 'compteur'];
 
 export function fonctionLivree(fonction: Fonction, livrees = LIVREES): boolean {
 	return livrees.has(fonction);

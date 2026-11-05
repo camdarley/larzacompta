@@ -143,6 +143,35 @@ export const ARTICLES: readonly Article[] = [
 		]
 	},
 	{
+		id: 'caisses',
+		titre: 'Caisses',
+		paragraphes: [
+			'Une caisse est un Compte qui se compte à la main. La page Caisses réunit le total des espèces et, pour chaque caisse, son solde courant et la date de son dernier Comptage.',
+			'Le solde courant part du dernier Comptage et ajoute les mouvements suivants. La fiche d’une caisse raconte son histoire par date : Comptages, Recettes d’espèces, dépenses, transferts et Écarts de caisse.',
+			'Une caisse de réserve se compte quand vous voulez, sans Session ni Action. Si le Comptage diffère du solde attendu, l’outil demande de recompter une fois. Le même total enregistre un Écart de caisse.'
+		]
+	},
+	{
+		id: 'comptage',
+		titre: 'Compter une caisse',
+		paragraphes: [
+			'Touchez + et − pour chaque coupure, ou touchez la quantité pour la taper. Le total se calcule au fur et à mesure, et reste visible en bas de l’écran.',
+			'Le Comptage en cours reste sur votre téléphone si la page se recharge. Rien n’est enregistré sans réseau : notez le total sur papier, et saisissez-le ensuite avec « Compté à un autre moment ? ».',
+			'À l’ouverture, si le Comptage diffère de la dernière clôture, recomptez une fois. Enregistrer le même total confirme la différence, qui devient un Écart de caisse. Ça arrive, et ce n’est pas grave.',
+			'Une erreur ? Votre dernier Comptage se corrige tant que la Session n’est pas clôturée.'
+		]
+	},
+	{
+		id: 'sessions',
+		titre: 'Sessions de caisse',
+		paragraphes: [
+			'Une Session suit une caisse pendant un évènement, de son Comptage d’ouverture à son Comptage final. Plusieurs caisses peuvent être ouvertes sur une même Action.',
+			'Tant qu’une Session est ouverte, toute Opération sur cette caisse s’y rattache, quel que soit l’écran de saisie. Après le Comptage final, le formulaire demande si la somme était encore dans la caisse : un transfert fait après le Comptage n’entre pas dans la recette.',
+			'La Recette d’espèces se calcule en addition posée : Comptage final, moins Fond de caisse, plus dépenses en espèces et transferts sortants, moins transferts entrants. Clôturer la Session l’enregistre dans l’Action, sans ressaisie.',
+			'Une erreur après la clôture ? Rouvrez la dernière Session de la caisse : sa recette s’annule, et la prochaine clôture la recalcule. Tant qu’une Session est ouverte, l’Exercice ne se clôture pas.'
+		]
+	},
+	{
 		id: 'journal',
 		titre: 'Journal des modifications',
 		paragraphes: [

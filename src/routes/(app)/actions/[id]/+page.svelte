@@ -2,7 +2,8 @@
 	import { page } from '$app/state';
 	import { ArrowLeft, Shapes } from '@lucide/svelte';
 	import { noeudNature } from '#lib/domaine/etats/arbre.ts';
-	import { centimes } from '#lib/domaine/montant.ts';
+	import { formaterDateCourte } from '#lib/domaine/dates.ts';
+	import { centimes, formaterMontant } from '#lib/domaine/montant.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import CalculPose from '#lib/ui/CalculPose.svelte';
 	import EnTete from '#lib/ui/EnTete.svelte';
@@ -63,6 +64,26 @@
 	/>
 {/if}
 
+{#if data.sessions.length > 0}
+	<section class="sessions" aria-labelledby="titre-sessions">
+		<h2 id="titre-sessions" class="t-heading">Sessions de caisse</h2>
+		<ul>
+			{#each data.sessions as s (s.id)}
+				<li>
+					<div>
+						{#if data.peutConsulterCaisses}<a href="/sessions/{s.id}">{s.caisse}</a
+							>{:else}{s.caisse}{/if}
+						<p class="t-caption t-muted">
+							{s.date ? formaterDateCourte(s.date) : ''}{s.ouverte ? ', ouverte' : ', clôturée'}
+						</p>
+					</div>
+					<p class="montant">{s.recette === null ? '—' : formaterMontant(s.recette)}</p>
+				</li>
+			{/each}
+		</ul>
+	</section>
+{/if}
+
 <style>
 	.retour {
 		display: inline-flex;
@@ -74,6 +95,30 @@
 
 	.anomalie {
 		margin-bottom: var(--espace-4);
+	}
+
+	.sessions {
+		margin-top: var(--espace-5);
+	}
+
+	.sessions ul {
+		margin-top: var(--espace-2);
+		border: 1px solid var(--border);
+		border-radius: var(--rayon-lg);
+		background: var(--surface-raised);
+	}
+
+	.sessions li {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--espace-3);
+		min-height: var(--espace-row-double);
+		padding: var(--espace-2) var(--espace-3);
+	}
+
+	.sessions li + li {
+		border-top: 1px solid var(--border);
 	}
 
 	.resume {

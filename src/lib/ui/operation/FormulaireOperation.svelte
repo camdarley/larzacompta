@@ -35,6 +35,7 @@
 	import { urlAvec } from '#lib/ui/url.ts';
 	import BlocSommes from './BlocSommes.svelte';
 	import BlocsOperation from './BlocsOperation.svelte';
+	import QuestionPhase from './QuestionPhase.svelte';
 	import ResteARepartir from './ResteARepartir.svelte';
 	import { nouvelleCle, Saisie, type Choix } from './saisie.svelte.ts';
 	import Ventilation from './Ventilation.svelte';
@@ -53,6 +54,13 @@
 		rendre: boolean;
 		introuvable: boolean;
 		intention: string | null;
+		/** Depuis Caisses ou une Session : Comptes et mode déjà connus (FR-18, FR-19). */
+		preselection: {
+			compteId: number | null;
+			mode: ModePaiement | null;
+			deId: number | null;
+			versId: number | null;
+		};
 		exerciceRegarde: Exercice | null;
 		peutSaisir: boolean;
 		fermer: () => void;
@@ -68,6 +76,7 @@
 		rendre,
 		introuvable,
 		intention,
+		preselection,
 		exerciceRegarde,
 		peutSaisir,
 		fermer
@@ -121,6 +130,10 @@
 		} else if (detail === null && modele === null) {
 			const voulue = intention as Choix | null;
 			if (voulue && [...ACTIFS, ...AUTRES.map((a) => a.choix)].includes(voulue)) s.choix = voulue;
+			s.compteId = preselection.compteId ?? s.compteId;
+			s.modePaiement = preselection.mode ?? s.modePaiement;
+			s.deId = preselection.deId ?? s.deId;
+			s.versId = preselection.versId ?? s.versId;
 		}
 		return s;
 	}
@@ -515,6 +528,7 @@
 				? await envoyer<{ id: number }>(`/api/operations/${detail.operation.id}`, {
 						version: detail.operation.version,
 						cle: saisie.cle,
+						phases: phases(),
 						saisie: corps
 					})
 				: ligne
@@ -624,6 +638,39 @@
 		libelleAutre === 'Autre' ? 'Autre intention' : `${libelleAutre}, autre intention`
 	);
 	const estCheque = $derived(saisie.modePaiement === 'cheque');
+
+	/** Côtés sur une caisse dont le Comptage final tombe ce jour-là : eux seuls demandent (AD-10). */
+	const cotesEnQuestion = $derived.by(() => {
+		const cotes: { compteId: number | null; date: string; sortant: boolean }[] = interne
+			? [
+					{ compteId: saisie.deId, date: saisie.parti, sortant: true },
+					{ compteId: saisie.versId, date: saisie.arrive, sortant: false }
+				]
+			: [{ compteId: saisie.compteId, date: saisie.date, sortant: !recetteSens }];
+		return cotes.filter((c) =>
+			contexte.sessions.some((s) => s.compteId === c.compteId && s.dateFinale === c.date)
+		);
+	});
+	/** Réponses touchées. Sinon : Oui pour un transfert ou un dépôt, Non pour une dépense. */
+	let reponses = $state<Record<string, boolean>>({});
+	const reponse = (c: { compteId: number | null; sortant: boolean }) =>
+		reponses[String(c.compteId)] ?? (interne ? c.sortant : false);
+	const nomCompte = (id: number | null) => contexte.comptes.find((c) => c.id === id)?.libelle ?? '';
+	const questionPhase = (c: { compteId: number | null; sortant: boolean }) => {
+		const base = c.sortant
+			? 'Cette somme était-elle encore dans la caisse au Comptage final ?'
+			: 'Cette somme était-elle déjà dans la caisse au Comptage final ?';
+		return cotesEnQuestion.length > 1 ? `${nomCompte(c.compteId)} : ${base}` : base;
+	};
+	/** Sortie encore en caisse, ou entrée pas encore là : elle a bougé après le Comptage. */
+	function phases() {
+		return Object.fromEntries(
+			cotesEnQuestion.map((c) => [
+				String(c.compteId),
+				reponse(c) === c.sortant ? 'apres_comptage' : 'pendant'
+			])
+		);
+	}
 	const facture = $derived(lireMontant(saisie.facture));
 	const ventes = $derived(lireMontant(saisie.ventes));
 	const termesCompensee = $derived([
@@ -831,6 +878,17 @@
 			{/if}
 
 			<div class="formulaire">
+				{#each cotesEnQuestion as c (c.compteId)}
+					<QuestionPhase
+						nom="phase-{c.compteId}"
+						question={questionPhase(c)}
+						valeur={reponse(c)}
+						changer={(v) => {
+							reponses[String(c.compteId)] = v;
+							modifie = true;
+						}}
+					/>
+				{/each}
 				{#if interne}
 					<p class="note-forme t-caption">
 						Ne compte ni en recette, ni en dépense.

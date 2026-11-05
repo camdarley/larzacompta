@@ -26,13 +26,19 @@ function ancreDe(e: z.output<typeof schemaCompte>) {
 
 export const actions = {
 	creer: action(schemaCompte, (app, ctx, e) =>
-		app.parametrage.creerCompte(ctx, { libelle: e.libelle, type: e.type, ancre: ancreDe(e) })
+		app.parametrage.creerCompte(ctx, {
+			libelle: e.libelle,
+			type: e.type,
+			reserve: e.reserve,
+			ancre: ancreDe(e)
+		})
 	),
 	modifier: action(schemaCompteExistant, (app, ctx, e) =>
 		app.parametrage.modifierCompte(ctx, {
 			id: e.id,
 			libelle: e.libelle,
 			type: e.type,
+			reserve: e.reserve,
 			ancre: ancreDe(e)
 		})
 	),

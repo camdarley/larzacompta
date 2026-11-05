@@ -1,31 +1,21 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { formaterJourMois } from '#lib/domaine/dates.ts';
 	import type { CarteCompte } from '#lib/domaine/etats/controle.ts';
 	import { LIBELLES_TYPE_COMPTE } from '#lib/domaine/parametrage.ts';
-	import { centimes, formaterMontant, formaterSaisie } from '#lib/domaine/montant.ts';
-	import Bouton from './Bouton.svelte';
+	import { centimes, formaterMontant } from '#lib/domaine/montant.ts';
 	import CalculPose from './CalculPose.svelte';
-	import ChampMontant from './ChampMontant.svelte';
-	import { creerEnvoi } from './envoi.svelte.ts';
 	import Pastille, { type EtatPastille } from './Pastille.svelte';
 
 	type Props = {
 		carte: CarteCompte;
-		/** Toute la carte mène au Pointage, si le rôle y a accès. */
+		/** Toute la carte mène au Pointage ou au détail de caisse, si le rôle y a accès. */
 		href?: string | null;
-		/** Avant le jalon 2, une caisse se constate ici. Jour de ce constat. */
-		constatDu?: string | null;
-		/** Ce jour-là, l'étiquette dit « aujourd'hui » : ce n'est pas un Comptage enregistré. */
-		aujourdhui?: string | null;
-		erreur?: string;
 	};
-	let { carte, href = null, constatDu = null, aujourdhui = null, erreur }: Props = $props();
+	let { carte, href = null }: Props = $props();
 
 	const c = $derived(carte);
 	const caisse = $derived(c.compte.type === 'caisse');
 	const juste = $derived(c.etat === 'juste');
-	const envoi = creerEnvoi();
 
 	const lue = $derived(
 		c.dateConstat === null
@@ -38,6 +28,7 @@
 	/** Toujours une icône et un mot : l'état ne repose pas sur la barre de couleur. */
 	const pastille = $derived.by((): { etat: EtatPastille; texte?: string } => {
 		if (c.etat === 'ecart') return { etat: 'ecart' };
+		if (c.sessionOuverte) return { etat: 'a_regarder', texte: 'Session ouverte' };
 		if (c.etat === 'juste') {
 			return { etat: 'pointe', texte: caisse ? 'Égal au comptage' : 'Égal au relevé' };
 		}
@@ -80,22 +71,6 @@
 		</div>
 	{/if}
 	{#if c.phraseEcart}<p class="ecart t-label">{c.phraseEcart}</p>{/if}
-	{#if constatDu !== null}
-		<form method="post" action="?/constat" class="saisie" use:enhance={envoi.soumettre}>
-			<input type="hidden" name="compteId" value={c.compte.id} />
-			<input type="hidden" name="date" value={constatDu} />
-			<ChampMontant
-				etiquette={constatDu === aujourdhui
-					? 'Solde compté aujourd’hui'
-					: `Solde compté au ${formaterJourMois(constatDu)}`}
-				name="solde"
-				valeur={c.constate === null ? '' : formaterSaisie(c.constate)}
-				{erreur}
-				required
-			/>
-			<Bouton type="submit" variante="secondaire" occupe={envoi.occupe}>Enregistrer</Bouton>
-		</form>
-	{/if}
 </article>
 
 <style>
@@ -134,16 +109,6 @@
 
 	.constate span {
 		display: block;
-	}
-
-	.saisie {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		align-items: end;
-		gap: var(--espace-2);
-		margin-top: auto;
-		/* Le lien de carte, absent ici : le champ reste atteignable. */
-		position: relative;
 	}
 
 	.lien {

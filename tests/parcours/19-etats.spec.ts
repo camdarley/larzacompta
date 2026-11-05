@@ -184,24 +184,15 @@ test('5.2 : la phrase, les soldes, les tuiles', async ({ page }) => {
 	await ecranAccessible(page, '/');
 });
 
-test('5.2 : le solde d’une caisse se saisit sur sa carte, sans lien vers le Pointage', async ({
-	page
-}) => {
+test('7.10 : une caisse mène à son détail, sa carte ne se saisit plus', async ({ page }) => {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	const caisse = page.getByRole('article').filter({ hasText: 'Caisse de la fête' });
-	await expect(caisse.getByRole('link')).toHaveCount(0);
+	await expect(caisse.getByRole('link', { name: 'Caisse de la fête' })).toHaveAttribute(
+		'href',
+		/^\/caisses\/\d+/
+	);
 	await expect(caisse).toContainText('Pas encore comptée');
-	await caisse.getByLabel(/^Solde compté/).fill('80');
-	await caisse.getByRole('button', { name: 'Enregistrer' }).click();
-	await expect(caisse).toContainText('Égal au comptage');
-
-	await caisse.getByLabel(/^Solde compté/).fill('78,50');
-	await caisse.getByRole('button', { name: 'Enregistrer' }).click();
-	await expect(caisse).toContainText(/Écart de 1,50.€/);
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 Compte ne tombe pas juste.');
-	await caisse.getByLabel(/^Solde compté/).fill('80');
-	await caisse.getByRole('button', { name: 'Enregistrer' }).click();
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText(/à regarder\.$/);
+	await expect(caisse.getByRole('textbox')).toHaveCount(0);
 });
 
 test('5.2 : sur téléphone, phrase, soldes empilés, puis À faire', async ({ page }) => {
@@ -460,6 +451,7 @@ test('5.7 : un ZIP lisible sans l’outil', async ({ page }) => {
 	const archive = unzipSync(await octets(d));
 	expect(Object.keys(archive).sort()).toEqual([
 		'LISEZMOI.txt',
+		'comptages.csv',
 		'lignes.csv',
 		'operations.csv',
 		'pieces/0001-facture-autocars-fictive.pdf',

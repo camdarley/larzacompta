@@ -2,6 +2,8 @@
  * Export complet (FR-35) : des rangées de texte, lisibles sans l'outil.
  * Une Ligne dit à quel résultat elle compte : la somme d'une colonne se refait dans un tableur.
  */
+import { totalComptage } from '../caisse/index.ts';
+import { LIBELLES_COMPTAGE } from '../caisse/vues.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, OperationJ } from '../journal.ts';
 import { LIBELLES_MODE_PAIEMENT } from '../journal.ts';
@@ -167,6 +169,23 @@ export function csvPointages(
 	};
 }
 
+export function csvComptages(
+	j: Pick<GrandJournal, 'comptages'>,
+	p: Pick<ParametrageEtats, 'comptes'>
+): TableCsv {
+	return {
+		entetes: ['Date', 'Caisse', 'Comptage', 'Total', 'Coupures', 'N° de Session'],
+		lignes: j.comptages.map((c) => [
+			c.date,
+			nomDe(p.comptes, c.compteId),
+			LIBELLES_COMPTAGE[c.type],
+			formaterCsv(totalComptage(c.coupures)),
+			c.coupures.map((x) => `${x.quantite} × ${formaterCsv(x.coupure)}`).join(' ; '),
+			c.sessionCaisseId === null ? '' : String(c.sessionCaisseId)
+		])
+	};
+}
+
 /** Texte de `LISEZMOI.txt`, sans vocabulaire de logiciel comptable. */
 export function lisezMoi(
 	association: string,
@@ -186,6 +205,7 @@ export function lisezMoi(
 		'lignes.csv : la répartition de chaque Opération non annulée, une rangée par Ligne.',
 		'  Filtrez « Compte dans le résultat de » sur un Exercice : la somme des montants égale son résultat.',
 		'pointages.csv : les Opérations et les Lignes de relevé reliées, une rangée par élément.',
+		'comptages.csv : chaque Comptage de caisse, avec son total et ses coupures.',
 		'pieces/ : les Pièces, telles qu’elles ont été déposées.',
 		''
 	].join('\r\n');

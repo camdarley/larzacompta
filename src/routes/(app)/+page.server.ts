@@ -2,8 +2,6 @@ import { ETAPE_ASSISTANT_TERMINE } from '#lib/domaine/assistant.ts';
 import { peut } from '#lib/domaine/droits.ts';
 import { phraseBilan } from '#lib/domaine/etats/controle.ts';
 import { fonctionLivree } from '#lib/fonctions.ts';
-import { schemaConstat } from '#lib/schemas/pointage.ts';
-import { action } from '#lib/server/action.ts';
 import { application } from '#lib/server/composition.ts';
 import { accesRequis, exiger } from '#lib/server/http.ts';
 
@@ -29,18 +27,7 @@ export async function load({ locals, parent }) {
 		...tableau,
 		phrase: phraseBilan(tableau.bilan),
 		pointage: fonctionLivree('pointage') && saisir,
-		/** Jour du constat de caisse : aujourd'hui, ou le dernier jour d'un Exercice terminé. */
-		constatDu:
-			saisir && exercice.statut === 'ouvert'
-				? ctx.aujourdhui < (exercice.fin as string)
-					? ctx.aujourdhui
-					: exercice.fin
-				: null,
-		aujourdhui: ctx.aujourdhui,
+		caisses: fonctionLivree('caisses') && peut(acces.role, 'consulter_suivi'),
 		aClore: saisir ? (aClore ?? null) : null
 	};
 }
-
-export const actions = {
-	constat: action(schemaConstat, (app, ctx, e) => app.pointage.saisirSolde(ctx, e))
-};

@@ -18,7 +18,7 @@ import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
 import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
 import { parametrageCourant, parametrageDe } from '../etats/index.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
-import { poserAncre } from '../parametrage/index.ts';
+import { assurerCompteCheques, poserAncre } from '../parametrage/index.ts';
 
 export type SoldeCompte = { compteId: number; solde: Centimes };
 
@@ -77,6 +77,7 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 				const ancre = poserAncre(o, compte, exercices, exercice.valeur.id, solde);
 				if (!ancre.ok) return ancre;
 			}
+			assurerCompteCheques(o);
 			return exercice;
 		}
 	};
@@ -183,6 +184,7 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 				);
 				if (!ancre.ok) return ancre;
 			}
+			assurerCompteCheques(o);
 			depotP.definirEtapeAssistant(3);
 			o.noter({
 				evenement: 'assistant.comptes_prepares',

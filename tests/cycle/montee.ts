@@ -19,7 +19,7 @@ const git = (...args: string[]) =>
 		{ cwd: clone, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }
 	);
 
-const MIGRATION = join(clone, 'migrations/0002_essai_montee.sql');
+const MIGRATION = join(clone, 'migrations/0099_essai_montee.sql');
 
 function cycle() {
 	return spawnSync(process.execPath, ['tests/cycle/cycle.ts'], {
