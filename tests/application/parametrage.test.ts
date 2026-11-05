@@ -110,10 +110,20 @@ describe('Comptes', () => {
 		expect(compte?.ancre?.solde).toBe(120000);
 		const r = p.supprimerCompte(b.ctx(), id);
 		expect(!r.ok && r.erreur.code).toBe('element_utilise');
-		valeur(p.activerCompte(b.ctx(), id, false));
-		expect(valeur(p.comptes(b.ctx()))[0]?.actif).toBe(false);
-		valeur(p.activerCompte(b.ctx(), id, true));
-		expect(valeur(p.comptes(b.ctx()))[0]?.actif).toBe(true);
+		// Il porte encore de l'argent : le désactiver ferait taire le Tableau de contrôle.
+		const non = p.activerCompte(b.ctx(), id, false);
+		expect(!non.ok && non.erreur.code).toBe('compte_non_vide');
+		const vide = valeur(
+			p.creerCompte(b.ctx(), {
+				libelle: 'Livret vide',
+				type: 'epargne',
+				ancre: { exerciceId: ex.id, solde: centimes(0) }
+			})
+		);
+		valeur(p.activerCompte(b.ctx(), vide, false));
+		expect(valeur(p.comptes(b.ctx())).find((c) => c.id === vide)?.actif).toBe(false);
+		valeur(p.activerCompte(b.ctx(), vide, true));
+		expect(valeur(p.comptes(b.ctx())).find((c) => c.id === vide)?.actif).toBe(true);
 	});
 
 	it('avec un Côté, se désactivent sans se supprimer', () => {

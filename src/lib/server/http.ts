@@ -85,10 +85,13 @@ export function champsDe(formulaire: FormData): Record<string, string> {
 	return champs;
 }
 
-/** Une destination après connexion reste dans l'application. */
+/** Une destination après connexion reste dans l'application : même origine, aucun caractère de contrôle. */
 export function suiteSure(suite: string | null): string {
-	if (suite === null || !suite.startsWith('/') || suite.startsWith('//') || suite.includes('\\')) {
+	if (suite === null || !suite.startsWith('/') || /[\\\p{Cc}]/u.test(suite)) return '/';
+	const ici = 'http://ape.invalid';
+	try {
+		return new URL(suite, ici).origin === ici ? suite : '/';
+	} catch {
 		return '/';
 	}
-	return suite;
 }

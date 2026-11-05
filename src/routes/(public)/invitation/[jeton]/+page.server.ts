@@ -27,7 +27,7 @@ export const actions = {
 		if (!entree.ok) return refus(entree.erreur, saisie);
 
 		const app = application();
-		const r = app.acces.accepterInvitation(app.ctx(null), {
+		const r = await app.acces.accepterInvitation(app.ctx(null), {
 			...entree.valeur,
 			jeton: params.jeton
 		});

@@ -6,7 +6,7 @@ import { formaterDateLongue, type DateCivile } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import { centimes, type Centimes } from '../montant.ts';
 import { messageAnomalie } from './anomalies.ts';
-import type { CarteCompte } from './controle.ts';
+import { avecEcart, type CarteCompte } from './controle.ts';
 import type {
 	Anomalie,
 	CompteDeResultat,
@@ -297,7 +297,7 @@ export function modeleAction(a: NoeudAction, e: Exercice, association: string): 
 }
 
 function sectionEcarts(cartes: readonly CarteCompte[]): SectionDocument {
-	const restants = cartes.filter((c) => c.ecart !== null && c.ecart !== 0);
+	const restants = cartes.filter(avecEcart);
 	return {
 		titre: 'Écarts restants',
 		phrases:
@@ -318,7 +318,7 @@ function sectionEcarts(cartes: readonly CarteCompte[]): SectionDocument {
 							cellules: [
 								c.compte.libelle,
 								formaterDateLongue(c.date),
-								{ montant: centimes(c.ecart as number), signe: true }
+								{ montant: centimes(c.ecart || (c.nonExplique ?? 0)), signe: true }
 							],
 							niveau: 0
 						}))

@@ -1,10 +1,38 @@
-/** Export complet : ZIP lisible sans l'outil (AD-18). Pièces déjà compressées : stockées telles quelles. */
-import { strToU8, zipSync, type Zippable } from 'fflate';
+/**
+ * Export complet : ZIP lisible sans l'outil (AD-18), produit en flux, une Pièce à la fois.
+ * Les Pièces, déjà compressées, sont stockées telles quelles.
+ */
+import { strToU8, Zip, ZipDeflate, ZipPassThrough } from 'fflate';
+import type { EntreeArchive } from '../../application/ports.ts';
 
-export function genererZip(fichiers: Readonly<Record<string, Uint8Array | string>>): Uint8Array {
-	const contenu: Zippable = {};
-	for (const [nom, octets] of Object.entries(fichiers)) {
-		contenu[nom] = typeof octets === 'string' ? strToU8(octets) : [octets, { level: 0 }];
-	}
-	return zipSync(contenu);
+export function genererZip(entrees: Iterable<EntreeArchive>): ReadableStream<Uint8Array> {
+	const suite = entrees[Symbol.iterator]();
+	let zip: Zip;
+	return new ReadableStream<Uint8Array>({
+		start(sortie) {
+			zip = new Zip((erreur, morceau, fin) => {
+				if (erreur) {
+					sortie.error(erreur);
+					return;
+				}
+				sortie.enqueue(morceau);
+				if (fin) sortie.close();
+			});
+		},
+		pull() {
+			const { done, value } = suite.next();
+			if (done) {
+				zip.end();
+				return;
+			}
+			const contenu = value.lire();
+			if (contenu === null) return;
+			const fichier =
+				typeof contenu === 'string'
+					? new ZipDeflate(value.nom, { level: 6 })
+					: new ZipPassThrough(value.nom);
+			zip.add(fichier);
+			fichier.push(typeof contenu === 'string' ? strToU8(contenu) : contenu, true);
+		}
+	});
 }

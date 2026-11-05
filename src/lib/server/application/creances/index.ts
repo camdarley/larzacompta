@@ -146,7 +146,8 @@ export function creerCreances(socle: Socle, executer: Executer, lire: Lire) {
 				suivi(
 					depots.operations.journal(),
 					depots.parametrage.actions(),
-					exercice?.fin ?? dateProposee(ctx.aujourdhui, exercice)
+					exercice?.fin ?? dateProposee(ctx.aujourdhui, exercice),
+					exercice ? (depots.exercices.cloture(exercice.id)?.clotureLe ?? null) : null
 				)
 			);
 		},

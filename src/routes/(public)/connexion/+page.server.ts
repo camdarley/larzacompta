@@ -19,7 +19,10 @@ export const actions = {
 		if (!entree.ok) return refus(entree.erreur, saisie);
 
 		const app = application();
-		const r = app.acces.connecter(app.ctx(null), { ...entree.valeur, adresse: locals.adresse });
+		const r = await app.acces.connecter(app.ctx(null), {
+			...entree.valeur,
+			adresse: locals.adresse
+		});
 		if (!r.ok) return refus(r.erreur, saisie);
 
 		poserCookieSession(cookies, r.valeur.jeton, r.valeur.expireLe);

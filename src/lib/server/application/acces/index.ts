@@ -5,8 +5,10 @@ import {
 	expirationSession,
 	revocationPermise,
 	sessionExpiree,
+	identifiantReserve,
 	tentativeAutorisee,
 	verifierMotDePasse,
+	IDENTIFIANT_RESERVE,
 	type AccesConnecte,
 	type Preferences
 } from '#lib/domaine/acces.ts';
@@ -17,7 +19,7 @@ import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.t
 import type { LigneAcces } from '../ports.ts';
 
 /** Accès d'attente du lien initial : le schéma exige un Accès derrière tout jeton. */
-const IDENTIFIANT_INITIAL = '__initial__';
+const IDENTIFIANT_INITIAL = IDENTIFIANT_RESERVE;
 
 export type TypeInvitation = 'initial' | 'creation' | 'reinitialisation';
 
@@ -28,6 +30,8 @@ export type SessionOuverte = {
 	expireLe: Instant;
 	acces: AccesConnecte;
 };
+
+export type SessionLue = { acces: AccesConnecte; prolongeeJusquAu: Instant | null };
 
 export type LigneAccesVue = {
 	id: number;
@@ -146,10 +150,15 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 				}
 				identifiant = e.identifiant;
 				nomAffiche = e.nomAffiche;
+				if (identifiantReserve(identifiant)) {
+					return echec('saisie_invalide', { champs: { identifiant: 'identifiant_reserve' } });
+				}
 				o.depots.acces.definirIdentite(a.id, identifiant, nomAffiche);
 			}
 			o.depots.acces.definirMotDePasse(a.id, e.hash);
 			o.depots.acces.utiliserJeton(hashJeton, o.ctx.maintenant);
+			// Une session volée ne survit pas à la procédure de récupération.
+			o.depots.acces.supprimerSessions(a.id);
 
 			const session = ouvrirSession(o, a.id);
 			const acces: AccesConnecte = { ...versConnecte(a), identifiant, nomAffiche };
@@ -168,6 +177,14 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 
 	type TentativeConnexion = { identifiant: string; adresse: string; bonMotDePasse: boolean };
 
+	const clesTentative = (e: { identifiant: string; adresse: string }) => [
+		`id:${e.identifiant.toLowerCase()}`,
+		`ip:${e.adresse}`
+	];
+
+	const bloquee = (e: { identifiant: string; adresse: string }, maintenant: Instant) =>
+		clesTentative(e).some((c) => !tentativeAutorisee(depots.acces.lireTentative(c), maintenant));
+
 	const casConnexion: CasUsage<
 		TentativeConnexion,
 		{ session: SessionOuverte } | { refus: 'connexion_refusee' | 'trop_de_tentatives' }
@@ -175,11 +192,8 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 		droit: 'public',
 		sansJournal: true,
 		faire(o, e) {
-			const cles = [`id:${e.identifiant.toLowerCase()}`, `ip:${e.adresse}`];
-			const bloque = cles.some(
-				(c) => !tentativeAutorisee(o.depots.acces.lireTentative(c), o.ctx.maintenant)
-			);
-			if (bloque) return succes({ refus: 'trop_de_tentatives' as const });
+			const cles = clesTentative(e);
+			if (bloquee(e, o.ctx.maintenant)) return succes({ refus: 'trop_de_tentatives' as const });
 
 			const a = o.depots.acces.parIdentifiant(e.identifiant);
 			const utilisable = a !== null && a.revoqueLe === null && a.aMotDePasse;
@@ -196,7 +210,7 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
-	const casSession: CasUsage<string, AccesConnecte | null> = {
+	const casSession: CasUsage<string, SessionLue | null> = {
 		droit: 'public',
 		sansJournal: true,
 		faire(o, jeton) {
@@ -209,15 +223,13 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 			}
 			const a = o.depots.acces.parId(s.accesId);
 			if (a === null || a.revoqueLe !== null) return succes(null);
-			if (activiteAEcrire(s.derniereActiviteLe, o.ctx.maintenant)) {
-				o.depots.acces.toucherSession(
-					hash,
-					o.ctx.maintenant,
-					expirationSession(s.creeLe, o.ctx.maintenant)
-				);
-				o.depots.acces.noterAcces(a.id, o.ctx.maintenant);
+			if (!activiteAEcrire(s.derniereActiviteLe, o.ctx.maintenant)) {
+				return succes({ acces: versConnecte(a), prolongeeJusquAu: null });
 			}
-			return succes(versConnecte(a));
+			const prolongeeJusquAu = expirationSession(s.creeLe, o.ctx.maintenant);
+			o.depots.acces.toucherSession(hash, o.ctx.maintenant, prolongeeJusquAu);
+			o.depots.acces.noterAcces(a.id, o.ctx.maintenant);
+			return succes({ acces: versConnecte(a), prolongeeJusquAu });
 		}
 	};
 
@@ -236,6 +248,9 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 	> = {
 		droit: 'parametrer',
 		faire(o, e) {
+			if (identifiantReserve(e.identifiant)) {
+				return echec('identifiant_reserve', { champ: 'identifiant' });
+			}
 			if (o.depots.acces.parIdentifiant(e.identifiant) !== null) {
 				return echec('identifiant_deja_utilise', { champ: 'identifiant' });
 			}
@@ -290,19 +305,25 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
-	const casMotDePasse: CasUsage<{ bonActuel: boolean; hash: string }, true> = {
+	const casMotDePasse: CasUsage<
+		{ bonActuel: boolean; hash: string },
+		{ jeton: string; expireLe: Instant }
+	> = {
 		droit: 'etre_connecte',
 		faire(o, e) {
 			if (!e.bonActuel) return echec('mot_de_passe_faux', { champ: 'actuel' });
 			const id = (o.ctx.acces as AccesConnecte).id;
 			o.depots.acces.definirMotDePasse(id, e.hash);
+			// Toutes les sessions tombent, celle-ci renaît : le navigateur reçoit un nouveau jeton.
+			o.depots.acces.supprimerSessions(id);
+			const session = ouvrirSession(o, id);
 			o.noter({
 				evenement: 'acces.mot_de_passe_change',
 				entiteType: 'acces',
 				entiteId: id,
 				resume: 'a changé son mot de passe.'
 			});
-			return succes(true);
+			return succes(session);
 		}
 	};
 
@@ -336,24 +357,30 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 			});
 		},
 
-		accepterInvitation(
+		async accepterInvitation(
 			ctx: Ctx,
 			e: { jeton: string; identifiant?: string; nomAffiche?: string; motDePasse: string }
 		) {
 			const mdp = verifierMotDePasse(e.motDePasse);
 			if (!mdp.ok) return mdp;
+			// Un jeton faux ne coûte aucun calcul.
+			if (jetonValide(jetons.empreinte(e.jeton), ctx.maintenant) === null) {
+				return echec('lien_invalide');
+			}
 			// Le hachage reste hors de la transaction : il prend plusieurs dizaines de millisecondes.
-			const hash = hacheur.hacher(mdp.valeur);
+			const hash = await hacheur.hacher(mdp.valeur);
 			return executer(casInvitation, ctx, { ...e, hash });
 		},
 
-		connecter(
+		async connecter(
 			ctx: Ctx,
 			e: { identifiant: string; motDePasse: string; adresse: string }
-		): Resultat<SessionOuverte> {
+		): Promise<Resultat<SessionOuverte>> {
+			// Le blocage se lit d'abord : un essai refusé ne doit rien coûter au serveur.
+			if (bloquee(e, ctx.maintenant)) return echec('trop_de_tentatives');
 			const a = depots.acces.parIdentifiant(e.identifiant);
-			leurre ??= hacheur.hacher('leurre-sans-valeur');
-			const bonMotDePasse = hacheur.verifier(e.motDePasse, a?.hash ?? leurre);
+			leurre ??= await hacheur.hacher('leurre-sans-valeur');
+			const bonMotDePasse = await hacheur.verifier(e.motDePasse, a?.hash ?? leurre);
 			const r = executer(casConnexion, ctx, {
 				identifiant: e.identifiant,
 				adresse: e.adresse,
@@ -364,6 +391,12 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 		},
 
 		accesDepuisSession(ctx: Ctx, jeton: string): AccesConnecte | null {
+			const r = executer(casSession, ctx, jeton);
+			return r.ok ? (r.valeur?.acces ?? null) : null;
+		},
+
+		/** Une session prolongée en base doit l'être aussi dans le cookie du navigateur (AD-14). */
+		lireSession(ctx: Ctx, jeton: string): SessionLue | null {
 			const r = executer(casSession, ctx, jeton);
 			return r.ok ? r.valeur : null;
 		},
@@ -384,12 +417,14 @@ export function creerAcces(socle: Socle, executer: Executer, lire: Lire) {
 			return executer(casReinitialisation, ctx, identifiant);
 		},
 
-		changerMotDePasse(ctx: Ctx, e: { actuel: string; nouveau: string }) {
+		async changerMotDePasse(ctx: Ctx, e: { actuel: string; nouveau: string }) {
 			const mdp = verifierMotDePasse(e.nouveau);
 			if (!mdp.ok) return echec('mot_de_passe_court', { champ: 'nouveau' });
 			const a = ctx.acces ? depots.acces.parId(ctx.acces.id) : null;
-			const bonActuel = a?.hash ? hacheur.verifier(e.actuel, a.hash) : false;
-			return executer(casMotDePasse, ctx, { bonActuel, hash: hacheur.hacher(mdp.valeur) });
+			const bonActuel = a?.hash ? await hacheur.verifier(e.actuel, a.hash) : false;
+			if (!bonActuel) return executer(casMotDePasse, ctx, { bonActuel, hash: '' });
+			const hash = await hacheur.hacher(mdp.valeur);
+			return executer(casMotDePasse, ctx, { bonActuel, hash });
 		},
 
 		changerPreferences(ctx: Ctx, preferences: Preferences) {

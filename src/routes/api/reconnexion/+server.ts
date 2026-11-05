@@ -9,7 +9,7 @@ export async function POST({ request, locals, cookies }) {
 	const entree = await lireJson(schemaConnexion, request);
 	if (!entree.ok) return reponseJson(entree);
 	const app = application();
-	const r = app.acces.connecter(app.ctx(null), { ...entree.valeur, adresse: locals.adresse });
+	const r = await app.acces.connecter(app.ctx(null), { ...entree.valeur, adresse: locals.adresse });
 	if (!r.ok) return reponseJson(r);
 	poserCookieSession(cookies, r.valeur.jeton, r.valeur.expireLe);
 	return reponseJson(succes(true));

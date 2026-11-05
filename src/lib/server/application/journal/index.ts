@@ -27,15 +27,18 @@ function bornes(ctx: { du?: DateCivile; au?: DateCivile }) {
 	};
 }
 
+/** Aucun journal n'atteint cette page, et le décalage reste un entier sûr pour SQLite. */
+const borne = (page: number) => Math.min(page, Math.floor(Number.MAX_SAFE_INTEGER / TAILLE_PAGE));
+
 export function creerJournal(socle: Socle, lire: Lire) {
 	const depot = socle.depots.journal;
 	return {
 		lister(ctx: Ctx, filtres: FiltresJournal, page: number): Resultat<PageJournal> {
 			return lire(ctx, 'consulter', () => {
-				const numero = Math.max(1, page);
+				const numero = Number.isSafeInteger(page) ? Math.max(1, page) : 1;
 				const { entrees, total } = depot.lister(
 					{ personne: filtres.personne, type: filtres.type, ...bornes(filtres) },
-					{ limite: TAILLE_PAGE, decalage: (numero - 1) * TAILLE_PAGE }
+					{ limite: TAILLE_PAGE, decalage: (borne(numero) - 1) * TAILLE_PAGE }
 				);
 				return {
 					entrees,

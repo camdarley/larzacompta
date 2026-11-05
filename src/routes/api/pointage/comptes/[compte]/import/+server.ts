@@ -40,7 +40,8 @@ export async function POST({ request, locals, params }) {
 			compteId: Number(params.compte),
 			nomFichier: fichier.name,
 			octets: new Uint8Array(await fichier.arrayBuffer()),
-			reglage
+			reglage,
+			autreCompte: formulaire.get('autreCompte') === '1'
 		})
 	);
 }

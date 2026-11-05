@@ -4,6 +4,7 @@ import type { ErreurMetier } from '#lib/domaine/resultat.ts';
 /** Codes levés par les triggers de verrouillage de `migrations/`. */
 const CODES_TRIGGER = new Set([
 	'exercice_cloture',
+	'ancre_invalide',
 	'operation_non_supprimable',
 	'cote_pointe',
 	'pointage_fige',

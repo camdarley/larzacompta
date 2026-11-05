@@ -79,11 +79,13 @@ export function csvOperations(
 /** Une Opération annulée sort des calculs : ses Lignes restent seulement dans `operations.csv`. */
 export function csvLignes(
 	j: Pick<GrandJournal, 'operations' | 'exercices'>,
-	p: ParametrageEtats
+	courant: ParametrageEtats,
+	parExercice: (e: Exercice) => ParametrageEtats = () => courant
 ): TableCsv {
-	const neutres = new Set(p.natures.filter((n) => n.neutre).map((n) => n.id));
 	const lignes = j.operations.flatMap((op) => {
 		const exercice = exerciceDuMouvement(j, op);
+		const p = exercice ? parExercice(exercice) : courant;
+		const neutres = new Set(p.natures.filter((n) => n.neutre).map((n) => n.id));
 		return op.lignes.map((l) => {
 			const courante = exercice?.id === l.exerciceRattachementId && !neutres.has(l.natureId);
 			return [

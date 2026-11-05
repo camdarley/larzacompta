@@ -99,14 +99,21 @@ export function deciderRepere(
 	return succes({ libelle, anneeDebut, debut: null, fin: null, statut: 'repere' });
 }
 
-/** E6 : l'ancre se pose au début d'un Exercice ouvert. E7 : plus rien si un Exercice dépendant est clôturé. */
+/**
+ * E6 : l'ancre se pose au début d'un Exercice ouvert, jamais après un mouvement du Compte (O5, P6).
+ * E7 : plus rien si un Exercice dépendant est clôturé.
+ */
 export function deciderAncre(
 	exercices: readonly Exercice[],
 	exerciceId: number,
-	exerciceAncreActuelle: number | null
+	exerciceAncreActuelle: number | null,
+	premierMouvement: DateCivile | null = null
 ): Resultat<Exercice> {
 	const cible = exercices.find((e) => e.id === exerciceId);
 	if (cible === undefined || cible.statut !== 'ouvert') return echec('ancre_invalide');
+	if (premierMouvement !== null && premierMouvement < (cible.debut as DateCivile)) {
+		return echec('ancre_apres_mouvement');
+	}
 	if (exerciceAncreActuelle !== null) {
 		const actuel = exercices.find((e) => e.id === exerciceAncreActuelle);
 		const fige = exercices.some(

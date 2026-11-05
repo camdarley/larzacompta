@@ -244,11 +244,12 @@ describe('Document d’AG', () => {
 });
 
 describe('export complet', () => {
-	it('la somme des Lignes du CSV égale le résultat calculé', () => {
+	it('la somme des Lignes du CSV égale le résultat calculé', async () => {
 		const i = instanceFictive();
 		jouerExerciceFictif(i);
-		const { octets, nom } = valeur(i.app.etats.exportComplet(i.ctx()));
+		const { flux, nom } = valeur(i.app.etats.exportComplet(i.ctx()));
 		expect(nom).toBe('export-complet-2026-11-04.zip');
+		const octets = new Uint8Array(await new Response(flux).arrayBuffer());
 		const archive = unzipSync(octets);
 		const csv = strFromU8(archive['lignes.csv']!);
 		const [entete, ...lignes] = csv.trim().split('\r\n');

@@ -10,6 +10,7 @@ import type { Centimes } from '../montant.ts';
 import type { Action, Compte, Groupe, Nature } from '../parametrage.ts';
 import type { PieceVue } from '../pieces/index.ts';
 import type { Intention } from './formes.ts';
+import type { EtatPointage } from './lecture.ts';
 import type { Recents } from './recents.ts';
 
 export type EntreeHistorique = {
@@ -34,7 +35,7 @@ export type RangeeOperation = {
 	cloture: boolean;
 	pieces: number;
 	/** Pointé si un Côté l'est, À pointer pour une banque ou un livret. */
-	etat: 'pointe' | 'a_pointer' | null;
+	etat: EtatPointage | null;
 	rattachements: string[];
 	ligneTrouvee: string | null;
 };

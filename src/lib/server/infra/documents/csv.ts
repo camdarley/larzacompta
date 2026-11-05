@@ -3,8 +3,9 @@ const BOM = '﻿';
 
 function cellule(valeur: string): string {
 	// Un libellé qui commence par `=` ne doit pas s'exécuter comme une formule à l'ouverture.
-	// Les montants exportés (`-12,50`) restent des nombres.
-	const sur = /^[=+@\t\r]|^-(?!\d)/.test(valeur) ? `'${valeur}` : valeur;
+	// Seul un vrai nombre (`-12,50`, `-1 234,50`) échappe au préfixe, jamais `-1+cmd|...`.
+	const nombre = /^-\d[\d\s]*(,\d+)?$/.test(valeur);
+	const sur = /^[=+@\-\t\r]/.test(valeur) && !nombre ? `'${valeur}` : valeur;
 	return /[;"\r\n]/.test(sur) ? `"${sur.replaceAll('"', '""')}"` : sur;
 }
 

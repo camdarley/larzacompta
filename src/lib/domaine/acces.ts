@@ -107,3 +107,10 @@ export function revocationPermise(
 	}
 	return succes(true);
 }
+
+/** Porte le lien initial. Comparé sans casse, comme la colonne `identifiant`. */
+export const IDENTIFIANT_RESERVE = '__initial__';
+
+export function identifiantReserve(identifiant: string): boolean {
+	return identifiant.trim().toLowerCase() === IDENTIFIANT_RESERVE;
+}

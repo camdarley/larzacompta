@@ -124,7 +124,8 @@ export function reglagePropose(entetes: readonly string[]): ReglageCsv {
 	return {
 		date: trouver(/date/i) ?? premiere,
 		libelle: trouver(/libell|intitul|description|nature|objet/i) ?? entetes[1] ?? premiere,
-		identifiant: trouver(/identifiant|r[ée]f/i) ?? null,
+		// Une « Référence » se répète d'un mois à l'autre (RUM d'un prélèvement) : elle n'identifie pas une ligne.
+		identifiant: trouver(/identifiant|fitid/i) ?? null,
 		montant:
 			sorties && entrees
 				? { mode: 'separees', sorties, entrees }

@@ -2,7 +2,7 @@
  * Créances et Dettes (AD-12, F1, F2). Comptabilité de trésorerie : une Créance ou une Dette ne
  * produit aucune Ligne. Le reste dû se calcule à la date demandée, rien n'est stocké (AD-4).
  */
-import { ajouterJours, instantVersDate, type DateCivile } from '../dates.ts';
+import { ajouterJours, instantVersDate, type DateCivile, type Instant } from '../dates.ts';
 import { exerciceDeDate } from '../etats/soldes.ts';
 import { anneeExerciceDe, type Exercice } from '../exercices.ts';
 import type { CreanceDetteJ, GrandJournal, OperationJ } from '../journal.ts';
@@ -22,9 +22,16 @@ function somme(valeurs: readonly number[]): Centimes {
 /**
  * F2 : montant − règlements d'Opérations non annulées datées au plus tard `d`.
  * Annulée, elle vaut 0 à partir de sa date d'annulation seulement : un état passé ne bouge pas.
+ * `figeLe` : clôture de l'Exercice lu. Une annulation venue après ne le touche plus (FR-3).
  */
-export function resteDu(c: CreanceDetteJ, j: JournalReglements, d: DateCivile): Centimes {
-	if (c.annuleeLe !== null && instantVersDate(c.annuleeLe) <= d) return centimes(0);
+export function resteDu(
+	c: CreanceDetteJ,
+	j: JournalReglements,
+	d: DateCivile,
+	figeLe: Instant | null = null
+): Centimes {
+	const annulee = c.annuleeLe !== null && (figeLe === null || c.annuleeLe <= figeLe);
+	if (annulee && instantVersDate(c.annuleeLe as Instant) <= d) return centimes(0);
 	const operations = nonAnnulees(j);
 	const regle = c.reglements.filter((r) => {
 		const op = operations.get(r.operationId);
@@ -49,13 +56,18 @@ export type EntreeCreance = {
 	note: string | null;
 };
 
-/** Date et montant se figent avec l'Exercice : le trigger le redit, l'écran l'explique ici. */
+/**
+ * Tout ce qui précède la fin d'un Exercice clôturé est figé, repris d'avant le premier Exercice
+ * compris : son état dirait une autre Dette (FR-3). Le trigger le redit, l'écran l'explique ici.
+ */
 export function deciderCreance(
 	e: EntreeCreance,
 	exercices: readonly Exercice[]
 ): Resultat<EntreeCreance> {
-	const exercice = exerciceDeDate(exercices, e.date);
-	if (exercice?.statut === 'cloture') {
+	const exercice = exercices
+		.filter((x) => x.statut === 'cloture' && e.date <= (x.fin as DateCivile))
+		.sort((a, b) => b.anneeDebut - a.anneeDebut)[0];
+	if (exercice !== undefined) {
 		return echec('exercice_cloture', { exercice: exercice.libelle, champ: 'date' });
 	}
 	return succes(e);
@@ -164,10 +176,11 @@ export type SuiviCreances = { aRecevoir: BlocSuivi; aPayer: BlocSuivi; date: Dat
 export function suivi(
 	j: Pick<GrandJournal, 'operations' | 'creancesDettes'>,
 	actions: readonly { id: number; libelle: string }[],
-	d: DateCivile
+	d: DateCivile,
+	figeLe: Instant | null = null
 ): SuiviCreances {
 	const rangees = j.creancesDettes.flatMap((c): RangeeSuivi[] => {
-		const reste = c.date <= d ? resteDu(c, j, d) : centimes(0);
+		const reste = c.date <= d ? resteDu(c, j, d, figeLe) : centimes(0);
 		if (reste === 0) return [];
 		return [
 			{

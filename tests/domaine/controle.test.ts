@@ -83,7 +83,9 @@ describe('carteCompte', () => {
 		expect(x.ecart).toBe(-12_50);
 		expect(x.nonExplique).toBe(0);
 		expect(x.etat).toBe('a_regarder');
-		expect(x.phraseEcart).toMatch(/^Écart de 12,50.€\. 2 lignes non pointées l’expliquent\.$/);
+		expect(x.phraseEcart).toMatch(
+			/^Écart de 12,50.€\. 2 lignes de relevé non pointées l’expliquent\.$/
+		);
 	});
 
 	it('passe en Écart quand rien ne l’explique', () => {
@@ -91,7 +93,7 @@ describe('carteCompte', () => {
 		const x = carte(j);
 		expect(x.etat).toBe('ecart');
 		expect(x.nonExplique).toBe(-100_00);
-		expect(x.phraseEcart).toContain('Aucune ligne non pointée');
+		expect(x.phraseEcart).toContain('Rien de non pointé');
 	});
 
 	it('passe un contrôle de plus de 45 jours en À regarder', () => {
@@ -139,11 +141,36 @@ describe('carteCompte', () => {
 
 describe('phraseEcart', () => {
 	it('dit ce qui reste à comprendre', () => {
-		expect(phraseEcart(c(12_50), c(10_00), 1)).toMatch(
-			/^Écart de 12,50.€\. Après 1 ligne non pointée, il reste 2,50.€ à comprendre\.$/
+		const une = { lignes: 1, operations: 0, pointable: true };
+		expect(phraseEcart(c(12_50), c(10_00), une)).toMatch(
+			/^Écart de 12,50.€\. Après 1 ligne de relevé non pointée, il reste 2,50.€ à comprendre\.$/
 		);
-		expect(phraseEcart(c(0), c(0), 0)).toBeNull();
-		expect(phraseEcart(c(-5_00), c(-5_00), 1)).toMatch(/1 ligne non pointée l’explique\.$/);
+		expect(phraseEcart(c(0), c(0), { ...une, lignes: 0 })).toBeNull();
+		expect(phraseEcart(c(-5_00), c(-5_00), une)).toMatch(
+			/1 ligne de relevé non pointée l’explique\.$/
+		);
+	});
+
+	it('compte à part les lignes de relevé et les Opérations', () => {
+		const phrase = phraseEcart(c(437_99), c(-96_66), {
+			lignes: 4,
+			operations: 6,
+			pointable: true
+		});
+		expect(phrase).toMatch(
+			/Après 4 lignes de relevé et 6 Opérations non pointées, il reste 534,65/
+		);
+	});
+
+	it('dit ce qui reste à comprendre même quand le solde tombe juste', () => {
+		const phrase = phraseEcart(c(0), c(100_00), { lignes: 0, operations: 1, pointable: true });
+		expect(phrase).toMatch(/^Le solde tombe juste, mais il reste 1 Opération non pointée : 100,00/);
+	});
+
+	it('a sa propre phrase pour une caisse, qui n’a pas de relevé', () => {
+		const phrase = phraseEcart(c(-10_00), c(0), { lignes: 0, operations: 0, pointable: false });
+		expect(phrase).toMatch(/Recomptez/);
+		expect(phrase).not.toMatch(/ligne/);
 	});
 });
 

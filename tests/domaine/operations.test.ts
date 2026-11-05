@@ -11,7 +11,7 @@ import {
 } from '#lib/domaine/operations/formes.ts';
 import {
 	dateProposee,
-	estPointee,
+	etatPointage,
 	intentionDe,
 	montantOperation
 } from '#lib/domaine/operations/lecture.ts';
@@ -375,8 +375,8 @@ describe('lecture', () => {
 		const avec = journal({
 			pointages: [{ id: 1, compteId: 1, coteIds: [coteId], ligneReleveIds: [1] }]
 		});
-		expect(estPointee(avec, op)).toBe(true);
-		expect(estPointee(journal(), op)).toBe(false);
+		expect(etatPointage(avec, op)).toBe('pointe');
+		expect(etatPointage(journal(), op)).toBe('a_pointer');
 	});
 
 	it('propose une date dans l’Exercice regardé', () => {

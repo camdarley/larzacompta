@@ -8,7 +8,8 @@ import {
 	NATURES_SYSTEME,
 	NATURES_TYPE
 } from '#lib/domaine/liste-type.ts';
-import type { Centimes } from '#lib/domaine/montant.ts';
+import { soldeCompte } from '#lib/domaine/etats/soldes.ts';
+import { formaterMontant, type Centimes } from '#lib/domaine/montant.ts';
 import {
 	deplacer,
 	libelleDisponible,
@@ -24,6 +25,8 @@ import {
 } from '#lib/domaine/parametrage.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
+
+const FIN_DES_TEMPS = '9999-12-31';
 
 export type CompteVue = Compte & { utilise: boolean; ancre: Ancre | null };
 export type NatureVue = Nature & { utilisee: boolean };
@@ -75,7 +78,19 @@ export function poserAncre(
 	solde: Centimes
 ): Resultat<true> {
 	const actuelle = o.depots.parametrage.ancres().find((a) => a.compteId === compte.id);
-	const decision = deciderAncre(exercices, exerciceId, actuelle?.exerciceId ?? null);
+	const j = o.depots.operations.journal();
+	const dates = [
+		...j.operations.flatMap((op) =>
+			op.cotes.filter((c) => c.compteId === compte.id).map((c) => c.date)
+		),
+		...j.lignesReleve.filter((l) => l.compteId === compte.id).map((l) => l.date)
+	].sort();
+	const decision = deciderAncre(
+		exercices,
+		exerciceId,
+		actuelle?.exerciceId ?? null,
+		dates[0] ?? null
+	);
 	if (!decision.ok) return decision;
 	if (actuelle?.solde === solde && actuelle.exerciceId === exerciceId) return succes(true);
 	o.depots.parametrage.ecrireAncre(compte.id, exerciceId, solde);
@@ -88,6 +103,16 @@ export function poserAncre(
 		apres: { solde }
 	});
 	return succes(true);
+}
+
+/** Un Compte qui porte encore de l'argent ou des lignes à pointer reste au Tableau de contrôle. */
+function refusDesactivation(o: Outils, id: number): Resultat<true> {
+	const j = o.depots.operations.journal();
+	const solde = soldeCompte(j, id, FIN_DES_TEMPS);
+	const pointees = new Set(j.pointages.flatMap((p) => p.ligneReleveIds));
+	const aPointer = j.lignesReleve.some((l) => l.compteId === id && !pointees.has(l.id));
+	if (solde === 0 && !aPointer) return succes(true);
+	return echec('compte_non_vide', { montant: formaterMontant(solde) });
 }
 
 function compte(n: number, nom: string) {
@@ -201,6 +226,10 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 		faire(o, { id, actif }) {
 			const compte = trouver(o.depots.parametrage.comptes(), id);
 			if (!compte.ok) return compte;
+			if (!actif) {
+				const non = refusDesactivation(o, id);
+				if (!non.ok) return non;
+			}
 			o.depots.parametrage.activerCompte(id, actif);
 			o.noter({
 				evenement: actif ? 'compte.reactive' : 'compte.desactive',
@@ -534,6 +563,11 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 	return {
 		/** Identité publique : le nom de l'APE figure sur la page de connexion. */
 		association: () => depot.association(),
+
+		/** Fiche complète de Réglages : gardée, le masque d'invalidation de Kit saute le layout (AD-15). */
+		fiche(ctx: Ctx) {
+			return lire(ctx, 'parametrer', () => depot.association());
+		},
 
 		/** Soldes de départ d'un Exercice, pour les Comptes ancrés à cet Exercice ou avant. */
 		soldesDepart(ctx: Ctx, exerciceId: number): Resultat<SoldeDepartVue[]> {

@@ -24,19 +24,17 @@ export function resumeLiaison(
 	const operations = j.operations
 		.filter((o) => o.liaisonId === liaisonId)
 		.sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
-	let total = 0;
-	const montants: Centimes[] = [];
-	for (const o of operations) {
-		const m = montantOperation(o);
-		montants.push(centimes(Math.abs(m)));
-		total += m;
-	}
-	return {
-		liaison,
-		operations,
-		total: centimes(Math.abs(total)),
-		termes: montants.map(formaterTerme).join(' + ')
-	};
+	const montants = operations.map(montantOperation);
+	const total = montants.reduce<number>((n, m) => n + m, 0);
+	// Le sens se lit par rapport au total : un remboursement vient en moins d'une dépense.
+	const sens = Math.sign(total) || Math.sign(montants[0] ?? 0);
+	const termes = montants.reduce((texte, m, i) => {
+		const moins = Math.sign(m) === -sens;
+		const terme = formaterTerme(centimes(Math.abs(m)));
+		if (i === 0) return moins ? `− ${terme}` : terme;
+		return `${texte} ${moins ? '−' : '+'} ${terme}`;
+	}, '');
+	return { liaison, operations, total: centimes(Math.abs(total)), termes };
 }
 
 /** « Fait partie de : Spectacle, 400,00 € au total, 220 + 180 » */

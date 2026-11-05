@@ -42,7 +42,12 @@ import {
 } from '#lib/domaine/releve/vues.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
-import { ecrireOperation, versBrouillon, type EntreeOperation } from '../operations/index.ts';
+import {
+	annulerOperation,
+	ecrireOperation,
+	versBrouillon,
+	type EntreeOperation
+} from '../operations/index.ts';
 import { rattacherPieces } from '../pieces/index.ts';
 
 export type EntreeImport = {
@@ -51,6 +56,8 @@ export type EntreeImport = {
 	octets: Uint8Array;
 	/** Réglage validé à l'écran de correspondance. Sinon, celui du Compte. */
 	reglage?: ReglageCsv | null;
+	/** Confirmé à l'écran : le fichier porte un autre numéro de compte que les précédents. */
+	autreCompte?: boolean;
 };
 
 export type DemandeCorrespondance = {
@@ -99,13 +106,19 @@ function premierJour(j: GrandJournal, compteId: number): DateCivile | null {
 	return j.exercices.find((e) => e.id === ancre?.exerciceId)?.debut ?? null;
 }
 
-/** Le solde lu devient un Constat, sauf s'il est déjà connu ou daté dans un Exercice clôturé. */
+/** Hors contrôle : dans un Exercice clôturé, ou avant l'ancre (P6). */
+function soldeHorsControle(j: GrandJournal, compteId: number, date: DateCivile) {
+	const debut = premierJour(j, compteId);
+	return (
+		exerciceDeDate(j.exercices, date)?.statut === 'cloture' || (debut !== null && date < debut)
+	);
+}
+
+/** Le solde lu devient un Constat, sauf s'il est déjà connu ou hors contrôle. */
 function soldeAEcrire(j: GrandJournal, compteId: number, releve: ReleveNormalise) {
 	const solde = releve.solde;
 	if (solde === null) return { ecrire: null, ignore: false };
-	if (exerciceDeDate(j.exercices, solde.date)?.statut === 'cloture') {
-		return { ecrire: null, ignore: true };
-	}
+	if (soldeHorsControle(j, compteId, solde.date)) return { ecrire: null, ignore: true };
 	const connu = j.constats.some(
 		(c) => c.compteId === compteId && c.date === solde.date && c.solde === solde.montant
 	);
@@ -126,6 +139,7 @@ function recapitulatif(
 		connues: plan.connues,
 		ecartees: plan.ecartees,
 		aConfirmer: plan.nouvelles.filter((l) => l.doublon === 'a_confirmer').length,
+		identifiantsRepetes: plan.nouvelles.filter((l) => l.identifiantRepete).length,
 		soldeIgnore,
 		soldeDemande:
 			releve.solde === null && plan.dateMax !== null && nouvelles > 0
@@ -193,6 +207,7 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 					compteId: e.compteId,
 					source: e.format,
 					nomFichier: e.nomFichier,
+					compteSource: e.releve.compte ?? null,
 					fichierSha256,
 					dateMin: e.plan.dateMin,
 					dateMax: e.plan.dateMax,
@@ -277,6 +292,8 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 			if (!caisse && compteDe(j, e.compteId) === undefined) {
 				return echec('pointage_incoherent');
 			}
+			const debut = premierJour(j, e.compteId);
+			if (debut !== null && e.date < debut) return echec('ligne_avant_ancre', { champ: 'date' });
 			const id = o.depots.pointage.creerConstat({
 				compteId: e.compteId,
 				date: e.date,
@@ -340,7 +357,11 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 		faire: ecrirePointage
 	};
 
-	const casAnnuler: CasUsage<number, true> = {
+	/**
+	 * Un ajustement n'existe que pour son Pointage : orphelin, il part avec lui, sinon réajuster
+	 * doublerait la correction. Dans un Exercice clôturé il reste, et se relie à nouveau.
+	 */
+	const casAnnuler: CasUsage<number, { ajustementsAnnules: number }> = {
 		droit: 'saisir',
 		faire(o, id) {
 			const j = o.depots.operations.journal();
@@ -357,7 +378,14 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 				resume: 'a annulé un Pointage.',
 				avant: pointage
 			});
-			return succes(true);
+			const ajustements = j.operations.filter(
+				(op) => op.origine === 'ajustement' && op.cotes.some((c) => pointage.coteIds.includes(c.id))
+			);
+			let ajustementsAnnules = 0;
+			for (const op of ajustements) {
+				if (annulerOperation(o, op.id).ok) ajustementsAnnules += 1;
+			}
+			return succes({ ajustementsAnnules });
 		}
 	};
 
@@ -374,7 +402,9 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 			const nature = o.depots.parametrage.natures().find((n) => n.codeSysteme === 'ajustement');
 			if (nature === undefined) return echec('element_introuvable');
 			const ligne = j.lignesReleve.find((l) => d.ligneIds.includes(l.id)) as LigneReleveJ;
-			const { date, rattachementId } = dateDepuisLigne(j.exercices, ligne.date);
+			const dateRetenue = dateDepuisLigne(j.exercices, ligne.date);
+			if (!dateRetenue.ok) return dateRetenue;
+			const { date, rattachementId } = dateRetenue.valeur;
 
 			const brouillon: Brouillon = {
 				genre: 'standard',
@@ -476,6 +506,10 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 			if ('type' in prepare.valeur) return succes(prepare.valeur);
 
 			const { format, releve } = prepare.valeur;
+			const dernier = depots.pointage.dernierCompteSource(e.compteId);
+			if (!e.autreCompte && releve.compte && dernier !== null && dernier !== releve.compte) {
+				return echec('releve_autre_compte');
+			}
 			const j = journal();
 			const plan = planifierImport(
 				releve,
@@ -571,18 +605,18 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 				const j = journal();
 				const ligne = j.lignesReleve.find((l) => l.id === id);
 				if (ligne === undefined) return null;
-				const { date, rattachementId } = dateDepuisLigne(j.exercices, ligne.date);
-				return {
+				const retenue = dateDepuisLigne(j.exercices, ligne.date);
+				if (!retenue.ok) return retenue;
+				return succes({
 					id: ligne.id,
 					compteId: ligne.compteId,
 					libelle: ligne.libelle,
 					montant: ligne.montant,
-					date,
-					rattachementId
-				};
+					...retenue.valeur
+				});
 			});
 			if (!r.ok) return r;
-			return r.valeur === null ? echec('element_introuvable') : succes(r.valeur);
+			return r.valeur === null ? echec('element_introuvable') : r.valeur;
 		}
 	};
 }

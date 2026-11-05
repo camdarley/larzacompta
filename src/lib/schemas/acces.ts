@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { LONGUEUR_MIN_MOT_DE_PASSE, THEMES } from '#lib/domaine/acces.ts';
+import { identifiantReserve, LONGUEUR_MIN_MOT_DE_PASSE, THEMES } from '#lib/domaine/acces.ts';
 
 const requis = (max = 200) => z.string().trim().min(1, 'champ_requis').max(max, 'champ_requis');
+const identifiant = requis().refine((v) => !identifiantReserve(v), 'identifiant_reserve');
 const motDePasse = z.string().min(LONGUEUR_MIN_MOT_DE_PASSE, 'mot_de_passe_court').max(1024);
 
 export const schemaConnexion = z.object({
@@ -10,13 +11,13 @@ export const schemaConnexion = z.object({
 });
 
 export const schemaInvitation = z.object({
-	identifiant: requis().optional(),
+	identifiant: identifiant.optional(),
 	nomAffiche: requis().optional(),
 	motDePasse
 });
 
 export const schemaCreationAcces = z.object({
-	identifiant: requis(),
+	identifiant,
 	nomAffiche: requis(),
 	role: z.enum(['tresorier', 'lecteur', 'compteur'], { message: 'champ_requis' })
 });

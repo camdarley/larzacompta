@@ -49,7 +49,8 @@ describe('adaptateur ofx (story 3.1)', () => {
 					},
 					{ date: '2026-10-15', montant: -7, libelle: LIBELLE_LONG, identifiant: 'A000000004' }
 				],
-				solde: { date: '2026-10-20', montant: 150000 }
+				solde: { date: '2026-10-20', montant: 150000 },
+				compte: '00000000000'
 			}
 		});
 		expect(LIBELLE_LONG.length).toBe(123);
@@ -66,9 +67,33 @@ describe('adaptateur ofx (story 3.1)', () => {
 			ok: true,
 			valeur: {
 				lignes: [{ date: '2026-10-05', montant: 1250, libelle: 'X & Y', identifiant: null }],
-				solde: null
+				solde: null,
+				compte: '00000000000'
 			}
 		});
+	});
+
+	it('refuse un fichier à plusieurs relevés au lieu de les fondre dans un Compte', () => {
+		const un = ofxTexte([{ date: '20261005', montant: '-10.00', libelle: 'A' }]);
+		const deux = un.replace(
+			'</BANKMSGSRSV1>',
+			`<STMTTRNRS><STMTRS><BANKACCTFROM><ACCTID>11111111111</BANKACCTFROM>
+<BANKTRANLIST><STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20261006<TRNAMT>500.00<NAME>B</STMTTRN></BANKTRANLIST>
+</STMTRS></STMTTRNRS></BANKMSGSRSV1>`
+		);
+		const r = lire(deux);
+		expect(!r.ok && r.erreur.code).toBe('releve_plusieurs_comptes');
+	});
+
+	it('lit un fichier sans fermetures en temps linéaire', () => {
+		const ouvertures = '<STMTTRN><DTPOSTED>20261005<TRNAMT>-1.00'.repeat(25_000);
+		const texte = ofxTexte([{ date: '20261005', montant: '-1.00', libelle: 'A' }]).replace(
+			'</BANKTRANLIST>',
+			`${ouvertures}</BANKTRANLIST>`
+		);
+		const debut = performance.now();
+		expect(lire(texte).ok).toBe(false);
+		expect(performance.now() - debut).toBeLessThan(500);
 	});
 
 	it('une ligne à zéro n’est pas un mouvement', () => {

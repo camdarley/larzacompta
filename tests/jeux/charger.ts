@@ -1,3 +1,4 @@
+import { hacherSansAttendre } from '#lib/server/infra/auth/mot-de-passe.ts';
 /**
  * Charge l'Exercice fictif complet par les vrais cas d'usage, dans une instance donnée
  * ou dans un dossier neuf. Aucun nom, IBAN ni n° de chèque réel.
@@ -351,7 +352,7 @@ export function chargerDansDossier(dossier: string, options: OptionsDossier = {}
 			identifiant: a.identifiant,
 			nomAffiche: a.nom,
 			role,
-			hash: app.socle.hacheur.hacher(a.motDePasse),
+			hash: hacherSansAttendre(a.motDePasse),
 			creeLe: maintenant
 		});
 	const id = creerAcces(tresorier, 'tresorier');

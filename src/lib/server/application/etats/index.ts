@@ -44,7 +44,7 @@ import { verifierJournal, type Violation } from '#lib/domaine/etats/verification
 import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { CasUsage, Ctx, Executer, Lire, Socle } from '../executer.ts';
-import type { Depots } from '../ports.ts';
+import type { Depots, EntreeArchive } from '../ports.ts';
 
 export function parametrageCourant(depots: Pick<Depots, 'parametrage'>): ParametrageEtats {
 	const d = depots.parametrage;
@@ -58,7 +58,10 @@ export function parametrageDe(
 ): ParametrageEtats {
 	const cloture = e.statut === 'cloture' ? depots.exercices.cloture(e.id) : null;
 	return cloture
-		? (JSON.parse(cloture.parametrageFigeJson) as ParametrageEtats)
+		? {
+				...(JSON.parse(cloture.parametrageFigeJson) as ParametrageEtats),
+				clotureLe: cloture.clotureLe
+			}
 		: parametrageCourant(depots);
 }
 
@@ -88,7 +91,8 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 	}
 
 	function tableauDe(j: GrandJournal, e: Exercice, aujourdhui: string) {
-		const cartes = cartesComptes(j, e, aujourdhui);
+		const p = parametrageDe(depots, e);
+		const cartes = cartesComptes(j, e, aujourdhui, p.comptes);
 		const anciennes = operationsAnciennes(j, debutsReleve(), e);
 		const pieces = piecesManquantes(j, neutres(), e).length;
 		const taches = [
@@ -97,7 +101,7 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 			{ id: 'anciennes' as const, compteur: anciennes.length }
 		];
 		const premierReleve = sansReleve(j, cartes, e);
-		const anomalies = anomaliesEquation(equationDeControle(j, e, parametrageDe(depots, e)));
+		const anomalies = anomaliesEquation(equationDeControle(j, e, p));
 		const lu = bilan(cartes, taches, premierReleve);
 		return {
 			cartes,
@@ -132,7 +136,7 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 			association: nom,
 			resultat: compteDeResultat(j, e, p),
 			tresorerie: etatTresorerie(j, e, p),
-			cartes: cartesComptes(j, e, aujourdhui)
+			cartes: cartesComptes(j, e, aujourdhui, p.comptes)
 		});
 	}
 
@@ -256,25 +260,35 @@ export function creerEtats(socle: Socle, executer: Executer, lire: Lire) {
 		},
 
 		/** Archive lisible sans l'outil (FR-35). */
-		exportComplet(ctx: Ctx): Resultat<{ nom: string; octets: Uint8Array }> {
+		exportComplet(ctx: Ctx): Resultat<{ nom: string; flux: ReadableStream<Uint8Array> }> {
 			return lire(ctx, 'parametrer', () => {
 				const j = depots.operations.journal();
 				const p = parametrageCourant(depots);
 				const csv = (t: { entetes: string[]; lignes: string[][] }) =>
 					socle.exporteurs.csv(t.entetes, t.lignes);
-				const fichiers: Record<string, Uint8Array | string> = {
+				// Une Ligne se lit avec le paramétrage de son Exercice, comme l'état du même Exercice.
+				const figes = new Map<number, ParametrageEtats>();
+				const parExercice = (e: Exercice) => {
+					const lu = figes.get(e.id) ?? parametrageDe(depots, e);
+					figes.set(e.id, lu);
+					return lu;
+				};
+				const textes: Record<string, string> = {
 					'LISEZMOI.txt': lisezMoi(nomApe(), formaterDateLongue(ctx.aujourdhui), j.exercices),
 					'operations.csv': csv(csvOperations(j, p)),
-					'lignes.csv': csv(csvLignes(j, p)),
+					'lignes.csv': csv(csvLignes(j, p, parExercice)),
 					'pointages.csv': csv(csvPointages(j, p))
 				};
-				for (const piece of depots.pieces.lister()) {
-					const octets = socle.fichiers.lire(piece.sha256);
-					if (octets !== null) fichiers[cheminPiece(piece)] = octets;
-				}
+				const fichiers: EntreeArchive[] = [
+					...Object.entries(textes).map(([nom, texte]) => ({ nom, lire: () => texte })),
+					...depots.pieces.lister().map((piece) => ({
+						nom: cheminPiece(piece),
+						lire: () => socle.fichiers.lire(piece.sha256)
+					}))
+				];
 				return {
 					nom: `export-complet-${ctx.aujourdhui}.zip`,
-					octets: socle.exporteurs.zip(fichiers)
+					flux: socle.exporteurs.zip(fichiers)
 				};
 			});
 		},

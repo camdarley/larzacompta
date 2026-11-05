@@ -30,10 +30,18 @@ function valeur(bloc: string, balise: string): string | null {
 	return m === null ? null : texte(m[1] ?? '');
 }
 
+/** Parcours linéaire : une expression paresseuse devient quadratique sur un fichier sans fermeture. */
 function blocs(contenu: string, balise: string): string[] {
-	return [...contenu.matchAll(new RegExp(`<${balise}>([\\s\\S]*?)</${balise}>`, 'gi'))].map(
-		(m) => m[1] ?? ''
-	);
+	const trouves: string[] = [];
+	let debut: number | null = null;
+	for (const m of contenu.matchAll(new RegExp(`<(/?)${balise}>`, 'gi'))) {
+		if (m[1] === '') debut ??= m.index + m[0].length;
+		else if (debut !== null) {
+			trouves.push(contenu.slice(debut, m.index));
+			debut = null;
+		}
+	}
+	return trouves;
 }
 
 /** `20260312`, `20260312120000[+1:CET]`. */
@@ -88,6 +96,11 @@ function lire(octets: Uint8Array): Resultat<ReleveNormalise> {
 	// Un fichier tronqué perd sa fermeture : aucune de ses lignes n'est fiable.
 	if (!/<\/OFX>\s*$/i.test(contenu) || !/<\/BANKTRANLIST>/i.test(contenu)) return illisible();
 
+	// Un seul Compte par import : deux relevés se fondraient dans celui qui est ouvert à l'écran.
+	if ((contenu.match(/<BANKTRANLIST>/gi)?.length ?? 0) > 1) {
+		return echec('releve_plusieurs_comptes');
+	}
+
 	const lignes: LigneNormalisee[] = [];
 	for (const bloc of blocs(contenu, 'STMTTRN')) {
 		const ligne = ligneDe(bloc);
@@ -100,7 +113,7 @@ function lire(octets: Uint8Array): Resultat<ReleveNormalise> {
 	}
 	const solde = soldeDe(contenu);
 	if (!solde.ok) return solde;
-	return succes({ lignes, solde: solde.valeur });
+	return succes({ lignes, solde: solde.valeur, compte: valeur(contenu, 'ACCTID') });
 }
 
 export const sourceOfx: SourceReleve = { lire: ({ octets }) => lire(octets) };

@@ -5,8 +5,8 @@ import { baseMigree } from './base.ts';
 
 /** Hacheur de test : argon2 est testé à part, et ralentirait inutilement chaque cas. */
 const hacheurRapide: Hacheur = {
-	hacher: (m) => `test$${m}`,
-	verifier: (m, phc) => phc === `test$${m}`
+	hacher: async (m) => `test$${m}`,
+	verifier: async (m, phc) => phc === `test$${m}`
 };
 
 export type ArchiveurDeTest = Archiveur & {
@@ -81,7 +81,7 @@ export function banc(instant = '2026-11-04T10:00:00.000Z'): Banc {
 		identifiant: 'camille',
 		nomAffiche: 'Camille Fictive',
 		role: 'tresorier',
-		hash: hacheurRapide.hacher('mot-de-passe-long'),
+		hash: 'test$mot-de-passe-long',
 		creeLe: instant
 	});
 	const tresorier: AccesConnecte = {

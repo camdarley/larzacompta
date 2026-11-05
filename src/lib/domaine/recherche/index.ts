@@ -49,8 +49,9 @@ function correspondTexte(op: OperationJ, texte: string) {
 }
 
 function retenir(op: OperationJ, f: FiltresRecherche, annulee: boolean): Trouvee | null {
-	if (f.du && op.date < f.du) return null;
-	if (f.au && op.date > f.au) return null;
+	// L'arrivée d'un Mouvement interne compte dans l'Exercice où elle tombe : elle s'y retrouve (FR-31).
+	const dates = op.genre === 'interne' ? [op.date, ...op.cotes.map((c) => c.date)] : [op.date];
+	if (!dates.some((d) => (!f.du || d >= f.du) && (!f.au || d <= f.au))) return null;
 	if (f.compteId !== undefined && !op.cotes.some((c) => c.compteId === f.compteId)) return null;
 	if (f.natureId !== undefined && !op.lignes.some((l) => l.natureId === f.natureId)) return null;
 	if (f.actionId !== undefined && !op.lignes.some((l) => l.actionId === f.actionId)) return null;

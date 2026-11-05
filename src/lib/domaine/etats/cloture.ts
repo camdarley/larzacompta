@@ -114,8 +114,8 @@ type JournalCloture = Pick<
 >;
 
 /**
- * Sérialisation canonique : ni horodatage, ni ordre de lecture. Les restes dus n'y figurent pas :
- * une Créance reste soldable et annulable après la clôture (F2).
+ * Sérialisation canonique : ni horodatage, ni ordre de lecture. Les restes dus à la fin y figurent :
+ * une Créance se solde ou s'annule après la clôture sans toucher à l'état clos (F2, FR-3).
  */
 export function serialiserCloture(j: JournalCloture, e: Exercice, p: ParametrageEtats): string {
 	const dans = (d: DateCivile) => d >= (e.debut as DateCivile) && d <= (e.fin as DateCivile);
@@ -130,7 +130,8 @@ export function serialiserCloture(j: JournalCloture, e: Exercice, p: Parametrage
 		resultat: serialiserResultat(compteDeResultat(j, e, p)),
 		tresorerie: {
 			comptes: tresorerie.comptes.map((c) => [c.compteId, c.libelle, c.depart, c.fin]),
-			totaux: [tresorerie.depart, tresorerie.fin, tresorerie.variation]
+			totaux: [tresorerie.depart, tresorerie.fin, tresorerie.variation],
+			restes: [tresorerie.creances, tresorerie.dettes]
 		}
 	});
 }

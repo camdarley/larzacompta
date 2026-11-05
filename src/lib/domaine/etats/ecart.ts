@@ -21,28 +21,10 @@ export function dernierConstat(
 }
 
 /**
- * Avant le jalon 2, une caisse se suit par `constat_solde` (AD-10) : le dernier constat,
- * plus ce qui a bougé après lui. Le même jour, seule une Opération créée après lui compte.
+ * Constaté moins calculé. Sans constat, ou pour les chèques à remettre : pas d'Écart.
+ * Une caisse se compare à son solde calculé en fin de journée (DECISIONS.md) : au jalon 1, sans
+ * Session, seule la date dit si une dépense précède le comptage, pas l'heure de sa saisie.
  */
-function soldeCourantCaisse(
-	j: Pick<GrandJournal, 'operations' | 'constats'>,
-	compteId: number,
-	d: DateCivile
-): Centimes | null {
-	const constat = dernierConstat(j, compteId, d);
-	if (constat === undefined) return null;
-	const apres = j.operations.flatMap((o) =>
-		o.cotes.filter(
-			(c) =>
-				c.compteId === compteId &&
-				c.date <= d &&
-				(c.date > constat.date || (c.date === constat.date && o.creeLe > constat.creeLe))
-		)
-	);
-	return centimes(constat.solde + sommeCentimes(apres.map((c) => c.montant)));
-}
-
-/** Constaté moins calculé. Sans constat, ou pour les chèques à remettre : pas d'Écart. */
 export function ecart(j: JournalEcart, compteId: number, d: DateCivile): Centimes | null {
 	const type = j.comptes.find((c) => c.id === compteId)?.type;
 	if (type === 'banque' || type === 'epargne') {
@@ -50,8 +32,8 @@ export function ecart(j: JournalEcart, compteId: number, d: DateCivile): Centime
 		return constat ? centimes(constat.solde - soldeCompte(j, compteId, d)) : null;
 	}
 	if (type === 'caisse') {
-		const courant = soldeCourantCaisse(j, compteId, d);
-		return courant === null ? null : centimes(courant - soldeCompte(j, compteId, d));
+		const constat = dernierConstat(j, compteId, d);
+		return constat ? centimes(constat.solde - soldeCompte(j, compteId, constat.date)) : null;
 	}
 	return null;
 }

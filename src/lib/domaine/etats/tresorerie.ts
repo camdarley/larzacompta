@@ -79,7 +79,7 @@ export function etatTresorerie(
 		sommeCentimes(
 			j.creancesDettes
 				.filter((c) => c.sens === sens && c.date <= fin)
-				.map((c) => resteDu(c, j, fin))
+				.map((c) => resteDu(c, j, fin, p.clotureLe ?? null))
 		);
 	const explication = equationDeControle(j, e, p);
 	return {

@@ -8,6 +8,7 @@ import type { GrandJournal } from '../journal.ts';
 import { centimes, formaterMontant, type Centimes } from '../montant.ts';
 import type { Compte } from '../parametrage.ts';
 import { dernierConstat, ecart, ecartExplique, ouverts } from './ecart.ts';
+import type { ParametrageEtats } from './resultat.ts';
 import { soldeCompte, soldeDepart } from './soldes.ts';
 
 /** Un relevé par mois, avec une marge (EXPERIENCE.md, Décisions). */
@@ -29,6 +30,8 @@ export type CarteCompte = {
 	nonExplique: Centimes | null;
 	/** Lignes et Opérations non pointées à cette date. */
 	nonPointees: number;
+	lignesOuvertes: number;
+	operationsOuvertes: number;
 	/** Plus de 45 jours depuis le dernier contrôle. */
 	ancien: boolean;
 	etat: EtatCarte;
@@ -39,21 +42,38 @@ const CONTROLES = ['banque', 'epargne', 'caisse'] as const;
 const estControle = (c: Compte) => (CONTROLES as readonly string[]).includes(c.type);
 const estPointable = (c: Compte) => c.type === 'banque' || c.type === 'epargne';
 
-/** « Écart de 12,50 €. 2 lignes non pointées l'expliquent. », jamais par la couleur seule. */
+const decompte = (n: number, nom: string) => `${n} ${nom}${n > 1 ? 's' : ''}`;
+
+/** « 4 lignes de relevé et 6 Opérations non pointées » : deux choses, comptées à part. */
+function elementsNonPointes(lignes: number, operations: number): string {
+	const accord = lignes + operations > 1 ? 'non pointées' : 'non pointée';
+	if (operations === 0) return `${decompte(lignes, 'ligne')} de relevé ${accord}`;
+	if (lignes === 0) return `${decompte(operations, 'Opération')} ${accord}`;
+	return `${decompte(lignes, 'ligne')} de relevé et ${decompte(operations, 'Opération')} ${accord}`;
+}
+
+/** « Écart de 12,50 €. 2 lignes de relevé non pointées l'expliquent. », jamais par la couleur seule. */
 export function phraseEcart(
 	brut: Centimes,
 	explique: Centimes,
-	nonPointees: number
+	ouverts: { lignes: number; operations: number; pointable: boolean }
 ): string | null {
-	if (brut === 0) return null;
+	const reste = centimes(brut - explique);
+	const { lignes, operations, pointable } = ouverts;
+	const nombre = lignes + operations;
+	if (brut === 0 && reste === 0) return null;
 	const montant = formaterMontant(centimes(Math.abs(brut)));
-	if (nonPointees === 0) return `Écart de ${montant}. Aucune ligne non pointée ne l’explique.`;
-	const lignes = nonPointees === 1 ? '1 ligne non pointée' : `${nonPointees} lignes non pointées`;
-	if (explique === brut) {
-		return `Écart de ${montant}. ${lignes} ${nonPointees === 1 ? 'l’explique' : 'l’expliquent'}.`;
+	const aComprendre = formaterMontant(centimes(Math.abs(reste)));
+	if (!pointable) return `Écart de ${montant}. Recomptez, ou vérifiez les mouvements du jour.`;
+	if (nombre === 0) return `Écart de ${montant}. Rien de non pointé ne l’explique.`;
+	const elements = elementsNonPointes(lignes, operations);
+	if (brut === 0) {
+		return `Le solde tombe juste, mais il reste ${elements} : ${aComprendre} à comprendre.`;
 	}
-	const reste = formaterMontant(centimes(Math.abs(brut - explique)));
-	return `Écart de ${montant}. Après ${lignes}, il reste ${reste} à comprendre.`;
+	if (reste === 0) {
+		return `Écart de ${montant}. ${elements} ${nombre === 1 ? 'l’explique' : 'l’expliquent'}.`;
+	}
+	return `Écart de ${montant}. Après ${elements}, il reste ${aComprendre} à comprendre.`;
 }
 
 function etatDe(c: Pick<CarteCompte, 'nonExplique' | 'ecart' | 'constate' | 'ancien'>): EtatCarte {
@@ -84,7 +104,8 @@ export function carteCompte(
 	const brut = constat === undefined ? null : ecart(j, compte.id, date);
 	const explique = constat === undefined ? centimes(0) : ecartExplique(j, compte.id, date);
 	const elements = estPointable(compte) ? ouverts(j, compte.id, date) : null;
-	const nonPointees = elements === null ? 0 : elements.lignes.length + elements.cotes.length;
+	const lignesOuvertes = elements?.lignes.length ?? 0;
+	const operationsOuvertes = elements?.cotes.length ?? 0;
 	const carte = {
 		compte,
 		date,
@@ -96,22 +117,61 @@ export function carteCompte(
 		ecart: brut,
 		explique,
 		nonExplique: brut === null ? null : centimes(brut - explique),
-		nonPointees,
+		nonPointees: lignesOuvertes + operationsOuvertes,
+		lignesOuvertes,
+		operationsOuvertes,
 		ancien: constat !== undefined && joursEntre(constat.date, reference) > JOURS_CONTROLE_ANCIEN,
-		phraseEcart: brut === null ? null : phraseEcart(brut, explique, nonPointees)
+		phraseEcart:
+			brut === null
+				? null
+				: phraseEcart(brut, explique, {
+						lignes: lignesOuvertes,
+						operations: operationsOuvertes,
+						pointable: estPointable(compte)
+					})
 	};
 	return { ...carte, etat: etatDe(carte) };
 }
 
-/** Comptes de l'Exercice regardé : un Compte ancré plus tard n'y existe pas encore. */
-export function cartesComptes(j: Journal, e: Exercice, aujourdhui: DateCivile): CarteCompte[] {
+/** Compte désactivé qui n'a plus rien à dire : ni solde, ni Écart, ni élément non pointé. */
+const muette = (c: CarteCompte) =>
+	!c.compte.actif &&
+	c.calcule === 0 &&
+	(c.ecart ?? 0) === 0 &&
+	(c.nonExplique ?? 0) === 0 &&
+	c.nonPointees === 0;
+
+/** Écart à montrer : un solde qui diffère, ou des éléments non pointés qui ne se compensent pas. */
+export const avecEcart = (c: Pick<CarteCompte, 'ecart' | 'nonExplique'>) =>
+	(c.ecart ?? 0) !== 0 || (c.nonExplique ?? 0) !== 0;
+
+/**
+ * Comptes de l'Exercice regardé : un Compte ancré plus tard n'y existe pas encore.
+ * Clôturé, il se lit avec les Comptes figés et à sa fin : renommer, désactiver ou laisser passer
+ * le temps ne change plus ce que dit le Document d'AG (AD-5, AD-18).
+ */
+export function cartesComptes(
+	j: Journal,
+	e: Exercice,
+	aujourdhui: DateCivile,
+	figes: ParametrageEtats['comptes'] | null = null
+): CarteCompte[] {
 	const anneeAncre = (compteId: number) => {
 		const id = j.ancres.find((a) => a.compteId === compteId)?.exerciceId;
 		return j.exercices.find((x) => x.id === id)?.anneeDebut ?? e.anneeDebut;
 	};
-	return j.comptes
-		.filter((c) => c.actif && estControle(c) && anneeAncre(c.id) <= e.anneeDebut)
-		.map((c) => carteCompte(j, c, e, aujourdhui));
+	const cloture = e.statut === 'cloture' && figes !== null;
+	const comptes = cloture
+		? figes.flatMap((f) => {
+				const c = j.comptes.find((x) => x.id === f.id);
+				return c ? [{ ...c, libelle: f.libelle, type: f.type, ordre: f.ordre, actif: true }] : [];
+			})
+		: j.comptes;
+	const jour = cloture ? (e.fin as DateCivile) : aujourdhui;
+	return comptes
+		.filter((c) => estControle(c) && anneeAncre(c.id) <= e.anneeDebut)
+		.map((c) => carteCompte(j, c, e, jour))
+		.filter((c) => !muette(c));
 }
 
 export type TacheControle = 'lignes' | 'pieces' | 'anciennes';

@@ -16,6 +16,16 @@ export class ErreurMigration extends Error {
 	}
 }
 
+/** Un retour de version passe par une restauration (AD-13) : ce code ignore ce schéma. */
+export class ErreurBaseRecente extends Error {
+	constructor(nom: string) {
+		super(
+			`Cette base a reçu la migration ${nom}, absente de cette version. Le démarrage s'arrête : reprenez la version récente, ou restaurez une sauvegarde d'avant la mise à jour (ape restaurer).`
+		);
+		this.name = 'ErreurBaseRecente';
+	}
+}
+
 export function chargerMigrations(dossier: string): Migration[] {
 	return readdirSync(dossier)
 		.filter((f) => /^\d{4}_.+\.sql$/.test(f))
@@ -57,6 +67,9 @@ export function appliquerMigrations(
 	options: OptionsMigration
 ): string[] {
 	const faites = dejaAppliquees(base);
+	const connues = new Set(migrations.map((m) => m.nom));
+	const inconnue = [...faites].find((nom) => !connues.has(nom));
+	if (inconnue !== undefined) throw new ErreurBaseRecente(inconnue);
 	const enAttente = migrations.filter((m) => !faites.has(m.nom));
 	if (enAttente.length === 0) return [];
 
@@ -65,16 +78,19 @@ export function appliquerMigrations(
 	}
 
 	const noter = base.prepare('INSERT INTO schema_migrations (nom, appliquee_le) VALUES (?, ?)');
-	for (const migration of enAttente) {
-		const appliquer = base.transaction(() => {
+	let enCours = '';
+	// Une seule transaction pour tout le lot : « la base reste intacte » est alors vrai.
+	const appliquer = base.transaction(() => {
+		for (const migration of enAttente) {
+			enCours = migration.nom;
 			base.exec(migration.sql);
 			noter.run(migration.nom, options.horodatage);
-		});
-		try {
-			appliquer();
-		} catch (cause) {
-			throw new ErreurMigration(migration.nom, cause);
 		}
+	});
+	try {
+		appliquer();
+	} catch (cause) {
+		throw new ErreurMigration(enCours, cause);
 	}
 	return enAttente.map((m) => m.nom);
 }

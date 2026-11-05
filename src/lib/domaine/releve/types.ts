@@ -14,4 +14,6 @@ export type SoldeLu = { date: DateCivile; montant: Centimes };
 export type ReleveNormalise = {
 	lignes: LigneNormalisee[];
 	solde: SoldeLu | null;
+	/** Numéro de compte porté par le fichier, s'il en donne un. */
+	compte?: string | null;
 };

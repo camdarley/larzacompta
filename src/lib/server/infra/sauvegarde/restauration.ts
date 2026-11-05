@@ -67,7 +67,12 @@ export async function restaurer(
 		if (enPlace) {
 			const ancienne = join(dossier, 'avant-restauration', options.maintenant.replaceAll(':', '-'));
 			mkdirSync(ancienne, { recursive: true });
-			if (existsSync(base)) renameSync(base, join(ancienne, 'base.sqlite'));
+			// Après un arrêt brutal, les dernières écritures vivent encore dans le WAL : il part avec sa
+			// base, sous le même nom, et SQLite le relira à l'ouverture de la copie.
+			for (const suffixe of ['', '-wal', '-shm']) {
+				const fichier = `${base}${suffixe}`;
+				if (existsSync(fichier)) renameSync(fichier, join(ancienne, `base.sqlite${suffixe}`));
+			}
 			if (existsSync(fichiers)) renameSync(fichiers, join(ancienne, 'fichiers'));
 		}
 		for (const suffixe of ['-wal', '-shm']) rmSync(`${base}${suffixe}`, { force: true });

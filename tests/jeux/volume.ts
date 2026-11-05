@@ -1,3 +1,4 @@
+import { hacherSansAttendre } from '#lib/server/infra/auth/mot-de-passe.ts';
 /**
  * Le volume de NFR-7 : dix Exercices clos et un ouvert, soit environ 2 000 Opérations.
  * Sert à mesurer le Tableau de contrôle sur la petite machine visée (story 6.1).
@@ -39,7 +40,7 @@ export function chargerVolume(dossier: string) {
 		identifiant: a.identifiant,
 		nomAffiche: a.nom,
 		role: 'tresorier',
-		hash: app.socle.hacheur.hacher(a.motDePasse),
+		hash: hacherSansAttendre(a.motDePasse),
 		creeLe: maintenant
 	});
 	const ctx = app.ctx({

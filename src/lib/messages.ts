@@ -8,6 +8,12 @@ const MESSAGES = {
 	// Messages d'erreur et d'alerte.
 	fichier_illisible:
 		'Ce fichier n’a pas pu être lu : il ne ressemble pas à un relevé OFX ou CSV. Rien n’a été importé. Vérifiez que vous avez choisi le bon fichier.',
+	releve_plusieurs_comptes:
+		'Ce fichier contient les relevés de plusieurs comptes. Rien n’a été importé. Téléchargez un fichier par compte.',
+	releve_autre_compte:
+		'Ce fichier vient d’un autre compte bancaire que les relevés déjà importés ici. Rien n’a été importé. Vérifiez le Compte choisi.',
+	identifiant_repete:
+		'{lignes} d’un identifiant déjà vu sur un autre contenu : c’est peut-être un mouvement de plus. Gardez ou écartez chacune.',
 	format_change:
 		'La colonne {colonne} est introuvable dans ce fichier. Rien n’a été importé. Indiquez les colonnes pour continuer.',
 	fichier_connu: 'Toutes les lignes de ce fichier sont déjà connues. Rien n’a été ajouté.',
@@ -35,6 +41,7 @@ const MESSAGES = {
 	sauvegarde_sans_base: 'Cette sauvegarde ne contient pas de base : rien n’a été remplacé.',
 	acces_refuse:
 		'Votre Accès ne permet pas de voir cette page. Demandez à la personne qui tient la trésorerie si vous en avez besoin.',
+	identifiant_reserve: 'Cet identifiant est réservé. Choisissez-en un autre.',
 	connexion_refusee: 'Identifiant ou mot de passe incorrect.',
 	trop_de_tentatives: 'Trop d’essais. Réessayez dans 15 minutes.',
 	mot_de_passe_perdu:
@@ -85,7 +92,12 @@ const MESSAGES = {
 	pointage_fige:
 		'Ce Pointage ne relie que des éléments d’un Exercice clôturé : il ne s’annule plus.',
 	ligne_releve_pointee: 'Cette Ligne de relevé est pointée. Annulez d’abord le Pointage.',
+	rendu_excessif: 'Il reste {montant} à rendre sur cette somme : on ne peut pas rendre davantage.',
+	compte_non_vide:
+		'Ce Compte porte encore {montant} ou des lignes de relevé à pointer. Soldez-le d’abord, ainsi le contrôle reste juste.',
 	ancre_invalide: 'Le solde de départ d’un Compte se pose au début d’un Exercice ouvert.',
+	ancre_apres_mouvement:
+		'Ce Compte a déjà des mouvements avant cet Exercice : son solde de départ ne peut plus s’y poser.',
 	pointage_incoherent:
 		'Ces éléments ne se pointent pas ensemble : ils doivent porter sur le même Compte, et n’être pas déjà pointés.',
 	ligne_releve_conservee:
@@ -133,7 +145,8 @@ export const TEXTES = {
 	tout_pointe: 'Tout est pointé',
 	aucun_ecart: 'Égal au relevé',
 	premier_releve: 'Importez votre premier relevé pour commencer le contrôle.',
-	solde_ignore: 'Le solde de ce relevé tombe dans un Exercice clôturé : il est ignoré.',
+	solde_ignore:
+		'Le solde de ce relevé tombe dans un Exercice clôturé ou avant le solde de départ : il est ignoré.',
 	sauvegarde_echec:
 		'La sauvegarde de cette nuit a échoué. Vos données sont intactes, mais prévenez la personne qui gère l’installation.',
 	copie_hors_vps:

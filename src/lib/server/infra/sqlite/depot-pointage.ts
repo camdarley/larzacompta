@@ -12,12 +12,21 @@ export function creerDepotPointage(base: Base): DepotPointage {
 		`),
 		creerImport: base.prepare(`
 			INSERT INTO import_releve
-				(compte_id, source, nom_fichier, fichier_sha256, date_min, date_max,
+				(compte_id, source, nom_fichier, compte_source, fichier_sha256, date_min, date_max,
 				 nb_lues, nb_nouvelles, nb_connues, importe_le, importe_par)
 			VALUES
-				(@compteId, @source, @nomFichier, @fichierSha256, @dateMin, @dateMax,
+				(@compteId, @source, @nomFichier, @compteSource, @fichierSha256, @dateMin, @dateMax,
 				 @lues, @nouvelles, @connues, @importeLe, @importePar)
 		`),
+		dernierCompteSource: base
+			.prepare(
+				`
+				SELECT compte_source FROM import_releve
+				WHERE compte_id = ? AND compte_source IS NOT NULL
+				ORDER BY id DESC LIMIT 1
+			`
+			)
+			.pluck(),
 		fichiersReleves: base
 			.prepare('SELECT fichier_sha256 FROM import_releve WHERE fichier_sha256 IS NOT NULL')
 			.pluck(),
@@ -54,6 +63,8 @@ export function creerDepotPointage(base: Base): DepotPointage {
 			),
 
 		creerImport: (i) => Number(r.creerImport.run(i).lastInsertRowid),
+		dernierCompteSource: (compteId) =>
+			(r.dernierCompteSource.get(compteId) as string | undefined) ?? null,
 
 		fichiersReleves: () => r.fichiersReleves.all() as string[],
 

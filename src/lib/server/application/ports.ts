@@ -29,9 +29,11 @@ import type { Resultat } from '#lib/domaine/resultat.ts';
 export type Horloge = { maintenant(): Instant };
 
 export type Hacheur = {
-	hacher(motDePasse: string): string;
-	verifier(motDePasse: string, phc: string): boolean;
+	hacher(motDePasse: string): Promise<string>;
+	verifier(motDePasse: string, phc: string): Promise<boolean>;
 };
+
+export type EntreeArchive = { nom: string; lire(): Uint8Array | string | null };
 
 export type Jetons = {
 	/** 256 bits aléatoires, encodés pour une URL ou un cookie. */
@@ -223,6 +225,7 @@ export type NouvelImport = {
 	compteId: number;
 	source: string;
 	nomFichier: string;
+	compteSource: string | null;
 	fichierSha256: string;
 	dateMin: DateCivile | null;
 	dateMax: DateCivile | null;
@@ -247,6 +250,8 @@ export type NouveauConstat = {
 export type DepotPointage = {
 	periodes(compteId: number): (Periode & { id: number })[];
 	creerImport(i: NouvelImport): number;
+	/** Numéro de compte du dernier relevé qui en portait un. */
+	dernierCompteSource(compteId: number): string | null;
 	/** Fichiers de relevé conservés : comme une Pièce, ils ne sont pas des orphelins. */
 	fichiersReleves(): string[];
 	creerLigne(
@@ -315,7 +320,8 @@ export type Exporteurs = {
 	pdf(modele: ModeleDocument): Promise<Uint8Array>;
 	/** Un nombre en euros au format monétaire, issu des centimes pour l'affichage seulement. */
 	xlsx(modele: ModeleDocument): Promise<Uint8Array>;
-	zip(fichiers: Readonly<Record<string, Uint8Array | string>>): Uint8Array;
+	/** Une Pièce à la fois : l'archive pèse parfois plus que la mémoire du serveur. */
+	zip(fichiers: Iterable<EntreeArchive>): ReadableStream<Uint8Array>;
 };
 
 export type Depots = {

@@ -20,8 +20,27 @@ export function cotesPointes(j: Pick<GrandJournal, 'pointages'>, op: Pick<Operat
 	return op.cotes.filter((c) => pointes.has(c.id)).map((c) => c.id);
 }
 
-export function estPointee(j: Pick<GrandJournal, 'pointages'>, op: Pick<OperationJ, 'cotes'>) {
-	return cotesPointes(j, op).length > 0;
+export type EtatPointage = 'pointe' | 'partiel' | 'a_pointer';
+
+/**
+ * Chaque Côté se pointe séparément (FR-7) : une Opération n'est Pointée que si tous ses Côtés
+ * pointables le sont. `compteId` : l'état se lit pour ce Compte seul. Rien à pointer : null.
+ */
+export function etatPointage(
+	j: Pick<GrandJournal, 'pointages' | 'comptes'>,
+	op: Pick<OperationJ, 'cotes'>,
+	compteId?: number
+): EtatPointage | null {
+	const pointes = new Set(cotesPointes(j, op));
+	const pointables = op.cotes.filter((c) => {
+		const type = j.comptes.find((x) => x.id === c.compteId)?.type;
+		const regarde = compteId === undefined || c.compteId === compteId;
+		return regarde && (type === 'banque' || type === 'epargne');
+	});
+	if (pointables.length === 0) return null;
+	const faits = pointables.filter((c) => pointes.has(c.id)).length;
+	if (faits === 0) return 'a_pointer';
+	return faits === pointables.length ? 'pointe' : 'partiel';
 }
 
 /** Date proposée à l'ouverture du panneau : aujourd'hui, ramené dans l'Exercice regardé. */

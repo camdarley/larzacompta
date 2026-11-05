@@ -85,16 +85,19 @@ export function deciderRetrait(
 /**
  * Date d'une Opération née d'une Ligne de relevé. Dans un Exercice clôturé, elle passe au premier
  * jour de l'Exercice ouvert, et sa Ligne se rattache à l'Exercice clôturé (EXPERIENCE.md).
+ * Hors de tout Exercice, rien ne se reporte : il faut d'abord ouvrir l'Exercice de cette date.
  */
 export function dateDepuisLigne(
 	exercices: readonly Exercice[],
 	date: DateCivile
-): { date: DateCivile; rattachementId: number | null } {
+): Resultat<{ date: DateCivile; rattachementId: number | null }> {
 	const courant = exerciceDeDate(exercices, date);
-	if (courant?.statut === 'ouvert') return { date, rattachementId: null };
+	if (courant?.statut === 'ouvert') return succes({ date, rattachementId: null });
 	const ouvert = [...exercices]
 		.filter((e) => e.statut === 'ouvert' && e.debut !== null)
 		.sort((a, b) => a.anneeDebut - b.anneeDebut)[0];
-	if (ouvert?.debut == null) return { date, rattachementId: null };
-	return { date: ouvert.debut, rattachementId: courant?.id ?? null };
+	if (courant === undefined || ouvert?.debut == null) {
+		return echec('date_hors_exercice', { champ: 'date' });
+	}
+	return succes({ date: ouvert.debut, rattachementId: courant.id });
 }

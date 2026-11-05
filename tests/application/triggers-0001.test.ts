@@ -140,6 +140,34 @@ const cas: Record<string, { permis: string; refuse: string; code: string }> = {
 		refuse: `DELETE FROM constat_solde WHERE id = 1`,
 		code: 'exercice_cloture'
 	},
+	balance_ancre_creation: {
+		permis: `INSERT INTO compte (id, libelle, type) VALUES (9, 'Neuf', 'banque');
+		         INSERT INTO balance_ouverture (compte_id, exercice_id, solde_centimes) VALUES (9, 2, 1)`,
+		refuse: `DELETE FROM balance_ouverture WHERE compte_id = 2;
+		         INSERT INTO operation (id, genre, date, libelle, cree_le, cree_par) VALUES (9, 'standard', '2026-10-06', 'Mvt', 'x', 1);
+		         INSERT INTO cote (operation_id, compte_id, date, montant_centimes) VALUES (9, 2, '2026-10-06', 1);
+		         INSERT INTO exercice (id, libelle, annee_debut, debut, fin, statut) VALUES (3, '2027-2028', 2027, '2027-09-01', '2028-08-31', 'ouvert');
+		         INSERT INTO balance_ouverture (compte_id, exercice_id, solde_centimes) VALUES (2, 3, 1)`,
+		code: 'ancre_invalide'
+	},
+	balance_ancre_maj: {
+		permis: `UPDATE balance_ouverture SET exercice_id = 2 WHERE compte_id = 2`,
+		refuse: `INSERT INTO operation (id, genre, date, libelle, cree_le, cree_par) VALUES (9, 'standard', '2026-10-06', 'Mvt', 'x', 1);
+		         INSERT INTO cote (operation_id, compte_id, date, montant_centimes) VALUES (9, 2, '2026-10-06', 1);
+		         INSERT INTO exercice (id, libelle, annee_debut, debut, fin, statut) VALUES (3, '2027-2028', 2027, '2027-09-01', '2028-08-31', 'ouvert');
+		         UPDATE balance_ouverture SET exercice_id = 3 WHERE compte_id = 2`,
+		code: 'ancre_invalide'
+	},
+	creance_verrou_anterieure: {
+		permis: `INSERT INTO creance_dette (sens, tiers, motif, montant_centimes, date, cree_le, cree_par) VALUES ('dette', 'T', 'M', 1, '2026-09-01', 'x', 1)`,
+		refuse: `INSERT INTO creance_dette (sens, tiers, motif, montant_centimes, date, cree_le, cree_par) VALUES ('dette', 'T', 'M', 1, '2025-06-15', 'x', 1)`,
+		code: 'exercice_cloture'
+	},
+	creance_verrou_anterieure_maj: {
+		permis: `UPDATE creance_dette SET motif = 'Ok' WHERE id = 2`,
+		refuse: `UPDATE creance_dette SET date = '2025-06-15' WHERE id = 2`,
+		code: 'exercice_cloture'
+	},
 	creance_verrou_creation: {
 		permis: `INSERT INTO creance_dette (sens, tiers, motif, montant_centimes, date, cree_le, cree_par) VALUES ('dette', 'T', 'M', 1, '2026-11-01', 'x', 1)`,
 		refuse: `INSERT INTO creance_dette (sens, tiers, motif, montant_centimes, date, cree_le, cree_par) VALUES ('dette', 'T', 'M', 1, '2026-03-01', 'x', 1)`,

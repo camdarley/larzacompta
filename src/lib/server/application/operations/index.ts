@@ -1,8 +1,14 @@
 /** Seul module qui écrit dans `operation`, `cote`, `ligne` et `liaison` (AD-7). */
-import { formaterMontant, formaterCsv, centimes, type Centimes } from '#lib/domaine/montant.ts';
+import {
+	formaterMontant,
+	formaterCsv,
+	centimes,
+	sommeCentimes,
+	type Centimes
+} from '#lib/domaine/montant.ts';
 import {
 	dateProposee,
-	estPointee,
+	etatPointage,
 	cotesPointes,
 	intentionDe,
 	montantOperation
@@ -218,15 +224,37 @@ function modifierOperation(o: Outils, e: EntreeModification): Resultat<{ id: num
 	return succes({ id: e.id });
 }
 
+/** Écrit l'annulation dans la transaction de l'appelant. */
+export function annulerOperation(o: Outils, id: number): Resultat<{ id: number }> {
+	const depot = o.depots.operations;
+	const op = depot.parId(id);
+	if (op === null) return echec('element_introuvable');
+	const decision = deciderAnnulation(op, {
+		coteIdsPointes: coteIdsPointes(o, op),
+		exercices: o.depots.exercices.lister()
+	});
+	if (!decision.ok) return decision;
+	depot.annuler(id, o.ctx.maintenant, (o.ctx.acces as NonNullable<Ctx['acces']>).id);
+	o.noter({
+		evenement: 'operation.annulee',
+		entiteType: 'operation',
+		entiteId: id,
+		resume: `a annulé l’Opération « ${op.libelle} » de ${formaterMontant(centimes(Math.abs(montantOperation(op))))}.`,
+		avant: brouillonDe(op)
+	});
+	return succes({ id });
+}
+
 type Noms = { comptes: Compte[]; natures: Nature[]; actions: Action[] };
 
-function rangee(j: GrandJournal, noms: Noms, t: Trouvee): RangeeOperation {
+function rangee(
+	j: GrandJournal,
+	noms: Noms,
+	t: Trouvee,
+	compteId: number | undefined
+): RangeeOperation {
 	const op = t.operation;
 	const courant = exerciceDeDate(j.exercices, op.date);
-	const pointable = op.cotes.some((c) => {
-		const type = j.comptes.find((x) => x.id === c.compteId)?.type;
-		return type === 'banque' || type === 'epargne';
-	});
 	const rattaches = new Set(
 		op.lignes.map((l) => l.exerciceRattachementId).filter((id) => id !== courant?.id)
 	);
@@ -242,7 +270,7 @@ function rangee(j: GrandJournal, noms: Noms, t: Trouvee): RangeeOperation {
 		annulee: t.annulee,
 		cloture: exerciceFigeant(op, j.exercices) !== undefined,
 		pieces: op.pieces.length,
-		etat: estPointee(j, op) ? 'pointe' : pointable ? 'a_pointer' : null,
+		etat: etatPointage(j, op, compteId),
 		rattachements: [...rattaches].flatMap((id) => {
 			const e = j.exercices.find((x) => x.id === id);
 			return e ? [e.libelle] : [];
@@ -257,6 +285,8 @@ export type SoldeVue = {
 	mouvements: Centimes;
 	solde: Centimes;
 };
+
+const MOTS_POINTAGE = { pointe: 'Pointée', partiel: 'Pointée en partie', a_pointer: '' };
 
 const nomMode = (m: ModePaiement | null) => (m ? LIBELLES_MODE_PAIEMENT[m] : '');
 
@@ -283,6 +313,14 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 			const depot = o.depots.operations;
 			const recue = depot.parId(e.rendDe);
 			if (recue === null) return echec('element_introuvable');
+			const rendu = sommeCentimes(brouillon.cotes.map((c) => c.montant));
+			const reste = resteARendre(depot.journal(), recue);
+			if (Math.abs(rendu) > reste) {
+				return echec('rendu_excessif', {
+					champ: 'montant',
+					montant: formaterMontant(reste)
+				});
+			}
 			const liaisonId =
 				recue.liaisonId ?? depot.creerLiaison({ type: 'somme_a_rendre', libelle: recue.libelle });
 			depot.definirLiaison(recue.id, liaisonId);
@@ -298,25 +336,7 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 
 	const casAnnulation: CasUsage<number, { id: number }> = {
 		droit: 'saisir',
-		faire(o, id) {
-			const depot = o.depots.operations;
-			const op = depot.parId(id);
-			if (op === null) return echec('element_introuvable');
-			const decision = deciderAnnulation(op, {
-				coteIdsPointes: coteIdsPointes(o, op),
-				exercices: o.depots.exercices.lister()
-			});
-			if (!decision.ok) return decision;
-			depot.annuler(id, o.ctx.maintenant, (o.ctx.acces as NonNullable<Ctx['acces']>).id);
-			o.noter({
-				evenement: 'operation.annulee',
-				entiteType: 'operation',
-				entiteId: id,
-				resume: `a annulé l’Opération « ${op.libelle} » de ${formaterMontant(centimes(Math.abs(montantOperation(op))))}.`,
-				avant: brouillonDe(op)
-			});
-			return succes({ id });
-		}
+		faire: annulerOperation
 	};
 
 	/** `sans_piece` reste modifiable après clôture : il ne change aucun état (AD-5). */
@@ -436,7 +456,7 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 				return {
 					rangees: trouvees
 						.slice(debut, debut + TAILLE_PAGE_OPERATIONS)
-						.map((t) => rangee(j, n, t)),
+						.map((t) => rangee(j, n, t, filtres.compteId)),
 					total: trouvees.length,
 					page: courante,
 					pages
@@ -476,7 +496,9 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 							op.tiers ?? '',
 							op.note ?? '',
 							String(op.pieces.length),
-							annulee ? 'Annulée' : estPointee(j, op) ? 'Pointée' : ''
+							annulee
+								? 'Annulée'
+								: MOTS_POINTAGE[etatPointage(j, op, filtres.compteId) ?? 'a_pointer']
 						]
 					};
 					const compte = resumeCompte(op, n);
@@ -633,7 +655,7 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 							(sens === null || intentionDe(t.operation) === sens)
 					)
 					.slice(0, 8)
-					.map((t) => rangee(j, n, t));
+					.map((t) => rangee(j, n, t, undefined));
 			});
 		},
 
@@ -643,7 +665,7 @@ export function creerOperations(socle: Socle, executer: Executer, lire: Lire) {
 				const n = noms();
 				const trouve = chercherPalette(j, n.actions, texte);
 				return {
-					operations: trouve.operations.map((t) => rangee(j, n, t)),
+					operations: trouve.operations.map((t) => rangee(j, n, t, undefined)),
 					actions: trouve.actions
 				};
 			});

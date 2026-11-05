@@ -65,7 +65,9 @@ export type Recapitulatif = {
 	connues: number;
 	ecartees: number;
 	aConfirmer: number;
-	/** Solde daté dans un Exercice clôturé : les lignes passent, le solde est ignoré. */
+	/** Identifiant déjà porté par une autre ligne : gardées sans lui, à confirmer (FR-12). */
+	identifiantsRepetes: number;
+	/** Solde daté dans un Exercice clôturé ou avant l'ancre : les lignes passent, pas le solde. */
 	soldeIgnore: boolean;
 	/** Le fichier n'a pas de solde : il se demande à l'écran. */
 	soldeDemande: { date: DateCivile } | null;

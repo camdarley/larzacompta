@@ -69,7 +69,7 @@ describe('ecart (§8)', () => {
 		expect(ecartExplique(j, 9, '2026-10-31')).toBe(0);
 	});
 
-	it('caisse au jalon 1 : dernier constat, plus ce qui a bougé depuis', () => {
+	it('caisse au jalon 1 : le constat se compare au solde calculé en fin de journée', () => {
 		const caisse = { ...CCP, id: 5, type: 'caisse' as const };
 		const avant = operationJ({ date: '2026-10-05', montant: -1000 });
 		const memeJourAvant = operationJ({ date: '2026-10-10', montant: -100 });
@@ -86,8 +86,9 @@ describe('ecart (§8)', () => {
 			operations: [avant, memeJourAvant, memeJourApres, apres],
 			constats: [constat(3900, '2026-10-10', { compteId: 5, creeLe: '2026-10-10T10:00:00.000Z' })]
 		});
-		// 3900 − 200 − 300 pour la caisse, 5000 − 1600 pour le calcul.
-		expect(ecart(j, 5, '2026-10-12')).toBe(0);
+		// 3900 contre 5000 − 1300, le soir du constat : le mouvement du 12 n'y change rien.
+		expect(ecart(j, 5, '2026-10-12')).toBe(200);
+		expect(ecart(j, 5, '2026-10-10')).toBe(200);
 		expect(ecartExplique(j, 5, '2026-10-12')).toBe(0);
 		expect(ecart({ ...j, constats: [] }, 5, '2026-10-12')).toBeNull();
 	});
@@ -484,23 +485,26 @@ describe('P5 : retirer une Ligne de relevé', () => {
 describe('dateDepuisLigne', () => {
 	it('garde la date d’un Exercice ouvert', () => {
 		expect(dateDepuisLigne([E2025, E2026], '2026-10-05')).toEqual({
-			date: '2026-10-05',
-			rattachementId: null
+			ok: true,
+			valeur: { date: '2026-10-05', rattachementId: null }
 		});
 	});
 
 	it('dans un Exercice clôturé : premier jour de l’ouvert, et rattachement', () => {
 		expect(dateDepuisLigne([REPERE, E2025, E2026], '2026-08-20')).toEqual({
-			date: '2026-09-01',
-			rattachementId: E2025.id
+			ok: true,
+			valeur: { date: '2026-09-01', rattachementId: E2025.id }
 		});
 	});
 
-	it('sans Exercice ouvert, la date reste : la validation la refusera', () => {
-		expect(dateDepuisLigne([E2025], '2026-08-20')).toEqual({
-			date: '2026-08-20',
-			rattachementId: null
-		});
+	it('sans Exercice ouvert, refuse : rien ne se reporte', () => {
+		const r = dateDepuisLigne([E2025], '2026-08-20');
+		expect(!r.ok && r.erreur.code).toBe('date_hors_exercice');
+	});
+
+	it('après tout Exercice tenu, refuse au lieu d’antidater de plus d’un an', () => {
+		const r = dateDepuisLigne([E2025, E2026], '2027-09-02');
+		expect(!r.ok && r.erreur.code).toBe('date_hors_exercice');
 	});
 });
 

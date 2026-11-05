@@ -2,7 +2,7 @@
  * Compte de résultat, résultat par Action et équation de contrôle (SCHEMA-DONNEES §8, AD-4 à AD-6).
  * Une équation qui échoue renvoie une anomalie à afficher, jamais un chiffre silencieusement faux.
  */
-import type { DateCivile } from '../dates.ts';
+import type { DateCivile, Instant } from '../dates.ts';
 import type { Exercice } from '../exercices.ts';
 import type { GrandJournal, LigneJ, OperationJ, PieceJ } from '../journal.ts';
 import { centimes, sommeCentimes, type Centimes } from '../montant.ts';
@@ -15,6 +15,8 @@ export type ParametrageEtats = {
 	natures: readonly Pick<Nature, 'id' | 'libelle' | 'groupeId' | 'neutre'>[];
 	actions: readonly Pick<Action, 'id' | 'libelle' | 'groupeId'>[];
 	comptes: readonly Pick<Compte, 'id' | 'libelle' | 'type' | 'ordre' | 'actif'>[];
+	/** Exercice clôturé : l'instant de sa clôture. Une annulation venue après ne le touche plus. */
+	clotureLe?: Instant;
 };
 
 export type Totaux = { recettes: Centimes; depenses: Centimes; resultat: Centimes };

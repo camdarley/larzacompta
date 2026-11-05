@@ -12,10 +12,10 @@ import { centimes, type Centimes } from '#lib/domaine/montant.ts';
 import { libelleDisponible, prochainOrdre, type TypeCompte } from '#lib/domaine/parametrage.ts';
 import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import { deciderCloture, figerParametrage, serialiserCloture } from '#lib/domaine/etats/cloture.ts';
-import { cartesComptes, lignesNonPointees } from '#lib/domaine/etats/controle.ts';
+import { avecEcart, cartesComptes, lignesNonPointees } from '#lib/domaine/etats/controle.ts';
 import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
 import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
-import { parametrageCourant } from '../etats/index.ts';
+import { parametrageCourant, parametrageDe } from '../etats/index.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
 import { poserAncre } from '../parametrage/index.ts';
 
@@ -254,13 +254,14 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 						.map((n) => n.id)
 				);
 				const suivant = j.exercices.find((x) => x.anneeDebut === e.anneeDebut + 1) ?? null;
-				const cartes = cartesComptes(j, e, ctx.aujourdhui);
+				const figes = parametrageDe(socle.depots, e).comptes;
+				const cartes = cartesComptes(j, e, ctx.aujourdhui, figes);
 				const decision = deciderCloture(j.exercices, id, []);
 				const cloture = socle.depots.exercices.cloture(id);
 				return {
 					exercice: e,
 					suivant,
-					ecarts: cartes.filter((c) => c.ecart !== null && c.ecart !== 0),
+					ecarts: cartes.filter(avecEcart),
 					lignes: lignesNonPointees(j, e),
 					pieces: piecesManquantes(j, neutres, e).length,
 					refus: decision.ok ? null : decision.erreur,

@@ -6,6 +6,7 @@ import { ouvrirBase, type Base } from '#lib/server/infra/sqlite/connexion.ts';
 import {
 	appliquerMigrations,
 	chargerMigrations,
+	ErreurBaseRecente,
 	ErreurMigration
 } from '#lib/server/infra/sqlite/migrateur.ts';
 
@@ -31,13 +32,14 @@ describe('migrateur', () => {
 			dossierCopies: copies(),
 			horodatage: H(1)
 		});
-		expect(faites).toEqual(['0001_jalon_1.sql']);
+		expect(faites).toEqual(['0001_jalon_1.sql', '0002_corrections_jalon_1.sql']);
 		const compter = (type: string) =>
 			base.prepare(`SELECT count(*) FROM sqlite_master WHERE type = ?`).pluck().get(type);
 		expect(compter('table')).toBeGreaterThanOrEqual(25);
-		expect(compter('trigger')).toBe(29);
+		expect(compter('trigger')).toBe(33);
 		expect(base.prepare('SELECT nom FROM schema_migrations').pluck().all()).toEqual([
-			'0001_jalon_1.sql'
+			'0001_jalon_1.sql',
+			'0002_corrections_jalon_1.sql'
 		]);
 		// Une base neuve n'a rien à protéger.
 		expect(existsSync(copies())).toBe(false);
@@ -58,13 +60,11 @@ describe('migrateur', () => {
 
 	it('copie la base existante et ne garde que les trois dernières', () => {
 		const options = (n: number) => ({ dossierCopies: copies(), horodatage: H(n) });
-		for (let n = 1; n <= 5; n++) {
-			appliquerMigrations(
-				base,
-				[{ nom: `000${n}_t.sql`, sql: `CREATE TABLE t${n} (id INTEGER)` }],
-				options(n)
-			);
-		}
+		const lot = [1, 2, 3, 4, 5].map((n) => ({
+			nom: `000${n}_t.sql`,
+			sql: `CREATE TABLE t${n} (id INTEGER)`
+		}));
+		for (let n = 1; n <= 5; n++) appliquerMigrations(base, lot.slice(0, n), options(n));
 		const presentes = readdirSync(copies()).sort();
 		expect(presentes).toHaveLength(3);
 		expect(presentes[2]).toContain('2026-11-04T10-00-05');
@@ -79,23 +79,43 @@ describe('migrateur', () => {
 	});
 
 	it('une migration qui échoue arrête avec un message clair et laisse la base intacte', () => {
-		appliquerMigrations(base, [{ nom: '0001_a.sql', sql: 'CREATE TABLE a (id INTEGER)' }], {
-			horodatage: H(1)
-		});
+		const a = { nom: '0001_a.sql', sql: 'CREATE TABLE a (id INTEGER)' };
+		appliquerMigrations(base, [a], { horodatage: H(1) });
 		const fautive = {
 			nom: '0002_fautive.sql',
 			sql: 'CREATE TABLE b (id INTEGER); INSERT INTO a (colonne_absente) VALUES (1);'
 		};
-		expect(() => appliquerMigrations(base, [fautive], { horodatage: H(2) })).toThrow(
+		expect(() => appliquerMigrations(base, [a, fautive], { horodatage: H(2) })).toThrow(
 			ErreurMigration
 		);
-		expect(() => appliquerMigrations(base, [fautive], { horodatage: H(2) })).toThrow(
+		expect(() => appliquerMigrations(base, [a, fautive], { horodatage: H(2) })).toThrow(
 			/0002_fautive\.sql a échoué/
 		);
 		const noms = base.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'`).pluck().all();
 		expect(noms).toContain('a');
 		expect(noms).not.toContain('b');
 		expect(base.prepare('SELECT nom FROM schema_migrations').pluck().all()).toEqual(['0001_a.sql']);
+	});
+
+	it('un lot en échec ne laisse aucune de ses migrations appliquée', () => {
+		const a = { nom: '0001_a.sql', sql: 'CREATE TABLE a (id INTEGER)' };
+		const bonne = { nom: '0002_ok.sql', sql: 'CREATE TABLE ajout (id INTEGER)' };
+		const fautive = { nom: '0003_ko.sql', sql: 'INSERT INTO table_absente VALUES (1)' };
+		appliquerMigrations(base, [a], { horodatage: H(1) });
+		expect(() => appliquerMigrations(base, [a, bonne, fautive], { horodatage: H(2) })).toThrow(
+			/La base reste intacte/
+		);
+		expect(base.prepare('SELECT nom FROM schema_migrations').pluck().all()).toEqual(['0001_a.sql']);
+		const noms = base.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'`).pluck().all();
+		expect(noms).not.toContain('ajout');
+	});
+
+	it('refuse de démarrer sur une base plus récente que le code', () => {
+		const a = { nom: '0001_a.sql', sql: 'CREATE TABLE a (id INTEGER)' };
+		const b = { nom: '0002_b.sql', sql: 'CREATE TABLE b (id INTEGER)' };
+		appliquerMigrations(base, [a, b], { horodatage: H(1) });
+		expect(() => appliquerMigrations(base, [a], { horodatage: H(2) })).toThrow(ErreurBaseRecente);
+		expect(() => appliquerMigrations(base, [a], { horodatage: H(2) })).toThrow(/restaurez/);
 	});
 
 	it('une requête sur une colonne inexistante échoue dès la préparation', () => {

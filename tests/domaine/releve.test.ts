@@ -32,23 +32,61 @@ describe('empreinte', () => {
 });
 
 describe('planifierImport (AD-9)', () => {
-	it('un identifiant connu pour ce Compte : la ligne est connue, quel que soit le reste', () => {
+	it('un identifiant connu sur la même empreinte : la ligne est connue', () => {
 		const plan = planifierImport(
-			{ lignes: [ligne({ identifiant: 'X', libelle: 'AUTRE', montant: centimes(5) })] },
+			{ lignes: [ligne({ identifiant: 'X' })] },
 			[enBase(ligne({ identifiant: 'X' }))],
 			null
 		);
 		expect(plan).toMatchObject({ connues: 1, nouvelles: [], lues: 1 });
 	});
 
-	it('un identifiant répété dans le fichier ne compte qu’une fois', () => {
+	it('un identifiant connu sur un autre contenu reste à confirmer, sans identifiant (FR-12)', () => {
+		const autre = ligne({ identifiant: 'RUM-001', date: '2026-11-05', montant: centimes(-4200) });
+		const plan = planifierImport(
+			{ lignes: [autre] },
+			[enBase(ligne({ identifiant: 'RUM-001' }))],
+			null
+		);
+		expect(plan.connues).toBe(0);
+		expect(plan.nouvelles).toMatchObject([
+			{ doublon: 'a_confirmer', identifiant: null, identifiantRepete: true }
+		]);
+	});
+
+	it('un identifiant répété dans un même fichier ne fait disparaître aucune ligne', () => {
+		const lignes = [
+			ligne({ identifiant: 'X', montant: centimes(-1000) }),
+			ligne({ identifiant: 'X', montant: centimes(-2500) })
+		];
+		const plan = planifierImport({ lignes }, [], null);
+		expect(plan.connues).toBe(0);
+		expect(plan.nouvelles).toMatchObject([
+			{ doublon: 'non', identifiant: 'X', identifiantRepete: false },
+			{ doublon: 'a_confirmer', identifiant: null, identifiantRepete: true }
+		]);
+	});
+
+	it('une ligne identique, identifiant compris, se confirme au lieu de disparaître', () => {
 		const plan = planifierImport(
 			{ lignes: [ligne({ identifiant: 'X' }), ligne({ identifiant: 'X' })] },
 			[],
 			null
 		);
-		expect(plan.nouvelles).toHaveLength(1);
-		expect(plan.connues).toBe(1);
+		expect(plan.nouvelles.map((l) => l.doublon)).toEqual(['a_confirmer', 'a_confirmer']);
+	});
+
+	it('une ligne gardée sans son identifiant répété se reconnaît au réimport', () => {
+		const lignes = [
+			ligne({ identifiant: 'X', montant: centimes(-1000) }),
+			ligne({ identifiant: 'X', montant: centimes(-2500) })
+		];
+		const premier = planifierImport({ lignes }, [], null);
+		const base = premier.nouvelles.map((l) => ({
+			identifiantSource: l.identifiant,
+			empreinte: l.empreinte
+		}));
+		expect(planifierImport({ lignes }, base, null)).toMatchObject({ nouvelles: [], connues: 2 });
 	});
 
 	it('k fois dans le fichier, m fois en base : min(k, m) connues, le reste à confirmer', () => {

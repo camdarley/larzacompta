@@ -5,7 +5,7 @@ import { deciderRoute } from '#lib/domaine/droits.ts';
 import { message } from '#lib/messages.ts';
 import { ROUTES } from '#lib/routes.ts';
 import { application, demarrerTachesDeFond } from '#lib/server/composition.ts';
-import { COOKIE_SESSION, COOKIE_THEME } from '#lib/server/cookies.ts';
+import { COOKIE_SESSION, COOKIE_THEME, poserCookieSession } from '#lib/server/cookies.ts';
 
 /** Au démarrage : migrations, puis lien initial si l'instance n'a aucun Accès (AD-14). */
 export const init: ServerInit = () => {
@@ -41,14 +41,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const { request, url, cookies } = event;
 
 	const jeton = cookies.get(COOKIE_SESSION);
-	const acces = jeton ? app.acces.accesDepuisSession(app.ctx(null), jeton) : null;
+	const session = jeton ? app.acces.lireSession(app.ctx(null), jeton) : null;
+	if (jeton && session?.prolongeeJusquAu) {
+		poserCookieSession(cookies, jeton, session.prolongeeJusquAu);
+	}
+	const acces = session?.acces ?? null;
 	event.locals.acces = acces;
 	event.locals.refuse = false;
 	event.locals.adresse = adresseDe(event);
 
-	// Les POST JSON ne sont pas couverts par le contrôle CSRF de Kit (AD-19).
-	const api = url.pathname.startsWith('/api/');
-	if (api && request.method === 'POST') {
+	// Les écritures JSON ne sont pas couvertes par le contrôle CSRF de Kit (AD-19).
+	// `route.id` et non le chemin : Kit route sur le chemin décodé, `/%61pi/` mène au même endroit.
+	const api = event.route.id?.startsWith('/api/') === true;
+	if (api && request.method !== 'GET' && request.method !== 'HEAD') {
 		const attendue = process.env.ORIGIN ?? url.origin;
 		if (request.headers.get('origin') !== attendue) return refusJson('origine_refusee', 403);
 	}

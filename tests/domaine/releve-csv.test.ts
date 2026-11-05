@@ -155,9 +155,16 @@ describe('reglagePropose', () => {
 
 	it('devine des colonnes séparées', () => {
 		expect(reglagePropose(['Date', 'Intitulé', 'Référence', 'Sorties', 'Entrées'])).toMatchObject({
-			identifiant: 'Référence',
+			identifiant: null,
 			montant: { mode: 'separees', sorties: 'Sorties', entrees: 'Entrées' }
 		});
+	});
+
+	it('ne prend pas une Référence pour un identifiant : un prélèvement la répète chaque mois', () => {
+		expect(reglagePropose(['Date', 'Libellé', 'Référence', 'Montant']).identifiant).toBeNull();
+		expect(reglagePropose(['Date', 'Libellé', 'Identifiant', 'Montant']).identifiant).toBe(
+			'Identifiant'
+		);
 	});
 
 	it('se rabat sur la position des colonnes', () => {
