@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { ReglageCsv } from '#lib/domaine/releve/csv.ts';
+import { numeroChequeLu } from '#lib/domaine/releve/references.ts';
 import { creerFichiers } from '#lib/server/infra/fichiers/index.ts';
 import { sourceCsv } from '#lib/server/infra/sources/csv.ts';
 import { estOfx, sourceOfx } from '#lib/server/infra/sources/ofx.ts';
@@ -99,6 +100,25 @@ describe('adaptateur ofx (story 3.1)', () => {
 	it('une ligne à zéro n’est pas un mouvement', () => {
 		const r = lire(ofxTexte([{ date: '20261005', montant: '0.00', libelle: 'X' }]));
 		expect(r.ok && r.valeur.lignes).toEqual([]);
+	});
+
+	it('croit les octets, pas l’en-tête : une banque annonce CP1252 et envoie de l’UTF-8', () => {
+		const texte = ofxTexte([
+			{ date: '20261005', montant: '-30.00', id: 'A1', libelle: 'CHEQUE N° 5000101' }
+		]);
+		const octets = new Uint8Array(Buffer.from(texte, 'utf8'));
+		expect(texte).toContain('CHARSET:1252');
+		const r = sourceOfx.lire({ octets });
+		const libelle = r.ok ? r.valeur.lignes[0]?.libelle : null;
+		expect(libelle).toBe('CHEQUE N° 5000101');
+		expect(numeroChequeLu(libelle as string)).toBe('5000101');
+	});
+
+	it('garde le CP1252 quand les octets ne sont pas de l’UTF-8', () => {
+		const r = lire(
+			ofxTexte([{ date: '20261005', montant: '-30.00', id: 'A1', libelle: 'CHÈQUE N° 12345' }])
+		);
+		expect(r.ok ? r.valeur.lignes[0]?.libelle : null).toBe('CHÈQUE N° 12345');
 	});
 
 	it('décode l’UTF-8 si l’en-tête le dit', () => {

@@ -10,9 +10,16 @@ import type { SourceReleve } from '../../application/ports.ts';
 
 const illisible = () => echec<never>('fichier_illisible');
 
-function decoder(octets: Uint8Array, enTete: string): string {
-	const utf8 = /ENCODING:\s*UTF-?8/i.test(enTete);
-	return new TextDecoder(utf8 ? 'utf-8' : 'windows-1252').decode(octets);
+/**
+ * Les octets font foi, pas l'en-tête : La Banque Postale annonce `CHARSET:1252` et envoie de l'UTF-8.
+ * Un texte CP1252 accentué n'est presque jamais de l'UTF-8 valide, le test strict les départage.
+ */
+function decoder(octets: Uint8Array): string {
+	try {
+		return new TextDecoder('utf-8', { fatal: true }).decode(octets);
+	} catch {
+		return new TextDecoder('windows-1252').decode(octets);
+	}
 }
 
 const ENTITES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
@@ -92,7 +99,7 @@ function lire(octets: Uint8Array): Resultat<ReleveNormalise> {
 	const enTete = new TextDecoder('latin1').decode(octets.subarray(0, 512));
 	if (!/^\s*OFXHEADER\s*:/i.test(enTete)) return illisible();
 
-	const contenu = decoder(octets, enTete);
+	const contenu = decoder(octets);
 	// Un fichier tronqué perd sa fermeture : aucune de ses lignes n'est fiable.
 	if (!/<\/OFX>\s*$/i.test(contenu) || !/<\/BANKTRANLIST>/i.test(contenu)) return illisible();
 
