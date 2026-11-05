@@ -14,6 +14,7 @@
 	import { centimes, formaterMontant, type Centimes } from '#lib/domaine/montant.ts';
 	import { messageErreur, message, TEXTES, type CodeMessage } from '#lib/messages.ts';
 	import { envoyer } from '#lib/ui/api.ts';
+	import { suivreClavier } from '#lib/ui/clavier.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
@@ -308,7 +309,7 @@
 			</div>
 		{/if}
 
-		<footer class="total-comptage">
+		<footer class="total-comptage" use:suivreClavier>
 			<div class="ligne-total">
 				<span class="t-caption t-muted">{ecran.caisse}</span>
 				<output class="total" aria-live="polite" aria-label="Total du Comptage"
@@ -423,7 +424,7 @@
 	.total-comptage {
 		position: sticky;
 		z-index: 2;
-		bottom: 0;
+		bottom: var(--clavier, 0px);
 		display: grid;
 		gap: var(--espace-2);
 		margin: 0 calc(-1 * var(--espace-page-mobile));
@@ -431,6 +432,11 @@
 			calc(var(--espace-3) + env(safe-area-inset-bottom));
 		background: var(--surface-raised);
 		border-top: 1px solid var(--border);
+	}
+
+	/* Au-dessus du clavier, la marge de la barre d'accueil ne sert plus. */
+	.total-comptage:global([data-clavier]) {
+		padding-block: var(--espace-2);
 	}
 
 	.ligne-total {

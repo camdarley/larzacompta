@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { centimes as c } from '../../src/lib/domaine/montant.ts';
 import { composer } from '../../src/lib/server/composition.ts';
 import { creerFichiers } from '../../src/lib/server/infra/fichiers/index.ts';
@@ -209,12 +209,31 @@ test.describe('UJ-2 sur téléphone, au toucher', () => {
 		)) {
 			expect(m.h, m.texte ?? '').toBeGreaterThanOrEqual(56);
 		}
-		// Clavier numérique ouvert : la fenêtre visible rétrécit, le total reste à l'écran.
-		const quantite = page.getByRole('textbox').first();
+		// Un vrai clavier ne réduit pas la fenêtre : seul le viewport visuel rétrécit, et une barre
+		// collée au bas de la fenêtre passe dessous. Vu sur iOS, invisible en réduisant la fenêtre.
+		const quantite = page.getByRole('textbox').nth(3);
 		await quantite.tap();
-		await page.setViewportSize({ width: 390, height: 430 });
+		const hauteurClavier = 340;
+		await page.evaluate((h) => {
+			const vv = window.visualViewport as VisualViewport;
+			const hauteur = window.innerHeight - h;
+			Object.defineProperty(vv, 'height', { get: () => hauteur, configurable: true });
+			vv.dispatchEvent(new Event('resize'));
+		}, hauteurClavier);
 		await quantite.fill('3');
-		await expect(page.getByLabel('Total du Comptage')).toBeInViewport();
+		const hautClavier = (page.viewportSize()?.height ?? 0) - hauteurClavier;
+		const bas = async (l: Locator) => (await l.boundingBox())?.y ?? Infinity;
+		const barre = page.locator('.total-comptage');
+		await expect
+			.poll(async () => (await barre.boundingBox())?.y ?? Infinity)
+			.toBeLessThan(hautClavier);
+		const cadre = await barre.boundingBox();
+		expect((cadre?.y ?? 0) + (cadre?.height ?? 0)).toBeLessThanOrEqual(hautClavier + 1);
+		const champ = await quantite.boundingBox();
+		expect(
+			(champ?.y ?? 0) + (champ?.height ?? 0),
+			'champ actif au-dessus du total'
+		).toBeLessThanOrEqual(await bas(barre));
 		expect(erreurs).toEqual([]);
 	});
 });
