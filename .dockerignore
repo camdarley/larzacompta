@@ -12,6 +12,7 @@
 !.npmrc
 !.prettierignore
 !.prettierrc
+!CHANGELOG.md
 !Caddyfile
 !DECISIONS.md
 !Dockerfile

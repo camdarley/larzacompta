@@ -15,6 +15,10 @@ Une APE change de bureau chaque année ou presque. Cette page dit ce qui passe d
 
 Rien de plus : aucun fichier à envoyer, aucune donnée à recopier.
 
+## Faire vérifier les comptes
+
+Avant l'assemblée générale, créez un Accès avec le rôle Lecture pour la personne qui vérifie. Elle consulte Tableau de contrôle, Opérations, Pièces, Actions, États, Journal, Caisses, Chèques, Créances et Dettes, et peut tout télécharger. Elle ne peut rien modifier, et le Pointage, le Budget, les Factures et les Réglages ne lui sont pas ouverts. Révoquez cet Accès une fois le contrôle terminé.
+
 ## Transmettre l'installation
 
 La personne qui reprend doit recevoir, par un canal sûr :

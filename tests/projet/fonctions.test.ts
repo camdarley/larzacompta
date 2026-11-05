@@ -32,6 +32,29 @@ describe('#lib/fonctions', () => {
 		expect(entreesMobile('lecteur').map((e) => e.libelle)).not.toContain('Photo');
 	});
 
+	it('liste toutes les fonctions de la v1, chacune atteinte par la navigation', () => {
+		const toutes: Fonction[] = [
+			'tableau_controle',
+			'operations',
+			'pointage',
+			'caisses',
+			'cheques',
+			'creances_dettes',
+			'pieces',
+			'factures',
+			'actions',
+			'etats',
+			'budget',
+			'reglages',
+			'journal',
+			'aide'
+		];
+		const n = navigation('tresorier');
+		const presentes = [...n.groupes.flatMap((g) => g.entrees), ...n.bas].map((e) => e.fonction);
+		expect(toutes.filter((f) => !fonctionLivree(f))).toEqual([]);
+		expect([...presentes].sort()).toEqual([...toutes].sort());
+	});
+
 	it('expose les fonctions et rôles livrés', () => {
 		expect(fonctionLivree('budget')).toBe(true);
 		expect(fonctionLivree('journal')).toBe(true);

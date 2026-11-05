@@ -26,6 +26,7 @@ Limites constatées :
 
 - Une route nouvelle s'ajoute à `src/lib/routes.ts`, sinon elle est refusée : `tests/projet/routes.test.ts` le rappelle.
 - Une fonction nouvelle s'ajoute à `#lib/fonctions`, qui pilote navigation et tuiles.
+- Une action de lecture ou d'écriture déclare son droit : `tests/application/lecture-seule.test.ts` parcourt toute la couche application pour le rôle Lecture, et `tests/parcours/32-lecture-seule.spec.ts` tente chaque route d'écriture lue dans le code.
 - Un texte d'erreur s'ajoute à `#lib/messages`, jamais dans une route.
 - Une couleur vient de `src/lib/ui/jetons.source.json`. Après modification : `pnpm jetons`.
 - `goto()` n'accepte plus `noScroll` ni `keepFocus` en Kit 3 : `{ reset: false }` les remplace, et `data-sveltekit-reset="false"` sur un lien.
