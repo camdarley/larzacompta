@@ -19,6 +19,7 @@
 		"dev": "vite dev",
 		"build": "vite build && vite build --config vite.cli.config.ts",
 		"preview": "node build/index.js",
+		"local": "pnpm build && node scripts/local.ts",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",

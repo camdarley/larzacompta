@@ -105,7 +105,16 @@ Faites ensuite un essai de restauration sur une autre machine : c'est la seule p
 
 ## Pour un essai sur votre poste
 
-Avec `ORIGIN=https://localhost`, Caddy crée un certificat local : le navigateur l'annonce comme non reconnu, ce qui est normal pour un essai.
+Sans Docker ni Caddy, avec Node 26.13 et pnpm :
+
+```sh
+pnpm install
+pnpm local
+```
+
+Ouvrez le lien affiché, sur `http://localhost:4173`. Les données vont dans `data/`, et l'outil n'est joignable que depuis ce poste. Ne lancez pas `node build/index.js` seul : sans proxy devant lui, il refuse chaque formulaire.
+
+Avec Docker : Avec `ORIGIN=https://localhost`, Caddy crée un certificat local : le navigateur l'annonce comme non reconnu, ce qui est normal pour un essai.
 
 ## Ce qui tourne
 

@@ -39,7 +39,7 @@ Limites constatées :
 
 ## Lancer l'application en local
 
-Derrière Caddy, adapter-node 6 lit `PROTOCOL_HEADER` et `HOST_HEADER`. Sans proxy, en http, il faut poser `PROTOCOL_HEADER=x-forwarded-proto` et envoyer cet en-tête, comme le fait `playwright.config.ts`. Sinon, Kit voit une origine en `https` et refuse les formulaires.
+Derrière Caddy, adapter-node 6 lit `PROTOCOL_HEADER` et `HOST_HEADER`. Sans proxy, en http, il faut poser `PROTOCOL_HEADER=x-forwarded-proto` et envoyer cet en-tête, comme le fait `playwright.config.ts`. Pour une personne, c'est `pnpm local` (`scripts/local.ts`) qui joue ce rôle. Le parcours 36 est le seul sans cet en-tête : il voit ce que voit un vrai navigateur. Sinon, Kit voit une origine en `https` et refuse les formulaires.
 
 Le lien initial s'écrit dans les logs au premier démarrage. `node build/cli/ape.js lien-initial` en réémet un.
 
