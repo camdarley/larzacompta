@@ -219,6 +219,8 @@ export const TEXTES = {
 	tout_pointe: 'Tout est pointé',
 	aucun_ecart: 'Égal au relevé',
 	premier_releve: 'Importez votre premier relevé pour commencer le contrôle.',
+	solde_contredit:
+		'Le solde de ce fichier contredit un solde déjà connu, sans ligne pour l’expliquer : il est écarté. Un export ancien donne souvent le solde du jour du téléchargement.',
 	solde_ignore:
 		'Le solde de ce relevé tombe dans un Exercice clôturé ou avant le solde de départ : il est ignoré.',
 	sauvegarde_echec:

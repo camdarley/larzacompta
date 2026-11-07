@@ -20,6 +20,7 @@ import {
 import {
 	planifierImport,
 	planifierSaisie,
+	soldeContredit,
 	type PlanImport
 } from '#lib/domaine/releve/planifier.ts';
 import {
@@ -128,22 +129,30 @@ function soldeHorsControle(j: GrandJournal, compteId: number, date: DateCivile) 
 	);
 }
 
-/** Le solde lu devient un Constat, sauf s'il est déjà connu ou hors contrôle. */
-function soldeAEcrire(j: GrandJournal, compteId: number, releve: ReleveNormalise) {
+/** Le solde lu devient un Constat, sauf s'il est déjà connu, hors contrôle ou contredit. */
+function soldeAEcrire(
+	j: GrandJournal,
+	compteId: number,
+	releve: ReleveNormalise,
+	plan: PlanImport
+) {
+	const rien = { ecrire: null, ignore: false, contredit: false };
 	const solde = releve.solde;
-	if (solde === null) return { ecrire: null, ignore: false };
-	if (soldeHorsControle(j, compteId, solde.date)) return { ecrire: null, ignore: true };
-	const connu = j.constats.some(
-		(c) => c.compteId === compteId && c.date === solde.date && c.solde === solde.montant
-	);
-	return { ecrire: connu ? null : solde, ignore: false };
+	if (solde === null) return rien;
+	if (soldeHorsControle(j, compteId, solde.date)) return { ...rien, ignore: true };
+	const constats = j.constats.filter((c) => c.compteId === compteId);
+	if (constats.some((c) => c.date === solde.date && c.solde === solde.montant)) return rien;
+	const lignes = [...j.lignesReleve.filter((l) => l.compteId === compteId), ...plan.nouvelles];
+	if (soldeContredit(solde, constats, lignes)) return { ...rien, contredit: true };
+	return { ...rien, ecrire: solde };
 }
 
 function recapitulatif(
 	plan: PlanImport,
 	releve: ReleveNormalise,
 	soldeIgnore: boolean,
-	trou: Trou | null
+	trou: Trou | null,
+	soldeContredit = false
 ): Recapitulatif {
 	const nouvelles = plan.nouvelles.length;
 	return {
@@ -155,6 +164,7 @@ function recapitulatif(
 		aConfirmer: plan.nouvelles.filter((l) => l.doublon === 'a_confirmer').length,
 		identifiantsRepetes: plan.nouvelles.filter((l) => l.identifiantRepete).length,
 		soldeIgnore,
+		soldeContredit,
 		soldeDemande:
 			releve.solde === null && plan.dateMax !== null && nouvelles > 0
 				? { date: plan.dateMax }
@@ -201,7 +211,7 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 		faire(o, e) {
 			const depot = o.depots.pointage;
 			const j = o.depots.operations.journal();
-			const { ecrire, ignore } = soldeAEcrire(j, e.compteId, e.releve);
+			const { ecrire, ignore, contredit } = soldeAEcrire(j, e.compteId, e.releve, e.plan);
 			const nouvelles = e.plan.nouvelles;
 
 			if (e.reglage) {
@@ -265,7 +275,7 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 			const touche = trous(periodes).find(
 				(t) => t.debut === e.plan.dateMax || t.fin === e.plan.dateMin
 			);
-			return succes(recapitulatif(e.plan, e.releve, ignore, touche ?? null));
+			return succes(recapitulatif(e.plan, e.releve, ignore, touche ?? null, contredit));
 		}
 	};
 
@@ -671,10 +681,10 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 				j.lignesReleve.filter((l) => l.compteId === e.compteId),
 				premierJour(j, e.compteId)
 			);
-			const solde = soldeAEcrire(j, e.compteId, releve);
+			const solde = soldeAEcrire(j, e.compteId, releve, plan);
 			// Rien à écrire : ni Journal, ni fichier, ni trace d'import.
 			if (!e.reglage && plan.nouvelles.length === 0 && solde.ecrire === null) {
-				return succes(recapitulatif(plan, releve, solde.ignore, null));
+				return succes(recapitulatif(plan, releve, solde.ignore, null, solde.contredit));
 			}
 			return executer(casImport, ctx, { ...e, format, releve, plan });
 		},

@@ -810,6 +810,7 @@
 				{r.nouvelles === 0 && r.lues > 0 ? message('fichier_connu') : phraseRecapitulatif(r)}
 				{#if r.ecartees > 0}{phraseEcartees(r.ecartees)}{/if}
 				{#if r.soldeIgnore}{TEXTES.solde_ignore}{/if}
+				{#if r.soldeContredit}{TEXTES.solde_contredit}{/if}
 			</Bandeau>
 			{#if r.identifiantsRepetes > 0}
 				<Bandeau ton="regarder">

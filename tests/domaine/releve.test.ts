@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { centimes } from '#lib/domaine/montant.ts';
 import { empreinteLigne, normaliserLibelle } from '#lib/domaine/releve/empreinte.ts';
-import { planifierImport, planifierSaisie } from '#lib/domaine/releve/planifier.ts';
+import { planifierImport, planifierSaisie, soldeContredit } from '#lib/domaine/releve/planifier.ts';
 import { bornesTrou, trous } from '#lib/domaine/releve/trous.ts';
 import type { LigneNormalisee } from '#lib/domaine/releve/types.ts';
 
@@ -223,5 +223,26 @@ describe('trous de dates', () => {
 			debut: '28 février',
 			fin: '1er avril'
 		});
+	});
+});
+
+describe('soldeContredit', () => {
+	const solde = { date: '2026-06-23', montant: 837037 };
+	it('sans Constat après lui, rien ne le contredit', () => {
+		expect(soldeContredit(solde, [{ date: '2026-06-01', solde: 1 }], [])).toBe(false);
+	});
+	it('contredit le Constat suivant sans ligne entre les deux', () => {
+		expect(soldeContredit(solde, [{ date: '2026-08-31', solde: 937037 }], [])).toBe(true);
+	});
+	it('les lignes entre les deux, et elles seules, peuvent l’expliquer', () => {
+		const lignes = [
+			{ date: '2026-06-23', montant: 5 },
+			{ date: '2026-07-10', montant: 100000 },
+			{ date: '2026-09-01', montant: 7 }
+		];
+		expect(soldeContredit(solde, [{ date: '2026-08-31', solde: 937037 }], lignes)).toBe(false);
+	});
+	it('un autre montant le même jour le contredit', () => {
+		expect(soldeContredit(solde, [{ date: '2026-06-23', solde: 937037 }], [])).toBe(true);
 	});
 });

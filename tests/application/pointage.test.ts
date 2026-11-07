@@ -907,3 +907,39 @@ describe('virement vu sur deux relevés', () => {
 		expect(apres.barre.pointees).toBe(1);
 	});
 });
+
+describe('solde d’un export ancien (retour d’usage du 07/11/2026)', () => {
+	it('écarte le solde du jour daté à la dernière ligne, et le dit', () => {
+		expect(
+			importer(b, [{ date: '20261005', montant: '-10.00', id: 'A', libelle: 'FRAIS' }], {
+				montant: '990.00',
+				date: '20261031'
+			})
+		).toMatchObject({ ok: true, valeur: { soldeContredit: false } });
+		// Le même relevé, téléchargé plus tard : solde du jour (890) daté du 05/10.
+		const r = importer(
+			b,
+			[
+				{ date: '20260920', montant: '-20.00', id: 'B', libelle: 'AVANT' },
+				{ date: '20261005', montant: '-10.00', id: 'A', libelle: 'FRAIS' }
+			],
+			{ montant: '890.00', date: '20261005' }
+		);
+		expect(r).toMatchObject({ ok: true, valeur: { nouvelles: 1, soldeContredit: true } });
+		const constats = b.app.socle.depots.operations.journal().constats;
+		expect(constats.map((x) => [x.date, x.solde])).toEqual([['2026-10-31', 99000]]);
+	});
+
+	it('garde un solde que les lignes entre les deux expliquent', () => {
+		importer(b, [{ date: '20261025', montant: '-30.00', id: 'C', libelle: 'APRES' }], {
+			montant: '970.00',
+			date: '20261031'
+		});
+		const r = importer(b, [{ date: '20261005', montant: '-10.00', id: 'A', libelle: 'FRAIS' }], {
+			montant: '1000.00',
+			date: '20261005'
+		});
+		expect(r).toMatchObject({ ok: true, valeur: { soldeContredit: false } });
+		expect(b.app.socle.depots.operations.journal().constats).toHaveLength(2);
+	});
+});

@@ -108,6 +108,8 @@ export type Recapitulatif = {
 	identifiantsRepetes: number;
 	/** Solde daté dans un Exercice clôturé ou avant l'ancre : les lignes passent, pas le solde. */
 	soldeIgnore: boolean;
+	/** Solde lu en désaccord avec un solde déjà connu, sans ligne pour l'expliquer : écarté. */
+	soldeContredit?: boolean;
 	/** Le fichier n'a pas de solde : il se demande à l'écran. */
 	soldeDemande: { date: DateCivile } | null;
 	trou: Trou | null;

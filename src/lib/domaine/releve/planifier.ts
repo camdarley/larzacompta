@@ -117,3 +117,23 @@ export function planifierSaisie(
 	const connue = existantes.some((l) => l.empreinte === empreinte);
 	return { ...ligne, empreinte, doublon: connue ? 'a_confirmer' : 'non', identifiantRepete: false };
 }
+
+/**
+ * Un solde lu qui contredit le Constat suivant, sans ligne entre les deux pour l'expliquer.
+ * Cas réel : La Banque Postale date le solde du jour de téléchargement à la dernière ligne
+ * d'un export ancien. Écrit, il ferait un faux Écart.
+ */
+export function soldeContredit(
+	solde: { date: DateCivile; montant: number },
+	constats: readonly { date: DateCivile; solde: number }[],
+	lignes: readonly { date: DateCivile; montant: number }[]
+): boolean {
+	const suivant = constats
+		.filter((c) => c.date >= solde.date)
+		.sort((a, b) => a.date.localeCompare(b.date))[0];
+	if (suivant === undefined) return false;
+	const entre = lignes
+		.filter((l) => l.date > solde.date && l.date <= suivant.date)
+		.reduce((t, l) => t + l.montant, 0);
+	return solde.montant + entre !== suivant.solde;
+}
