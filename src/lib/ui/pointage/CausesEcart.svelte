@@ -8,12 +8,19 @@
 		type Centimes
 	} from '#lib/domaine/montant.ts';
 	import type { CausesVue, ElementRelie } from '#lib/domaine/releve/vues.ts';
+	import { message } from '#lib/messages.ts';
+	import Bouton from '#lib/ui/Bouton.svelte';
 	import CalculPose from '#lib/ui/CalculPose.svelte';
 	import Panneau from '#lib/ui/Panneau.svelte';
 	import { urlAvec } from '#lib/ui/url.ts';
 
-	type Props = { causes: CausesVue; fermer: () => void };
-	let { causes, fermer }: Props = $props();
+	type Props = {
+		causes: CausesVue;
+		fermer: () => void;
+		/** Absent en lecture seule : un Exercice clôturé ne se redate pas. */
+		aligner?: (pointageId: number) => void;
+	};
+	let { causes, fermer, aligner }: Props = $props();
 
 	const abs = (c: Centimes) => centimes(Math.abs(c));
 	const totalLignes = $derived(sommeCentimes(causes.lignes.map((l) => l.montant)));
@@ -61,6 +68,32 @@
 			/>
 		</div>
 
+		{#if causes.decalees.length > 0}
+			<section aria-labelledby="causes-dates">
+				<h3 id="causes-dates" class="t-heading">Dates à corriger</h3>
+				<p class="t-caption t-muted">Pointées, mais datées après le relevé qui les porte.</p>
+				<ul>
+					{#each causes.decalees as d (d.pointageId)}
+						<li class="decalee">
+							<span>
+								{message('date_decalee', {
+									libelle: d.libelle,
+									dateCote: formaterDateCourte(d.dateCote),
+									dateReleve: formaterDateCourte(d.dateReleve)
+								})}
+							</span>
+							<span class="montant">{formaterMontantSigne(d.montant)}</span>
+							{#if aligner}
+								<Bouton variante="secondaire" onclick={() => aligner(d.pointageId)}>
+									Mettre au {formaterDateCourte(d.dateReleve)}
+								</Bouton>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
 		<section aria-labelledby="causes-lignes">
 			<h3 id="causes-lignes" class="t-heading">Lignes de relevé non pointées</h3>
 			{#if causes.lignes.length === 0}
@@ -102,6 +135,16 @@
 </Panneau>
 
 <style>
+	.decalee {
+		grid-template-columns: 1fr auto;
+		align-items: center;
+	}
+
+	.decalee :global(button) {
+		grid-column: 1 / -1;
+		justify-self: start;
+	}
+
 	.causes {
 		display: grid;
 		gap: var(--espace-5);

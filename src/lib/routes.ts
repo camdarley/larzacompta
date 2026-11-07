@@ -80,6 +80,8 @@ export const ROUTES: Readonly<Record<string, RegleRoute>> = {
 	'/api/pointage': 'saisir',
 	'/api/pointage/annuler/[id]': 'saisir',
 	'/api/pointage/ajustement': 'saisir',
+	'/api/pointage/virement': 'saisir',
+	'/api/pointage/aligner/[id]': 'saisir',
 	'/api/pointage/depuis-ligne': 'saisir',
 	'/api/pointage/comptes/[compte]/import': 'saisir',
 	'/api/pointage/comptes/[compte]/lignes': 'saisir',

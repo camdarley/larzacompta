@@ -161,6 +161,10 @@ const MESSAGES = {
 		'Cette Ligne de relevé vient de votre banque : seule une ligne en double s’écarte.',
 	solde_egal_releve: 'Le solde calculé égale le relevé du {date}, au centime.',
 	lignes_traitees_ecart: 'Toutes les lignes sont traitées, mais il reste un Écart de {montant}.',
+	date_decalee:
+		'« {libelle} » est daté du {dateCote}, après le relevé du {dateReleve} : le calcul de ce jour ne le compte pas encore.',
+	virement_croise:
+		'La même somme figure sur le relevé de {compte}, le {date}. Un seul Mouvement interne, les deux lignes pointées, chacune à sa date.',
 	ligne_avant_ancre:
 		'Cette date précède le solde de départ de ce Compte : la ligne n’entrerait pas dans le contrôle.',
 

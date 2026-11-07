@@ -4,9 +4,11 @@
  */
 import { deciderReglements, type PartReglement } from '#lib/domaine/creances/index.ts';
 import { formaterDateCourte, type DateCivile } from '#lib/domaine/dates.ts';
+import { dernierConstat } from '#lib/domaine/etats/ecart.ts';
 import { exerciceDeDate } from '#lib/domaine/etats/soldes.ts';
 import type { GrandJournal, LigneReleveJ } from '#lib/domaine/journal.ts';
 import { centimes, formaterMontant, type Centimes } from '#lib/domaine/montant.ts';
+import { formeInterne } from '#lib/domaine/operations/formes.ts';
 import type { Brouillon } from '#lib/domaine/operations/validation.ts';
 import { rechercher } from '#lib/domaine/recherche/index.ts';
 import {
@@ -29,6 +31,7 @@ import {
 	type DemandePointage
 } from '#lib/domaine/releve/pointage.ts';
 import { cotesOuverts, libelleDuCote } from '#lib/domaine/releve/proposer.ts';
+import { datesDecalees, deciderVirement, redatable } from '#lib/domaine/releve/virements.ts';
 import { trous, type Trou } from '#lib/domaine/releve/trous.ts';
 import type { ReleveNormalise } from '#lib/domaine/releve/types.ts';
 import {
@@ -47,6 +50,7 @@ import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.t
 import {
 	annulerOperation,
 	ecrireOperation,
+	redaterCote,
 	versBrouillon,
 	type EntreeOperation
 } from '../operations/index.ts';
@@ -158,6 +162,8 @@ function recapitulatif(
 		trou
 	};
 }
+
+export type EntreeVirement = { ligneId: number; autreLigneId: number; cle?: string };
 
 function ecrirePointage(o: Outils, d: DemandePointage): Resultat<{ id: number }> {
 	const j = o.depots.operations.journal();
@@ -403,9 +409,90 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
+	/**
+	 * Le relevé dit le jour où l'argent a bougé sur ce Compte. Sans ce réalignement, un virement
+	 * daté après son relevé laisse un Écart alors que tout est pointé. Un échec ne bloque rien.
+	 */
+	function alignerSurReleve(o: Outils, d: DemandePointage) {
+		const [coteId, autre] = d.coteIds;
+		const [ligneId, autreLigne] = d.ligneIds;
+		if (coteId === undefined || ligneId === undefined || autre !== undefined) return;
+		if (autreLigne !== undefined) return;
+		const j = o.depots.operations.journal();
+		const operation = j.operations.find((op) => op.cotes.some((c) => c.id === coteId));
+		const cote = operation?.cotes.find((c) => c.id === coteId);
+		const ligne = j.lignesReleve.find((l) => l.id === ligneId);
+		if (operation?.genre !== 'interne' || operation.origine !== 'saisie') return;
+		if (cote === undefined || ligne === undefined || cote.date === ligne.date) return;
+		if (cote.compteId !== ligne.compteId || cote.montant !== ligne.montant) return;
+		if (redatable(j, cote.date, ligne.date).ok) redaterCote(o, operation, coteId, ligne.date);
+	}
+
 	const casPointer: CasUsage<DemandePointage, { id: number }> = {
 		droit: 'saisir',
-		faire: ecrirePointage
+		faire(o, d) {
+			alignerSurReleve(o, d);
+			return ecrirePointage(o, d);
+		}
+	};
+
+	/** Les deux relevés montrent la même somme : un seul Mouvement interne, deux Pointages. */
+	const casVirement: CasUsage<EntreeVirement, { id: number; pointageIds: number[] }> = {
+		droit: 'saisir',
+		faire(o, e) {
+			const j = o.depots.operations.journal();
+			const decision = deciderVirement(j, e.ligneId, e.autreLigneId);
+			if (!decision.ok) return decision;
+			const { sortie, entree } = decision.valeur;
+			const nom = (id: number) => j.comptes.find((c) => c.id === id)?.libelle ?? '';
+			const cree = ecrireOperation(
+				o,
+				formeInterne({
+					libelle: `Virement de ${nom(sortie.compteId)} vers ${nom(entree.compteId)}`,
+					note: null,
+					reference: null,
+					deId: sortie.compteId,
+					versId: entree.compteId,
+					montant: entree.montant,
+					parti: sortie.date,
+					arrive: entree.date
+				}),
+				{ cle: e.cle }
+			);
+			if (!cree.ok) return cree;
+			const cotes = o.depots.operations.parId(cree.valeur.id)?.cotes ?? [];
+			const pointageIds: number[] = [];
+			for (const ligne of [sortie, entree]) {
+				const cote = cotes.find((c) => c.compteId === ligne.compteId);
+				if (cote === undefined) return echec('pointage_incoherent');
+				const pointe = ecrirePointage(o, {
+					compteId: ligne.compteId,
+					coteIds: [cote.id],
+					ligneIds: [ligne.id]
+				});
+				if (!pointe.ok) return pointe;
+				pointageIds.push(pointe.valeur.id);
+			}
+			return succes({ id: cree.valeur.id, pointageIds });
+		}
+	};
+
+	/** Le bouton du panneau des causes : l'Opération reprend la date du relevé pointé. */
+	const casAligner: CasUsage<number, { id: number }> = {
+		droit: 'saisir',
+		faire(o, pointageId) {
+			const j = o.depots.operations.journal();
+			const pointage = j.pointages.find((p) => p.id === pointageId);
+			if (pointage === undefined) return echec('element_introuvable');
+			const dernier = dernierConstat(j, pointage.compteId, '9999-12-31');
+			const element =
+				dernier &&
+				datesDecalees(j, pointage.compteId, dernier.date).find((x) => x.pointageId === pointageId);
+			if (!element) return echec('pointage_incoherent');
+			const operation = j.operations.find((op) => op.id === element.operationId);
+			if (operation === undefined) return echec('element_introuvable');
+			return redaterCote(o, operation, element.coteId, element.dateReleve);
+		}
 	};
 
 	/**
@@ -598,6 +685,15 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 		retirerLigne: (ctx: Ctx, id: number) => executer(casRetirer, ctx, id),
 		retirerConstat: (ctx: Ctx, id: number) => executer(casRetirerConstat, ctx, id),
 		pointer: (ctx: Ctx, d: DemandePointage) => executer(casPointer, ctx, d),
+		virement(ctx: Ctx, e: EntreeVirement): Resultat<{ id: number; pointageIds: number[] }> {
+			const deja = lire(ctx, 'saisir', () =>
+				e.cle === undefined ? null : depots.journal.entiteDeCle(e.cle)
+			);
+			if (!deja.ok) return deja;
+			if (deja.valeur !== null) return succes({ id: deja.valeur, pointageIds: [] });
+			return executer(casVirement, ctx, e);
+		},
+		aligner: (ctx: Ctx, id: number) => executer(casAligner, ctx, id),
 		annuler: (ctx: Ctx, id: number) => executer(casAnnuler, ctx, id),
 		ajuster: (ctx: Ctx, d: DemandePointage) => executer(casAjuster, ctx, d),
 

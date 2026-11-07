@@ -20,6 +20,13 @@ import {
 } from './proposer.ts';
 import { estVersementSumup, numeroChequeLu } from './references.ts';
 import { trous, type Periode, type Trou } from './trous.ts';
+import {
+	datesDecalees,
+	indexVirements,
+	virementCroise,
+	type DateDecalee,
+	type VirementCroise
+} from './virements.ts';
 
 export type EtatLigne = 'pointe' | 'a_pointer' | 'a_regarder';
 
@@ -48,6 +55,8 @@ export type LigneFile = Pick<LigneReleveJ, 'id' | 'date' | 'montant' | 'libelle'
 	chequeAnnule: boolean;
 	/** Versement SumUp : se répartit en brut et frais (FR-24). */
 	sumup: boolean;
+	/** La même somme, en sens opposé, attend sur le relevé d'un autre Compte. */
+	virement: VirementCroise | null;
 };
 
 export type BarreEcartVue = {
@@ -63,6 +72,7 @@ export type BarreEcartVue = {
 };
 
 export type CausesVue = {
+	decalees: DecaleeVue[];
 	ecart: Centimes;
 	explique: Centimes;
 	nonExplique: Centimes;
@@ -70,6 +80,9 @@ export type CausesVue = {
 	cotes: ElementRelie[];
 	anciennes: ElementRelie[];
 };
+
+/** Une Opération datée après son relevé, avec ce qu'il faut pour le dire et le corriger. */
+export type DecaleeVue = DateDecalee & { libelle: string };
 
 export type VuePointage = {
 	lignes: LigneFile[];
@@ -170,7 +183,7 @@ function elementsRelies(j: GrandJournal, coteIds: readonly number[]): ElementRel
 	);
 }
 
-function causesVue(j: GrandJournal, c: Causes): CausesVue {
+function causesVue(j: GrandJournal, c: Causes, compteId: number, d: DateCivile): CausesVue {
 	const vue = (liste: Causes['cotes']) =>
 		liste.map(({ cote, operation }) => ({
 			operationId: operation.id,
@@ -179,6 +192,7 @@ function causesVue(j: GrandJournal, c: Causes): CausesVue {
 			montant: cote.montant
 		}));
 	return {
+		decalees: decaleesNommees(j, compteId, d),
 		ecart: c.ecart,
 		explique: c.explique,
 		nonExplique: c.nonExplique,
@@ -188,14 +202,26 @@ function causesVue(j: GrandJournal, c: Causes): CausesVue {
 	};
 }
 
+function decaleesNommees(j: GrandJournal, compteId: number, d: DateCivile): DecaleeVue[] {
+	return datesDecalees(j, compteId, d).flatMap((x) => {
+		const operation = j.operations.find((o) => o.id === x.operationId);
+		const cote = operation?.cotes.find((y) => y.id === x.coteId);
+		return operation && cote ? [{ ...x, libelle: libelleDuCote(j, operation, cote) }] : [];
+	});
+}
+
 /** Non pointées d'abord, chaque groupe par date. Pointées : seulement depuis `depuis`. */
 function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): LigneFile[] {
 	const duCompte = j.lignesReleve.filter((l) => l.compteId === compteId);
+	const virements = indexVirements(j);
 	const lignes = duCompte
 		.map((l): LigneFile => {
 			const pointage = j.pointages.find((p) => p.ligneReleveIds.includes(l.id));
 			const etat = pointage ? 'pointe' : l.doublon === 'a_confirmer' ? 'a_regarder' : 'a_pointer';
 			const absent = pointage ? null : chequeAbsent(j, l);
+			const propositions = etat === 'a_pointer' ? proposer(j, l) : [];
+			// Un Mouvement déjà saisi l'emporte : proposer d'en créer un second le doublerait.
+			const dejaSaisi = propositions.some((p) => p.montant === l.montant);
 			return {
 				id: l.id,
 				date: l.date,
@@ -206,13 +232,14 @@ function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): L
 				manuelle: l.importId === null,
 				pointageId: pointage?.id ?? null,
 				relies: pointage ? elementsRelies(j, pointage.coteIds) : [],
-				propositions: etat === 'a_pointer' ? proposer(j, l) : [],
+				propositions,
 				sommes: etat === 'a_pointer' ? sommesSignalees(j, l) : [],
 				jumelle: duCompte.some((x) => x.id !== l.id && x.empreinte === l.empreinte),
 				horsExercice: !dateDepuisLigne(j.exercices, l.date).ok,
 				chequeAbsent: absent,
 				chequeAnnule: absent !== null && numeroInscrit(j, absent),
-				sumup: !pointage && estVersementSumup(l)
+				sumup: !pointage && estVersementSumup(l),
+				virement: etat === 'a_pointer' && !dejaSaisi ? virementCroise(j, l, virements) : null
 			};
 		})
 		.filter((l) => l.etat !== 'pointe' || depuis === null || l.date >= depuis);
@@ -255,7 +282,7 @@ export function vuePointage(
 			depart,
 			mouvements: centimes(calcule - depart)
 		},
-		causes: causes && causesVue(j, causes),
+		causes: causes && causesVue(j, causes, compteId, d),
 		trou: trous(o.periodes).at(-1) ?? null,
 		dernierPointageId: j.pointages.filter((p) => p.compteId === compteId).at(-1)?.id ?? null,
 		demesures: {

@@ -20,6 +20,12 @@ export const schemaPointage = z.object({
 	ligneIds: z.array(identifiant).max(200)
 });
 
+export const schemaVirement = z.object({
+	ligneId: identifiant,
+	autreLigneId: identifiant,
+	cle: z.string().min(1).max(100).optional()
+});
+
 export const schemaLigneReleve = z.object({
 	date,
 	montant: signe.refine((m) => m !== 0, 'montant_invalide').transform(centimes),

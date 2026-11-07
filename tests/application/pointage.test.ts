@@ -750,3 +750,160 @@ describe('aucun « tout valider » (story 3.6)', () => {
 		expect(code.filter((f) => /tout[_ ]?valider|pointerTout/i.test(f.contenu))).toEqual([]);
 	});
 });
+
+describe('virement vu sur deux relevés', () => {
+	const ligne = (compteId: number, date: string, montant: number, libelle: string) => {
+		const r = b.app.pointage.saisirLigne(b.ctx(), { compteId, date, montant: c(montant), libelle });
+		if (!r.ok) throw new Error(r.erreur.code);
+		return r.valeur.id;
+	};
+	const solde = (compteId: number, date: string, montant: number) =>
+		b.app.pointage.saisirSolde(b.ctx(), { compteId, date, solde: c(montant) });
+	const vue = (compteId: number) => {
+		const r = b.app.pointage.page(b.ctx(), compteId, null);
+		if (!r.ok) throw new Error(r.erreur.code);
+		return r.valeur;
+	};
+	const coteDu = (id: number, compteId: number) =>
+		b.app.socle.depots.operations.parId(id)?.cotes.find((x) => x.compteId === compteId);
+
+	it('propose la ligne d’en face, au sens du relevé, et enregistre un seul Mouvement', () => {
+		const sortie = ligne(livret, '2026-11-04', -100000, 'VIREMENT POUR APE');
+		const entree = ligne(ccp, '2026-11-05', 100000, 'VIREMENT DE APE');
+		solde(livret, '2026-11-04', -100000);
+
+		const [active] = vue(ccp).lignes;
+		expect(active?.virement).toMatchObject({
+			ligneId: sortie,
+			compteLibelle: 'Livret',
+			date: '2026-11-04',
+			sens: 'depuis'
+		});
+
+		const r = b.app.pointage.virement(b.ctx(), { ligneId: entree, autreLigneId: sortie });
+		expect(r.ok).toBe(true);
+		if (!r.ok) return;
+		const op = b.app.socle.depots.operations.parId(r.valeur.id);
+		expect(op?.genre).toBe('interne');
+		expect(op?.date).toBe('2026-11-04');
+		expect(coteDu(r.valeur.id, livret)?.date).toBe('2026-11-04');
+		expect(coteDu(r.valeur.id, ccp)?.date).toBe('2026-11-05');
+		expect(vue(livret).barre.ecart).toBe(0);
+		expect(vue(livret).barre.pointees).toBe(1);
+		expect(vue(ccp).barre.pointees).toBe(1);
+		expect(vue(ccp).causes).toBeNull();
+	});
+
+	it('ne propose rien au-delà de cinq jours, ni sur le même Compte, ni si le Mouvement existe', () => {
+		ligne(livret, '2026-11-04', -5000, 'SORTIE');
+		ligne(ccp, '2026-11-10', 5000, 'TROP TARD');
+		ligne(ccp, '2026-11-04', -7000, 'A');
+		ligne(ccp, '2026-11-04', 7000, 'B');
+		expect(vue(ccp).lignes.every((l) => l.virement === null)).toBe(true);
+
+		const r = b.app.operations.creer(b.ctx(), {
+			forme: 'interne',
+			libelle: 'Déjà saisi',
+			note: null,
+			reference: null,
+			deId: livret,
+			versId: ccp,
+			montant: c(9000),
+			parti: '2026-11-06',
+			arrive: '2026-11-06'
+		});
+		expect(r.ok).toBe(true);
+		ligne(livret, '2026-11-06', -9000, 'C');
+		ligne(ccp, '2026-11-06', 9000, 'D');
+		const d = vue(ccp).lignes.find((l) => l.libelle === 'D');
+		expect(d?.propositions).toHaveLength(1);
+		expect(d?.virement).toBeNull();
+	});
+
+	it('refuse deux lignes qui ne se répondent pas, et une ligne déjà pointée', () => {
+		const a = ligne(livret, '2026-11-04', -5000, 'A');
+		const x = ligne(ccp, '2026-11-04', 6000, 'X');
+		const y = ligne(ccp, '2026-11-04', 5000, 'Y');
+		const refus = (p: number, q: number) => {
+			const r = b.app.pointage.virement(b.ctx(), { ligneId: p, autreLigneId: q });
+			return r.ok ? null : r.erreur.code;
+		};
+		expect(refus(a, x)).toBe('pointage_incoherent');
+		expect(refus(a, y)).toBeNull();
+		expect(refus(a, y)).toBe('pointage_incoherent');
+	});
+
+	it('un nouvel essai avec la même clé ne double pas le virement', () => {
+		const a = ligne(livret, '2026-11-04', -5000, 'A');
+		const y = ligne(ccp, '2026-11-04', 5000, 'Y');
+		const e = { ligneId: a, autreLigneId: y, cle: 'cle-virement' };
+		expect(b.app.pointage.virement(b.ctx(), e).ok).toBe(true);
+		expect(b.app.pointage.virement(b.ctx(), e).ok).toBe(true);
+		const internes = b.app.socle.depots.operations
+			.journal()
+			.operations.filter((o) => o.genre === 'interne');
+		expect(internes).toHaveLength(1);
+	});
+
+	it('pointer un Mouvement interne reprend la date du relevé pour ce seul Côté', () => {
+		const l = ligne(livret, '2026-11-04', -100000, 'SORTIE');
+		solde(livret, '2026-11-04', -100000);
+		const r = b.app.operations.creer(b.ctx(), {
+			forme: 'interne',
+			libelle: 'Virement',
+			note: null,
+			reference: null,
+			deId: livret,
+			versId: ccp,
+			montant: c(100000),
+			parti: '2026-11-05',
+			arrive: '2026-11-05'
+		});
+		if (!r.ok) throw new Error(r.erreur.code);
+		const cote = coteDu(r.valeur.id, livret)?.id as number;
+		expect(
+			b.app.pointage.pointer(b.ctx(), { compteId: livret, coteIds: [cote], ligneIds: [l] }).ok
+		).toBe(true);
+		expect(coteDu(r.valeur.id, livret)?.date).toBe('2026-11-04');
+		expect(coteDu(r.valeur.id, ccp)?.date).toBe('2026-11-05');
+		expect(b.app.socle.depots.operations.parId(r.valeur.id)?.date).toBe('2026-11-04');
+		expect(vue(livret).barre.ecart).toBe(0);
+		expect(vue(livret).causes?.decalees).toEqual([]);
+	});
+
+	it('une Dépense pointée garde sa date : seul un Mouvement interne se réaligne', () => {
+		const id = operation(b, { montant: 3000, libelle: 'Facture', date: '2026-10-06' });
+		const l = ligne(ccp, '2026-10-05', -3000, 'FACTURE');
+		b.app.pointage.pointer(b.ctx(), { compteId: ccp, coteIds: [coteDe(b, id)], ligneIds: [l] });
+		expect(b.app.socle.depots.operations.parId(id)?.date).toBe('2026-10-06');
+	});
+
+	it('nomme une date décalée, et le bouton remet l’Écart à zéro', () => {
+		const id = operation(b, { montant: 3000, libelle: 'Facture', date: '2026-10-06' });
+		const l = ligne(ccp, '2026-10-05', -3000, 'FACTURE');
+		const p = b.app.pointage.pointer(b.ctx(), {
+			compteId: ccp,
+			coteIds: [coteDe(b, id)],
+			ligneIds: [l]
+		});
+		if (!p.ok) throw new Error(p.erreur.code);
+		solde(ccp, '2026-10-05', 97000);
+
+		const avant = vue(ccp);
+		expect(avant.barre.ecart).toBe(-3000);
+		expect(avant.causes?.decalees).toMatchObject([
+			{
+				pointageId: p.valeur.id,
+				dateCote: '2026-10-06',
+				dateReleve: '2026-10-05',
+				libelle: 'Facture'
+			}
+		]);
+
+		expect(b.app.pointage.aligner(b.ctx(), p.valeur.id).ok).toBe(true);
+		const apres = vue(ccp);
+		expect(apres.barre.ecart).toBe(0);
+		expect(apres.causes?.decalees).toEqual([]);
+		expect(apres.barre.pointees).toBe(1);
+	});
+});

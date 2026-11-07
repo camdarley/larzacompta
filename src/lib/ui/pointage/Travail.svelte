@@ -102,6 +102,7 @@
 	const elements = $derived<Coche[]>(
 		coches.length > 0 ? coches : selectionnee ? [versCoche(selectionnee)] : []
 	);
+	const decalee = $derived(vue.causes?.decalees[0] ?? null);
 	const rienAPointer = $derived(active?.propositions.length === 0 && elements.length === 0);
 	const idsLignes = $derived(
 		active && !lignesCochees.includes(active.id) ? [...lignesCochees, active.id] : lignesCochees
@@ -233,6 +234,7 @@
 		if (active?.etat === 'a_regarder') return confirmer();
 		if (occupe || !active || active.etat !== 'a_pointer') return;
 		// Sans proposition, l'action attendue est de créer l'Opération : Entrée la lance.
+		if (active.virement && elements.length === 0) return virer();
 		if (rienAPointer) {
 			creer({ solder: active.sommes[0]?.creanceId });
 			return;
@@ -312,6 +314,38 @@
 		passees = [...passees.filter((x) => x !== id), id];
 		activer(suivante?.id ?? id);
 		tick().then(focusActive);
+	}
+
+	/** Les deux relevés montrent la même somme : un seul Mouvement, les deux lignes pointées. */
+	async function virer() {
+		if (occupe || !active?.virement) return;
+		occupe = true;
+		const depuis = active.id;
+		const r = await envoyer<{ id: number }>('/api/pointage/virement', {
+			ligneId: depuis,
+			autreLigneId: active.virement.ligneId
+		});
+		occupe = false;
+		if (r.type !== 'ok') {
+			echecCommun(r);
+			return;
+		}
+		afficherToast('Virement enregistré, les deux lignes sont pointées.');
+		await apresPointage([depuis], depuis);
+	}
+
+	async function aligner(pointageId: number) {
+		if (occupe) return;
+		occupe = true;
+		const r = await envoyer(`/api/pointage/aligner/${pointageId}`);
+		occupe = false;
+		if (r.type !== 'ok') {
+			echecCommun(r);
+			return;
+		}
+		afficherToast('Date corrigée.');
+		await refreshAll();
+		if (vue.causes === null || vue.causes.ecart === 0) fermerCauses();
 	}
 
 	function creer(options: { sumup?: boolean; solder?: number } = {}) {
@@ -610,7 +644,9 @@
 	async function apresImport() {
 		dateSoldeAffichee();
 		await refreshAll();
-		if (activeId === null || !vue.lignes.some((l) => l.id === activeId)) {
+		// Une ligne déjà pointée n'a plus rien à dire : on reprend à la première à traiter.
+		const courante = vue.lignes.find((l) => l.id === activeId);
+		if (courante === undefined || courante.etat === 'pointe') {
 			activer(vue.lignes[0]?.id ?? null);
 		} else if (active) {
 			activer(active.id);
@@ -888,7 +924,24 @@
 									montant: formaterMontant(abs(vue.barre.ecart))
 								})}
 							</h2>
-							<Bouton onclick={() => changerUrl({ causes: '1' })}>Voir les causes</Bouton>
+							{#if decalee}
+								<p>
+									{message('date_decalee', {
+										libelle: decalee.libelle,
+										dateCote: formaterDateCourte(decalee.dateCote),
+										dateReleve: formaterDateCourte(decalee.dateReleve)
+									})}
+								</p>
+								{#if !lectureSeule}
+									<Bouton {occupe} onclick={() => decalee && aligner(decalee.pointageId)}>
+										Mettre au {formaterDateCourte(decalee.dateReleve)}
+									</Bouton>
+								{/if}
+							{/if}
+							<Bouton
+								variante={decalee ? 'secondaire' : 'principal'}
+								onclick={() => changerUrl({ causes: '1' })}>Voir les causes</Bouton
+							>
 						{/if}
 					</div>
 				{:else if active}
@@ -978,6 +1031,21 @@
 								{/each}
 							</ul>
 						{/if}
+						{#if active.virement}
+							<h3 class="t-label sous-titre">Virement entre Comptes</h3>
+							<div class="virement">
+								<p class="nom-virement">
+									Virement {active.virement.sens === 'depuis' ? 'depuis' : 'vers'}
+									{active.virement.compteLibelle}
+								</p>
+								<p class="t-caption t-muted">
+									{message('virement_croise', {
+										compte: active.virement.compteLibelle,
+										date: formaterDateCourte(active.virement.date)
+									})}
+								</p>
+							</div>
+						{/if}
 						{#if active.propositions.length > 0}
 							<h3 class="t-label sous-titre">Propositions</h3>
 							<ol class="propositions">
@@ -992,7 +1060,7 @@
 									/>
 								{/each}
 							</ol>
-						{:else if !active.chequeAbsent && active.sommes.length === 0}
+						{:else if !active.chequeAbsent && active.sommes.length === 0 && !active.virement}
 							<p class="t-muted">Aucune Opération ne correspond. Créez-la, ou reliez-en une.</p>
 						{/if}
 
@@ -1054,7 +1122,14 @@
 						{#if indication}<p class="indication t-caption" role="status">{indication}</p>{/if}
 
 						<div class="actions">
-							{#if rienAPointer && active.sommes.length > 0}
+							{#if active.virement && elements.length === 0}
+								<Bouton {occupe} onclick={virer}>
+									Enregistrer le virement <Touche>Entrée</Touche>
+								</Bouton>
+								<Bouton variante="secondaire" onclick={() => creer()}>
+									Créer <Touche>c</Touche>
+								</Bouton>
+							{:else if rienAPointer && active.sommes.length > 0}
 								<Bouton variante="secondaire" onclick={() => creer()}>
 									Créer sans solder <Touche>c</Touche>
 								</Bouton>
@@ -1094,7 +1169,11 @@
 {/if}
 
 {#if q.has('causes') && vue.causes}
-	<CausesEcart causes={vue.causes} fermer={fermerCauses} />
+	<CausesEcart
+		causes={vue.causes}
+		fermer={fermerCauses}
+		aligner={lectureSeule ? undefined : aligner}
+	/>
 {/if}
 
 {#if lectureSeule}
@@ -1203,6 +1282,19 @@
 
 	.sous-titre {
 		color: var(--ink-muted);
+	}
+
+	.virement {
+		display: grid;
+		gap: var(--espace-1);
+		padding: var(--espace-3);
+		border: 2px solid var(--primary);
+		border-radius: var(--rayon-md);
+		background: var(--primary-soft);
+	}
+
+	.nom-virement {
+		font-weight: 600;
 	}
 
 	.propositions {

@@ -194,6 +194,26 @@ function existantDe(op: OperationJ): ExistantLignes {
 	};
 }
 
+/**
+ * Change la date d'un seul Côté, par le chemin normal : version, Journal et verrous s'appliquent.
+ * La date de l'Opération suit son Côté sortant (O3), ou son Côté unique.
+ */
+export function redaterCote(
+	o: Outils,
+	op: OperationJ,
+	coteId: number,
+	date: DateCivile
+): Resultat<{ id: number }> {
+	const base = brouillonDe(op);
+	const cotes = base.cotes.map((c, i) => (op.cotes[i]?.id === coteId ? { ...c, date } : c));
+	const reference = cotes.find((c) => c.montant < 0) ?? cotes[0];
+	return ecrireModification(
+		o,
+		{ id: op.id, version: op.version },
+		{ ...base, cotes, date: op.genre === 'interne' ? (reference?.date ?? date) : date }
+	);
+}
+
 function brouillonDe(op: OperationJ): BrouillonValide {
 	return {
 		genre: op.genre,
