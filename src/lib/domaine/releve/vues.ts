@@ -3,7 +3,7 @@
  * L'interface n'importe rien du serveur (AD-1) : ces formes vivent ici.
  */
 import type { DateCivile } from '../dates.ts';
-import { causesEcart, dernierConstat, ecart, type Causes } from '../etats/ecart.ts';
+import { causesEcart, dernierConstat, ecart, ouverts, type Causes } from '../etats/ecart.ts';
 import { exerciceDeDate, soldeCompte, soldeDepart } from '../etats/soldes.ts';
 import type { GrandJournal, LigneReleveJ, RelevesDemesures } from '../journal.ts';
 import { centimes, type Centimes } from '../montant.ts';
@@ -86,6 +86,8 @@ export type DecaleeVue = DateDecalee & { libelle: string };
 
 export type VuePointage = {
 	lignes: LigneFile[];
+	/** Opérations non pointées jusqu'au relevé regardé : sans fichier, leur ligne se recopie. */
+	sansLigne: (ElementRelie & { coteId: number })[];
 	barre: BarreEcartVue;
 	causes: CausesVue | null;
 	trou: Trou | null;
@@ -183,14 +185,18 @@ function elementsRelies(j: GrandJournal, coteIds: readonly number[]): ElementRel
 	);
 }
 
+function elementsOuverts(j: GrandJournal, liste: Causes['cotes']) {
+	return liste.map(({ cote, operation }) => ({
+		coteId: cote.id,
+		operationId: operation.id,
+		libelle: libelleDuCote(j, operation, cote),
+		date: cote.date,
+		montant: cote.montant
+	}));
+}
+
 function causesVue(j: GrandJournal, c: Causes, compteId: number, d: DateCivile): CausesVue {
-	const vue = (liste: Causes['cotes']) =>
-		liste.map(({ cote, operation }) => ({
-			operationId: operation.id,
-			libelle: libelleDuCote(j, operation, cote),
-			date: cote.date,
-			montant: cote.montant
-		}));
+	const vue = (liste: Causes['cotes']) => elementsOuverts(j, liste).map(({ coteId: _, ...e }) => e);
 	return {
 		decalees: decaleesNommees(j, compteId, d),
 		ecart: c.ecart,
@@ -211,8 +217,15 @@ function decaleesNommees(j: GrandJournal, compteId: number, d: DateCivile): Deca
 }
 
 /** Non pointées d'abord, chaque groupe par date. Pointées : seulement depuis `depuis`. */
-function fileDe(j: GrandJournal, compteId: number, depuis: DateCivile | null): LigneFile[] {
-	const duCompte = j.lignesReleve.filter((l) => l.compteId === compteId);
+function fileDe(
+	j: GrandJournal,
+	compteId: number,
+	depuis: DateCivile | null,
+	fin: DateCivile | null
+): LigneFile[] {
+	const duCompte = j.lignesReleve.filter(
+		(l) => l.compteId === compteId && (fin === null || l.date <= fin)
+	);
 	const virements = indexVirements(j);
 	const lignes = duCompte
 		.map((l): LigneFile => {
@@ -256,12 +269,15 @@ export function vuePointage(
 	o: {
 		aujourdhui: DateCivile;
 		depuis: DateCivile | null;
+		/** Fin de l'Exercice regardé : relevés et lignes postérieurs appartiennent à la suite. */
+		fin?: DateCivile | null;
 		periodes: readonly (Periode & { id: number })[];
 	}
 ): VuePointage {
-	const lignes = fileDe(j, compteId, o.depuis);
-	const constat = dernierConstat(j, compteId, '9999-12-31');
-	const d = constat?.date ?? o.aujourdhui;
+	const fin = o.fin ?? null;
+	const lignes = fileDe(j, compteId, o.depuis, fin);
+	const constat = dernierConstat(j, compteId, fin ?? '9999-12-31');
+	const d = constat?.date ?? (fin !== null && fin < o.aujourdhui ? fin : o.aujourdhui);
 	const calcule = soldeCompte(j, compteId, d);
 	const exercice = exerciceDeDate(j.exercices, d);
 	const depart = exercice
@@ -272,6 +288,9 @@ export function vuePointage(
 
 	return {
 		lignes,
+		sansLigne: elementsOuverts(j, ouverts(j, compteId, d).cotes).sort(
+			(a, b) => a.date.localeCompare(b.date) || a.coteId - b.coteId
+		),
 		barre: {
 			releve: constat?.solde ?? null,
 			dateReleve: constat?.date ?? null,

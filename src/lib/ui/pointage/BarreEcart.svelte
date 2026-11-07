@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { Check, ChevronsUpDown } from '@lucide/svelte';
 	import { formaterDateLongue } from '#lib/domaine/dates.ts';
 	import { centimes, formaterMontant, lectureMontant } from '#lib/domaine/montant.ts';
@@ -38,6 +39,11 @@
 			.filter(Boolean)
 			.join(', ')
 	);
+	// Changer de Compte garde l'Exercice regardé.
+	const exerciceChoisi = $derived.by(() => {
+		const e = page.url.searchParams.get('exercice');
+		return e ? `?exercice=${encodeURIComponent(e)}` : '';
+	});
 </script>
 
 <section class="barre-ecart" class:fini aria-label="Écart du relevé">
@@ -50,7 +56,10 @@
 					<ChevronsUpDown size={16} strokeWidth={1.75} aria-hidden="true" />
 				{/snippet}
 				{#each comptes as c (c.id)}
-					<a href="/pointage/{c.id}" aria-current={c.id === compte.id ? 'true' : undefined}>
+					<a
+						href="/pointage/{c.id}{exerciceChoisi}"
+						aria-current={c.id === compte.id ? 'true' : undefined}
+					>
 						<span class="option">{c.libelle}</span>
 						{#if c.id === compte.id}<Check size={16} strokeWidth={2} aria-hidden="true" />{/if}
 					</a>

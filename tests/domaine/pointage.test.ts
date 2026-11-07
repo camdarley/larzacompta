@@ -665,6 +665,66 @@ describe('vuePointage', () => {
 		expect(v.causes?.ecart).toBe(2250);
 	});
 
+	it('un Exercice passé lit son propre relevé, sans les lignes de la suite', () => {
+		const ancien = operationJ({ date: '2026-03-10', montant: -5000 });
+		const recent = operationJ({ date: '2026-10-05', montant: -1000 });
+		const ligneSuite = ligneR({ date: '2026-10-05' });
+		const j = journal({
+			operations: [ancien, recent],
+			lignesReleve: [ligneSuite],
+			constats: [constat(95000, '2026-08-31'), constat(94000, '2026-10-31')]
+		});
+		const passe = vuePointage(j, 1, { ...o, depuis: '2025-09-01', fin: '2026-08-31' });
+		expect(passe.barre).toMatchObject({ releve: 95000, dateReleve: '2026-08-31' });
+		expect(passe.lignes).toEqual([]);
+		expect(passe.sansLigne.map((s) => s.operationId)).toEqual([ancien.id]);
+
+		const courant = vuePointage(j, 1, o);
+		expect(courant.barre.dateReleve).toBe('2026-10-31');
+		expect(courant.lignes.map((l) => l.id)).toEqual([ligneSuite.id]);
+	});
+
+	it('sans relevé dans l’Exercice passé, le calcul s’arrête à sa fin', () => {
+		const v = vuePointage(journal(), 1, { ...o, aujourdhui: '2026-11-05', fin: '2026-08-31' });
+		expect(v.barre.releve).toBeNull();
+		expect(v.sansLigne).toEqual([]);
+	});
+
+	it('nomme les Opérations sans ligne, par date, et oublie celles pointées', () => {
+		const tard = operationJ({ date: '2026-10-20', montant: -300, libelle: 'Tard' });
+		const tot = operationJ({ date: '2026-10-02', montant: 700, libelle: 'Tôt' });
+		const pointee = operationJ({ date: '2026-10-03', montant: -1000 });
+		const l = ligneR({ date: '2026-10-03' });
+		const v = vuePointage(
+			journal({
+				operations: [tard, tot, pointee],
+				lignesReleve: [l],
+				constats: [constat(99400)],
+				pointages: [
+					{
+						id: 1,
+						compteId: 1,
+						coteIds: [cote(pointee)],
+						ligneReleveIds: [l.id],
+						creeLe: '2026-11-01T10:00:00.000Z'
+					}
+				]
+			}),
+			1,
+			o
+		);
+		expect(v.sansLigne).toEqual([
+			{ coteId: cote(tot), operationId: tot.id, libelle: 'Tôt', date: '2026-10-02', montant: 700 },
+			{
+				coteId: cote(tard),
+				operationId: tard.id,
+				libelle: 'Tard',
+				date: '2026-10-20',
+				montant: -300
+			}
+		]);
+	});
+
 	it('hors Exercice connu, le départ reste l’ancre', () => {
 		const v = vuePointage(journal({ exercices: [] }), 1, o);
 		expect(v.barre.depart).toBe(100000);

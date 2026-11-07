@@ -727,7 +727,7 @@
 	const fermerCauses = () => changerUrl({ causes: null });
 	const fermerSaisie = () => {
 		dateSolde = null;
-		return changerUrl({ saisir: null })
+		return changerUrl({ saisir: null, cote: null })
 			.then(() => tick())
 			.then(focusActive);
 	};
@@ -1159,6 +1159,37 @@
 			</section>
 		</div>
 	{/if}
+
+	{#if vue.sansLigne.length > 0}
+		<section class="sans-ligne seulement-ordinateur" aria-labelledby="titre-sans-ligne">
+			<h2 id="titre-sans-ligne" class="t-heading">
+				{vue.sansLigne.length > 1
+					? `${vue.sansLigne.length} Opérations attendent leur ligne de relevé`
+					: 'Une Opération attend sa ligne de relevé'}
+			</h2>
+			<p class="t-muted">
+				Aucune ligne importée ne leur correspond. Si elles figurent sur votre relevé, recopiez la
+				ligne : elle se pointera ensuite comme les autres.
+			</p>
+			<ul>
+				{#each vue.sansLigne as o (o.coteId)}
+					<li>
+						<span class="t-caption">{formaterDateCourte(o.date)}</span>
+						<a href="/operations?op={o.operationId}">{o.libelle}</a>
+						<span class="montant">{formaterMontantSigne(o.montant)}</span>
+						{#if !lectureSeule}
+							<Bouton
+								variante="secondaire"
+								onclick={() => changerUrl({ saisir: 'ligne', cote: String(o.coteId) })}
+							>
+								Recopier du relevé
+							</Bouton>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 </div>
 
 {#if glisse > 0}
@@ -1179,13 +1210,20 @@
 {#if lectureSeule}
 	<!-- Rien ne s'écrit sur un Exercice clôturé, même par une URL gardée. -->
 {:else if q.get('saisir') === 'ligne'}
+	{@const recopie = vue.sansLigne.find((o) => String(o.coteId) === q.get('cote')) ?? null}
 	<SaisieLigne
 		compteId={compte.id}
-		dateProposee={aujourdhui}
+		dateProposee={recopie?.date ?? aujourdhui}
+		depuis={recopie}
 		fermer={fermerSaisie}
 		apres={async () => {
 			await refreshAll();
-			if (activeId === null) activer(vue.lignes[0]?.id ?? null);
+			// Recopiée d'une Opération : la nouvelle ligne s'ouvre, sa proposition prête à pointer.
+			const nouvelle = recopie
+				? vue.lignes.filter((l) => l.manuelle && l.etat === 'a_pointer').at(-1)
+				: undefined;
+			if (nouvelle) activer(nouvelle.id);
+			else if (activeId === null) activer(vue.lignes[0]?.id ?? null);
 			afficherToast('Ligne ajoutée.');
 		}}
 	/>
@@ -1218,6 +1256,43 @@
 	.page {
 		display: grid;
 		gap: var(--espace-4);
+	}
+
+	.sans-ligne {
+		display: grid;
+		gap: var(--espace-2);
+		padding: var(--espace-4);
+		border: 1px solid var(--border);
+		border-radius: var(--rayon-md);
+		background: var(--surface-raised);
+	}
+
+	.sans-ligne ul {
+		display: grid;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.sans-ligne li {
+		display: grid;
+		grid-template-columns: 6rem 1fr auto auto;
+		align-items: center;
+		gap: var(--espace-3);
+		padding-block: var(--espace-2);
+		border-top: 1px solid var(--border);
+	}
+
+	.sans-ligne li a {
+		overflow: hidden;
+		color: var(--ink);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sans-ligne .montant {
+		font-variant-numeric: tabular-nums;
+		text-align: end;
 	}
 
 	.annonces {

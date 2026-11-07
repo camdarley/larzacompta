@@ -718,7 +718,13 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 			return lire(ctx, 'saisir', () => lignesAPointer(journal()));
 		},
 
-		page(ctx: Ctx, compteId: number, depuis: DateCivile | null): Resultat<PagePointage> {
+		/** `depuis` et `fin` : l'Exercice regardé. Sans `fin`, le dernier relevé fait foi. */
+		page(
+			ctx: Ctx,
+			compteId: number,
+			depuis: DateCivile | null,
+			fin: DateCivile | null = null
+		): Resultat<PagePointage> {
 			const r = lire(ctx, 'saisir', () => {
 				const j = journal();
 				const compte = compteDe(j, compteId);
@@ -727,6 +733,7 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 					...vuePointage(j, compteId, {
 						aujourdhui: ctx.aujourdhui,
 						depuis,
+						fin,
 						periodes: depots.pointage.periodes(compteId)
 					}),
 					compte,

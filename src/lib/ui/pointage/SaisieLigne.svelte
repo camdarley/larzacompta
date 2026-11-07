@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { centimes, lireMontant } from '#lib/domaine/montant.ts';
+	import { centimes, formaterSaisie, lireMontant, type Centimes } from '#lib/domaine/montant.ts';
 	import { message, messageErreur, type CodeMessage } from '#lib/messages.ts';
 	import { envoyer } from '#lib/ui/api.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
@@ -16,14 +16,20 @@
 		fermer: () => void;
 		/** Après l'écriture : recharge la file. */
 		apres: () => Promise<void>;
+		/** Recopie d'une Opération sans ligne : la date reste à vérifier sur le relevé. */
+		depuis?: { libelle: string; montant: Centimes } | null;
 	};
 
-	let { compteId, dateProposee, fermer, apres }: Props = $props();
+	let { compteId, dateProposee, fermer, apres, depuis = null }: Props = $props();
 
 	let date = $state(untrack(() => dateProposee));
-	let libelle = $state('');
-	let montant = $state('');
-	let sens = $state<'sortie' | 'entree'>('sortie');
+	let libelle = $state(untrack(() => depuis?.libelle ?? ''));
+	let montant = $state(
+		untrack(() => (depuis ? formaterSaisie(centimes(Math.abs(depuis.montant))) : ''))
+	);
+	let sens = $state<'sortie' | 'entree'>(
+		untrack(() => (depuis && depuis.montant > 0 ? 'entree' : 'sortie'))
+	);
 	let occupe = $state(false);
 	let erreurs = $state<Record<string, string>>({});
 	let alerte = $state<string | null>(null);
@@ -72,8 +78,13 @@
 	>
 		{#if alerte}<Bandeau ton="erreur" alerte>{alerte}</Bandeau>{/if}
 		<p class="t-muted">
-			Sans fichier à importer, recopiez ici la ligne de votre relevé. Elle se pointe comme les
-			autres.
+			{#if depuis}
+				Vérifiez sur votre relevé la date et le montant de cette ligne. Elle se pointera ensuite
+				avec l’Opération.
+			{:else}
+				Sans fichier à importer, recopiez ici la ligne de votre relevé. Elle se pointe comme les
+				autres.
+			{/if}
 		</p>
 		<Champ
 			etiquette="Date"
