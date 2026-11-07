@@ -64,7 +64,8 @@
 			{:else if c.session}
 				<Bouton href="/sessions/{c.session.id}">Voir la Session</Bouton>
 			{:else}
-				<Bouton href="/caisses/{c.id}/comptage">Ouvrir une Session</Bouton>
+				<Bouton href="/caisses/{c.id}/comptage?inventaire=1">Faire l’inventaire</Bouton>
+				<Bouton variante="secondaire" href="/caisses/{c.id}/comptage">Ouvrir une Session</Bouton>
 			{/if}
 			<Bouton variante="secondaire" href={entre(c.id)} conserverFocus>Transférer</Bouton>
 			{#if data.banque !== null}

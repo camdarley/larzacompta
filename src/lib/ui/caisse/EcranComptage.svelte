@@ -86,6 +86,21 @@
 		ecrireBrouillon(nomBrouillon, coupuresSaisies(quantites));
 	}
 
+	let ouvertureReprise = $state(false);
+	/** La caisse a peu bougé : le Comptage précédent se reprend, puis se corrige. */
+	function reprendreOuverture() {
+		if (!ecran.reprise) return;
+		quantites.clear();
+		for (const c of ecran.reprise.coupures) quantites.set(c.coupure, c.quantite);
+		if (ecran.reprise.coupures.some((c) => AUTRES_COUPURES.includes(c.coupure))) {
+			autresOuvertes = true;
+		}
+		ecrireBrouillon(nomBrouillon, coupuresSaisies(quantites));
+		ouvertureReprise = true;
+		reseau = false;
+		erreur = null;
+	}
+
 	function suivante() {
 		const champs = [...(liste?.querySelectorAll<HTMLInputElement>('input') ?? [])];
 		champs[champs.indexOf(document.activeElement as HTMLInputElement) + 1]?.focus();
@@ -135,7 +150,9 @@
 		const commun = { coupures, date, confirmation: totalPrecedent };
 		if (ecran.sessionId) return { ...commun, corriger: ecran.correction };
 		return ecran.mode === 'controle'
-			? commun
+			? ecran.inventaire
+				? { ...commun, inventaire: true }
+				: commun
 			: { ...commun, actionId: actionId === 'sans' ? null : Number(actionId) };
 	}
 
@@ -228,7 +245,11 @@
 			</a>
 			<div>
 				<h1 class="t-heading" tabindex="-1">
-					{ecran.caisse} · {ecran.correction ? 'Correction' : TITRES[ecran.mode]}
+					{ecran.caisse} · {ecran.correction
+						? 'Correction'
+						: ecran.inventaire
+							? 'Inventaire'
+							: TITRES[ecran.mode]}
 				</h1>
 				<p class="t-caption t-muted">{sousTitre}</p>
 			</div>
@@ -243,10 +264,21 @@
 					différence.
 				</p>
 			</section>
-		{:else if ecran.message === 'repris'}
+		{:else if ouvertureReprise || ecran.message === 'repris'}
 			<p class="note">{TEXTES.comptage_repris}</p>
 		{:else if ecran.message === 'a_compter'}
 			<p class="note">{TEXTES.comptage_a_faire}</p>
+		{/if}
+
+		{#if ecran.reprise && !ouvertureReprise}
+			<div class="reprise">
+				<Bouton variante="secondaire" onclick={reprendreOuverture}>
+					{ecran.reprise.source === 'ouverture'
+						? 'Reprendre le comptage d’ouverture'
+						: `Reprendre le comptage du ${formaterDateCourte(ecran.reprise.date)}`}
+					({formaterMontant(ecran.reprise.total)})
+				</Bouton>
+			</div>
 		{/if}
 
 		{#if estOuverture}
@@ -377,6 +409,10 @@
 	}
 
 	.action {
+		margin-top: var(--espace-3);
+	}
+
+	.reprise {
 		margin-top: var(--espace-3);
 	}
 

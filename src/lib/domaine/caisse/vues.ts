@@ -356,4 +356,16 @@ export type EcranComptage = {
 	actions: { id: number; libelle: string }[];
 	date: DateCivile;
 	aujourdhui: DateCivile;
+	/** Inventaire : Comptage de contrôle d'une caisse ordinaire, sans Session (FR-16 élargi). */
+	inventaire?: boolean;
+	/**
+	 * Un Comptage précédent se reprend d'un geste : l'ouverture au Comptage final, le dernier
+	 * Comptage à l'inventaire. On vérifie la caisse et on corrige les pièces sorties.
+	 */
+	reprise?: {
+		source: 'ouverture' | 'dernier';
+		date: DateCivile;
+		total: Centimes;
+		coupures: CoupureJ[];
+	} | null;
 };

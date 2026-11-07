@@ -34,7 +34,9 @@ const commun = {
 export const schemaComptageCaisse = z.object({
 	...commun,
 	/** Absent : réserve. `null` : « Sans Action ». */
-	actionId: z.number().int().positive().nullable().optional()
+	actionId: z.number().int().positive().nullable().optional(),
+	/** Caisse ordinaire comptée sans Session. */
+	inventaire: z.boolean().optional()
 });
 
 export const schemaComptageSession = z.object({

@@ -718,3 +718,67 @@ describe('Caisses dans le contrôle (E4, §8)', () => {
 		expect(verifier()).toContain('C2');
 	});
 });
+
+describe('Inventaire d’une caisse ordinaire (retour d’usage du 07/11/2026)', () => {
+	const inventaire = (
+		coupures: CoupureJ[],
+		o: { confirmation?: Centimes | null; ctx?: ReturnType<Instance['ctx']> } = {}
+	) =>
+		i.app.caisses.compterCaisse(o.ctx ?? i.ctx(), {
+			compteId: caisse,
+			coupures,
+			date: JOUR,
+			confirmation: o.confirmation ?? null,
+			inventaire: true
+		});
+	const MOINS: CoupureJ[] = [
+		{ coupure: c(5000), quantite: 2 },
+		{ coupure: c(2000), quantite: 2 },
+		{ coupure: c(500), quantite: 1 },
+		{ coupure: c(200), quantite: 2 }
+	];
+
+	it('un seul Comptage de contrôle, sans Session, égal à l’attendu', () => {
+		expect(valeur(inventaire(FOND))).toEqual({ sessionId: null, ecart: 0 });
+		expect(j().sessions).toHaveLength(0);
+		expect(j().comptages.map((x) => [x.type, x.sessionCaisseId])).toEqual([['controle', null]]);
+		expect(j().operations.some((o) => o.origine === 'ecart_caisse')).toBe(false);
+	});
+
+	it('une différence se recompte, puis devient un Écart de caisse', () => {
+		expect(code(inventaire(MOINS))).toBe('recomptage_requis');
+		expect(j().comptages).toHaveLength(0);
+		expect(valeur(inventaire(MOINS, { confirmation: c(149_00) })).ecart).toBe(-100);
+		expect(j().operations.filter((o) => o.origine === 'ecart_caisse')).toHaveLength(1);
+		expect(j().sessions).toHaveLength(0);
+	});
+
+	it('réservé à la trésorerie, et refusé pendant une Session ouverte', () => {
+		expect(code(inventaire(FOND, { ctx: ctxSam() }))).toBe('acces_refuse');
+		expect(code(i.app.caisses.ecranCaisse(ctxSam(), caisse, true))).toBe('acces_refuse');
+		valeur(ouvrir());
+		expect(code(inventaire(FOND))).toBe('session_invalide');
+	});
+
+	it('l’écran propose de reprendre le dernier Comptage', () => {
+		const vierge = valeur(i.app.caisses.ecranCaisse(i.ctx(), caisse, true));
+		expect(vierge).toMatchObject({ mode: 'controle', inventaire: true, reprise: null });
+		valeur(inventaire(FOND));
+		const ecran = valeur(i.app.caisses.ecranCaisse(i.ctx(), caisse, true));
+		expect(ecran).toMatchObject({
+			reprise: { source: 'dernier', date: JOUR, total: 150_00, coupures: FOND }
+		});
+	});
+
+	it('le Comptage final d’une Session propose l’ouverture', () => {
+		const { sessionId } = valeur(ouvrir());
+		const ecran = valeur(i.app.caisses.ecranSession(i.ctx(), sessionId as number, false));
+		expect(ecran.reprise).toMatchObject({ source: 'ouverture', total: 150_00, coupures: FOND });
+	});
+});
+
+it('C10 : la reprise de l’ouverture n’est jamais montrée à la personne qui compte', () => {
+	const { sessionId } = valeur(ouvrir());
+	const ecran = valeur(i.app.caisses.ecranSession(ctxSam(), sessionId as number, false));
+	expect(ecran.reprise).toBeNull();
+});

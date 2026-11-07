@@ -1,4 +1,5 @@
 /** Seul module qui écrit dans `session_caisse`, `comptage` et `comptage_coupure` (AD-7, AD-10). */
+import { peut } from '#lib/domaine/droits.ts';
 import {
 	comparerAuSoldeAttendu,
 	comptageDe,
@@ -38,7 +39,12 @@ type SaisieComptage = {
 	confirmation: Centimes | null;
 };
 
-export type EntreeComptageCaisse = SaisieComptage & { compteId: number; actionId?: number | null };
+export type EntreeComptageCaisse = SaisieComptage & {
+	compteId: number;
+	actionId?: number | null;
+	/** Caisse ordinaire comptée sans Session : un Comptage de contrôle, réservé à la trésorerie. */
+	inventaire?: boolean;
+};
 export type EntreeComptageSession = SaisieComptage & { sessionId: number; corriger?: boolean };
 
 export type ComptageEnregistre = { sessionId: number | null; ecart: Centimes };
@@ -180,7 +186,8 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 	}
 
 	/** Caisse de réserve : un Comptage sans Session ni Action (FR-16). */
-	function compterReserve(
+	/** Réserve, ou inventaire d'une caisse ordinaire : comparé à l'attendu, l'Écart enregistré. */
+	function compterControle(
 		o: Outils,
 		j: GrandJournal,
 		compte: Compte,
@@ -218,8 +225,15 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			const date = controlerDate(o, compte.id, e.date, dernierComptageDate(j, compte.id));
 			if (!date.ok) return date;
 			const total = totalComptage(e.coupures);
+			if (e.inventaire && !compte.reserve) {
+				if (!peut((o.ctx.acces as NonNullable<Ctx['acces']>).role, 'saisir')) {
+					return echec('acces_refuse');
+				}
+				if (sessionOuverte(j, compte.id)) return echec('session_invalide');
+				return compterControle(o, j, compte, e, total);
+			}
 			return compte.reserve
-				? compterReserve(o, j, compte, e, total)
+				? compterControle(o, j, compte, e, total)
 				: ouvrirSession(o, j, compte, e, total);
 		}
 	};
@@ -387,6 +401,35 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 		}
 	};
 
+	function ecranInventaire(ctx: Ctx, j: GrandJournal, compte: Compte): EcranComptage {
+		const dernier = j.comptages
+			.filter((c) => c.compteId === compte.id)
+			.sort((a, b) => a.compteLe.localeCompare(b.compteLe) || a.id - b.id)
+			.at(-1);
+		return {
+			mode: 'controle',
+			inventaire: true,
+			correction: false,
+			compteId: compte.id,
+			sessionId: null,
+			caisse: compte.libelle,
+			action: null,
+			quantites: [],
+			message: null,
+			actions: [],
+			date: ctx.aujourdhui,
+			aujourdhui: ctx.aujourdhui,
+			reprise: dernier
+				? {
+						source: 'dernier',
+						date: dernier.date,
+						total: totalComptage(dernier.coupures),
+						coupures: dernier.coupures
+					}
+				: null
+		};
+	}
+
 	function ecranOuverture(ctx: Ctx, j: GrandJournal, compte: Compte): EcranComptage {
 		const prefill = compte.reserve ? null : prefillOuverture(j, compte.id, ctx.aujourdhui);
 		return {
@@ -422,8 +465,10 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 		const fin = comptageDe(j, sessionId, 'fin');
 		// Le Comptage final déjà saisi s'ouvre en correction : il n'y en a qu'un.
 		const repris = fin ?? (corriger ? comptageDe(j, sessionId, 'ouverture') : undefined);
+		const ouverture = comptageDe(j, sessionId, 'ouverture');
+		const mode = repris?.type === 'ouverture' ? 'ouverture' : 'fin';
 		return {
-			mode: repris?.type === 'ouverture' ? 'ouverture' : 'fin',
+			mode,
 			correction: repris !== undefined,
 			compteId: compte.id,
 			sessionId,
@@ -433,7 +478,17 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			message: null,
 			actions: [],
 			date: repris?.date ?? ctx.aujourdhui,
-			aujourdhui: ctx.aujourdhui
+			aujourdhui: ctx.aujourdhui,
+			// C10 : la personne qui compte ne voit aucun chiffre ; la reprise reste à la trésorerie.
+			reprise:
+				mode === 'fin' && ouverture && peut((ctx.acces as NonNullable<Ctx['acces']>).role, 'saisir')
+					? {
+							source: 'ouverture',
+							date: ouverture.date,
+							total: totalComptage(ouverture.coupures),
+							coupures: ouverture.coupures
+						}
+					: null
 		};
 	}
 
@@ -497,14 +552,25 @@ export function creerCaisses(socle: Socle, executer: Executer, lire: Lire) {
 			});
 		},
 
-		ecranCaisse(ctx: Ctx, compteId: number): Resultat<EcranComptage | { sessionId: number }> {
+		/** `inventaire` : la caisse ordinaire se compte sans Session, par la trésorerie seule. */
+		ecranCaisse(
+			ctx: Ctx,
+			compteId: number,
+			inventaire = false
+		): Resultat<EcranComptage | { sessionId: number }> {
 			const r = lire(ctx, 'compter', () => {
 				if (!autorisee(depots, ctx, compteId)) return 'refus' as const;
+				if (inventaire && !peut((ctx.acces as NonNullable<Ctx['acces']>).role, 'saisir')) {
+					return 'refus' as const;
+				}
 				const j = depots.operations.journal();
 				const compte = caisseDe(j, compteId);
 				if (compte === undefined || !compte.actif) return null;
 				const ouverte = sessionOuverte(j, compteId);
-				return ouverte ? { sessionId: ouverte.id } : ecranOuverture(ctx, j, compte);
+				if (ouverte) return { sessionId: ouverte.id };
+				return inventaire && !compte.reserve
+					? ecranInventaire(ctx, j, compte)
+					: ecranOuverture(ctx, j, compte);
 			});
 			if (!r.ok) return r;
 			if (r.valeur === 'refus') return echec('acces_refuse');
