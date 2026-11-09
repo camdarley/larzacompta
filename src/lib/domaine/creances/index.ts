@@ -5,7 +5,7 @@
 import { ajouterJours, instantVersDate, type DateCivile, type Instant } from '../dates.ts';
 import { exerciceDeDate } from '../etats/soldes.ts';
 import { anneeExerciceDe, type Exercice } from '../exercices.ts';
-import type { CreanceDetteJ, GrandJournal, OperationJ } from '../journal.ts';
+import type { CreanceDetteJ, GrandJournal, OperationJ, PieceJ } from '../journal.ts';
 import { centimes, type Centimes } from '../montant.ts';
 import { echec, succes, type Resultat } from '../resultat.ts';
 
@@ -194,6 +194,8 @@ export type RangeeSuivi = {
 	/** Née d'une Facture ou d'un Avoir : la rangée y mène, et ne s'annule pas ici. */
 	factureId: number | null;
 	geree: boolean;
+	/** La facture reçue, la notification. Une Dette sans Pièce se signale (bilan). */
+	pieces: PieceJ[];
 };
 
 export type BlocSuivi = { rangees: RangeeSuivi[]; total: Centimes };
@@ -221,7 +223,8 @@ export function suivi(
 				reste,
 				note: c.note,
 				factureId: c.factureId ?? null,
-				geree: geeParSaFacture(c)
+				geree: geeParSaFacture(c),
+				pieces: c.pieces ?? []
 			}
 		];
 	});
@@ -244,6 +247,8 @@ export type SommeASolder = {
 	exerciceOrigine: string | null;
 	/** N° de la Facture d'origine : il devient la référence de l'Opération. */
 	numero: string | null;
+	/** Jointes à l'Opération qui la solde. */
+	pieces: PieceJ[];
 };
 
 export function sommeASolder(
@@ -264,7 +269,8 @@ export function sommeASolder(
 		reste,
 		rattachementId: propose?.id ?? null,
 		exerciceOrigine: propose?.libelle ?? null,
-		numero: c.factureNumero ?? null
+		numero: c.factureNumero ?? null,
+		pieces: c.pieces ?? []
 	};
 }
 
@@ -292,4 +298,23 @@ export function sommesSoldees(
 				montant: r.montant
 			}))
 	);
+}
+
+/**
+ * Dette due à la fin de l'Exercice, sans Pièce : le bilan l'inscrit, rien ne la justifie. Celle
+ * d'un Avoir a le sien.
+ */
+export function dettesSansPiece(
+	j: Pick<GrandJournal, 'operations' | 'creancesDettes'>,
+	d: DateCivile,
+	figeLe: Instant | null = null
+): number {
+	return j.creancesDettes.filter(
+		(c) =>
+			c.sens === 'dette' &&
+			(c.factureId ?? null) === null &&
+			(c.pieces ?? []).length === 0 &&
+			c.date <= d &&
+			resteDu(c, j, d, figeLe) > 0
+	).length;
 }

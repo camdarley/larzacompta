@@ -256,6 +256,10 @@ export function creerDepotOperations(
 		reglements: base.prepare(
 			'SELECT creance_dette_id, operation_id, montant_centimes FROM reglement ORDER BY id'
 		),
+		piecesSommes: base.prepare(`
+			SELECT pc.creance_dette_id AS operation_id, p.id, p.sha256, p.nom_original, p.mime
+			FROM piece_creance_dette pc JOIN piece p ON p.id = pc.piece_id ORDER BY p.id
+		`),
 
 		creerOperation: base.prepare(`
 			INSERT INTO operation
@@ -418,6 +422,8 @@ export function creerDepotOperations(
 
 	function chargerCreances(): CreanceDetteJ[] {
 		const reglements = grouper(r.reglements.all() as ReglementBrut[], (x) => x.creance_dette_id);
+		// `operation_id` porte ici l'id de la somme : même forme que les Pièces d'une Opération.
+		const pieces = grouper(r.piecesSommes.all() as PieceBrute[], (p) => p.operation_id);
 		return (r.creances.all() as CreanceBrute[]).map((c) => ({
 			id: c.id,
 			sens: c.sens,
@@ -433,7 +439,8 @@ export function creerDepotOperations(
 			reglements: (reglements.get(c.id) ?? []).map((x) => ({
 				operationId: x.operation_id,
 				montant: centimes(x.montant_centimes)
-			}))
+			})),
+			pieces: (pieces.get(c.id) ?? []).map(versPiece)
 		}));
 	}
 

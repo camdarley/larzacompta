@@ -7,9 +7,6 @@ export async function POST({ request, locals, params }) {
 	if (!entree.ok) return reponseJson(entree);
 	const app = application();
 	return reponseJson(
-		app.pieces.detacher(app.ctx(locals.acces), {
-			pieceId: Number(params.id),
-			operationId: entree.valeur.operationId
-		})
+		app.pieces.detacher(app.ctx(locals.acces), { pieceId: Number(params.id), ...entree.valeur })
 	);
 }

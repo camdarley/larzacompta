@@ -221,7 +221,8 @@ describe('suivi', () => {
 			reste: 20000,
 			rattachementId: REPERE.id,
 			exerciceOrigine: REPERE.libelle,
-			numero: null
+			numero: null,
+			pieces: []
 		});
 		const courante = sommeASolder(creance(), repris, '2026-11-01');
 		expect(courante?.rattachementId).toBeNull();

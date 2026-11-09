@@ -16,12 +16,14 @@ export async function POST({ request, locals }) {
 		return reponseJson(echec('piece_refusee'));
 	}
 	const operation = Number(formulaire.get('operationId'));
+	const somme = Number(formulaire.get('creanceId'));
 	const app = application();
 	return reponseJson(
 		app.pieces.deposer(app.ctx(locals.acces), {
 			nomOriginal: fichier.name,
 			octets: new Uint8Array(await fichier.arrayBuffer()),
-			operationId: Number.isInteger(operation) && operation > 0 ? operation : null
+			operationId: Number.isInteger(operation) && operation > 0 ? operation : null,
+			creanceId: Number.isInteger(somme) && somme > 0 ? somme : null
 		})
 	);
 }

@@ -4,6 +4,8 @@ import { reduirePhoto } from './photo.ts';
 
 export type OptionsDepot = {
 	operationId?: number | null;
+	/** Créance ou Dette : la facture reçue avant le paiement. */
+	creanceId?: number | null;
 	progres?: (part: number) => void;
 };
 
@@ -18,5 +20,6 @@ export async function deposerPiece(
 	const corps = new FormData();
 	corps.set('fichier', pret);
 	if (options.operationId) corps.set('operationId', String(options.operationId));
+	else if (options.creanceId) corps.set('creanceId', String(options.creanceId));
 	return envoyerFichierSuivi<PieceDeposee>('/api/pieces', corps, options.progres ?? (() => {}));
 }

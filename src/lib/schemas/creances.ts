@@ -36,11 +36,16 @@ export const schemaCreance = z.object({
 	montant: montantTexte,
 	date: z.string({ message: 'champ_requis' }).refine(dateValide, 'date_invalide'),
 	actionId: actionFacultative,
-	note: noteFacultative
+	note: noteFacultative,
+	/** Déposées dans le panneau, jointes à la somme dans sa transaction. Champ « 12,13 ». */
+	pieces: z.preprocess(
+		(v) => (typeof v === 'string' && v.trim() !== '' ? v.split(',') : []),
+		z.array(z.coerce.number().int().positive()).max(20)
+	)
 });
 
 /** Reprise à l'assistant : la date est celle de la reprise, posée par le serveur. */
-export const schemaReprise = schemaCreance.omit({ date: true, note: true });
+export const schemaReprise = schemaCreance.omit({ date: true, note: true, pieces: true });
 
 export const partsReglement = z
 	.array(

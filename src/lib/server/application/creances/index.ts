@@ -21,7 +21,7 @@ import { echec, succes, type Resultat } from '#lib/domaine/resultat.ts';
 import type { Exercice } from '#lib/domaine/exercices.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
 import { ecrireOperation, versBrouillon, type EntreeOperation } from '../operations/index.ts';
-import { rattacherPieces } from '../pieces/index.ts';
+import { joindrePiecesDeSomme, rattacherPieceSomme, rattacherPieces } from '../pieces/index.ts';
 
 export type EntreeSolder = {
 	parts: PartReglement[];
@@ -38,8 +38,15 @@ function closes(depot: Socle['depots']['exercices']): ExerciceClos[] {
 	});
 }
 
-/** Les `reglement` d'une Opération qui vient de s'écrire : l'appelant les a déjà décidés (F1). */
-export function reglerSommes(o: Outils, parts: readonly PartReglement[], operationId: number) {
+/**
+ * Les `reglement` d'une Opération qui vient de s'écrire : l'appelant les a déjà décidés (F1).
+ * Les Pièces de chaque somme la suivent : la facture reçue justifie aussi son paiement.
+ */
+export function reglerSommes(
+	o: Outils,
+	parts: readonly PartReglement[],
+	operationId: number
+): Resultat<true> {
 	const { creancesDettes } = o.depots.operations.journal();
 	for (const part of parts) {
 		o.depots.creances.regler(part.creanceId, operationId, part.montant);
@@ -51,7 +58,10 @@ export function reglerSommes(o: Outils, parts: readonly PartReglement[], operati
 			resume: `a réglé ${formaterMontant(part.montant)} sur « ${c?.tiers}, ${c?.motif} ».`,
 			apres: { operationId, montant: part.montant }
 		});
+		const pieces = joindrePiecesDeSomme(o, part.creanceId, operationId);
+		if (!pieces.ok) return pieces;
 	}
+	return succes(true);
 }
 
 const nomSomme = (sens: EntreeCreance['sens']) => (sens === 'creance' ? 'la Créance' : 'la Dette');
@@ -59,20 +69,29 @@ const nomSomme = (sens: EntreeCreance['sens']) => (sens === 'creance' ? 'la Cré
 export function creerCreances(socle: Socle, executer: Executer, lire: Lire) {
 	const depots = socle.depots;
 
-	const casAjouter: CasUsage<EntreeCreance, { id: number }> = {
+	const casAjouter: CasUsage<EntreeCreance & { pieces?: number[] }, { id: number }> = {
 		droit: 'saisir',
 		faire(o, e) {
 			const decision = deciderCreance(e, o.depots.exercices.lister());
 			if (!decision.ok) return decision;
 			const acces = o.ctx.acces as NonNullable<Ctx['acces']>;
-			const id = o.depots.creances.creer({ ...e, creeLe: o.ctx.maintenant, creePar: acces.id });
+			const { pieces = [], ...somme } = e;
+			const id = o.depots.creances.creer({
+				...somme,
+				creeLe: o.ctx.maintenant,
+				creePar: acces.id
+			});
 			o.noter({
 				evenement: 'creance.creee',
 				entiteType: 'creance_dette',
 				entiteId: id,
 				resume: `a enregistré ${nomSomme(e.sens)} « ${e.tiers}, ${e.motif} » de ${formaterMontant(e.montant)}.`,
-				apres: e
+				apres: somme
 			});
+			for (const pieceId of pieces) {
+				const r = rattacherPieceSomme(o, pieceId, id);
+				if (!r.ok) return r;
+			}
 			return succes({ id });
 		}
 	};
@@ -137,14 +156,15 @@ export function creerCreances(socle: Socle, executer: Executer, lire: Lire) {
 			const cree = ecrireOperation(o, brouillon, { cle: e.cle });
 			if (!cree.ok) return cree;
 
-			reglerSommes(o, e.parts, cree.valeur.id);
+			const regle = reglerSommes(o, e.parts, cree.valeur.id);
+			if (!regle.ok) return regle;
 			const pieces = rattacherPieces(o, e.pieces ?? [], cree.valeur.id);
 			return pieces.ok ? cree : pieces;
 		}
 	};
 
 	return {
-		ajouter: (ctx: Ctx, e: EntreeCreance) => executer(casAjouter, ctx, e),
+		ajouter: (ctx: Ctx, e: EntreeCreance & { pieces?: number[] }) => executer(casAjouter, ctx, e),
 		annuler: (ctx: Ctx, id: number) => executer(casAnnuler, ctx, id),
 		retablir: (ctx: Ctx, id: number) => executer(casRetablir, ctx, id),
 

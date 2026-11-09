@@ -21,6 +21,7 @@ import {
 	lignesNonPointees
 } from '#lib/domaine/etats/controle.ts';
 import { etatTresorerie } from '#lib/domaine/etats/tresorerie.ts';
+import { dettesSansPiece } from '#lib/domaine/creances/index.ts';
 import { piecesManquantes } from '#lib/domaine/pieces/index.ts';
 import { parametrageCourant, parametrageDe } from '../etats/index.ts';
 import type { CasUsage, Ctx, Executer, Lire, Outils, Socle } from '../executer.ts';
@@ -277,6 +278,7 @@ export function creerExercices(socle: Socle, executer: Executer, lire: Lire) {
 					ecarts: cartes.filter(avecEcart),
 					lignes: lignesNonPointees(j, e),
 					pieces: piecesManquantes(j, neutres, e).length,
+					dettes: e.fin ? dettesSansPiece(j, e.fin, cloture?.clotureLe ?? null) : 0,
 					cheques: chequesARemettre(j, e),
 					refus: decision.ok ? null : decision.erreur,
 					cloture: cloture && {

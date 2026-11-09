@@ -215,6 +215,10 @@
 									? 's'
 									: ''}{/if}
 						</p>
+					{:else if p.sommes[0]}
+						<p class="t-caption t-muted lien-op">
+							{p.sommes[0].sens === 'dette' ? 'Dette' : 'Créance'} : {p.sommes[0].tiers}
+						</p>
 					{:else}
 						<p class="t-caption attente">
 							<Hourglass size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -235,9 +239,21 @@
 
 		<section class="operations" aria-label="Opérations justifiées">
 			<h3 class="t-heading">Justifie</h3>
+			{#if piece.sommes.length > 0}
+				<ul>
+					{#each piece.sommes as c (c.id)}
+						<li>
+							<span>{c.sens === 'dette' ? 'Dette' : 'Créance'} : {c.tiers}, {c.motif}</span>
+							{#if c.annulee}<span class="t-caption t-muted">annulée</span>{/if}
+						</li>
+					{/each}
+				</ul>
+			{/if}
 			{#if piece.operations.length === 0}
 				<p class="t-muted">
-					Aucune Opération pour l’instant : cette Pièce attend son rattachement.
+					{piece.sommes.length > 0
+						? 'Aucune Opération pour l’instant : elle sera jointe au paiement de la somme.'
+						: 'Aucune Opération pour l’instant : cette Pièce attend son rattachement.'}
 				</p>
 			{:else}
 				<ul>
@@ -276,7 +292,7 @@
 						Rattacher
 					</Bouton>
 				</div>
-				{#if piece.operations.length === 0}
+				{#if piece.operations.length === 0 && piece.sommes.length === 0}
 					<div>
 						<Bouton variante="discret" onclick={() => (confirmer = true)}
 							>Supprimer cette Pièce</Bouton

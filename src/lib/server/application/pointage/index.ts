@@ -608,7 +608,8 @@ export function creerPointage(socle: Socle, executer: Executer, lire: Lire) {
 
 			const cree = ecrireOperation(o, brouillon, { cle: e.cle });
 			if (!cree.ok) return cree;
-			reglerSommes(o, parts, cree.valeur.id);
+			const regle = reglerSommes(o, parts, cree.valeur.id);
+			if (!regle.ok) return regle;
 			const cote = depot.parId(cree.valeur.id)?.cotes.find((c) => c.compteId === ligne.compteId);
 			if (cote === undefined) return echec('pointage_incoherent');
 

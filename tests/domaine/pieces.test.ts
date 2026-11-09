@@ -191,7 +191,8 @@ describe('lecture des Pièces', () => {
 		const autre = { libelle: 'x', date: '2026-10-05', montant: centimes(1), annulee: false };
 		const trois: PieceVue = {
 			...stockee(),
-			operations: [1, 2, 3].map((id) => ({ ...autre, id }))
+			operations: [1, 2, 3].map((id) => ({ ...autre, id })),
+			sommes: []
 		};
 		expect(phraseAutresOperations(trois, 1)).toBe('Cette Pièce sert aussi à 2 autres Opérations');
 		expect(phraseAutresOperations({ ...trois, operations: trois.operations.slice(0, 2) }, 1)).toBe(
@@ -212,8 +213,12 @@ describe('lecture des Pièces', () => {
 			annulee: false
 		};
 		const pieces: PieceVue[] = [
-			{ ...stockee({ id: 1, nomOriginal: 'facture.pdf' }), operations: [lien] },
-			{ ...stockee({ id: 2, nomOriginal: 'ticket.jpg', mime: 'image/jpeg' }), operations: [] }
+			{ ...stockee({ id: 1, nomOriginal: 'facture.pdf' }), operations: [lien], sommes: [] },
+			{
+				...stockee({ id: 2, nomOriginal: 'ticket.jpg', mime: 'image/jpeg' }),
+				operations: [],
+				sommes: []
+			}
 		];
 		const ids = (f: Parameters<typeof filtrerPieces>[1]) =>
 			filtrerPieces(pieces, f).map((p) => p.id);
@@ -226,12 +231,34 @@ describe('lecture des Pièces', () => {
 		expect(ids({ etat: 'rattachee' })).toEqual([1]);
 	});
 
+	it('une Pièce jointe à une Dette seule est rattachée, et se trouve par son tiers', () => {
+		const dette = {
+			id: 4,
+			sens: 'dette' as const,
+			tiers: 'Autocars Causse',
+			motif: 'Cross',
+			annulee: false
+		};
+		const pieces: PieceVue[] = [
+			{
+				...stockee({ id: 1, creeLe: '2026-10-09T10:00:00.000Z' }),
+				operations: [],
+				sommes: [dette]
+			},
+			{ ...stockee({ id: 2, creeLe: '2026-10-01T10:00:00.000Z' }), operations: [], sommes: [] }
+		];
+		expect(filtrerPieces(pieces, { etat: 'rattachee' }).map((p) => p.id)).toEqual([1]);
+		expect(filtrerPieces(pieces, { etat: 'en_attente' }).map((p) => p.id)).toEqual([2]);
+		expect(filtrerPieces(pieces, { texte: 'causse' }).map((p) => p.id)).toEqual([1]);
+		expect(trierPieces(pieces).map((p) => p.id)).toEqual([2, 1]);
+	});
+
 	it('met en tête ce qui attend un rattachement, puis le plus récent', () => {
 		const lien = { id: 1, libelle: 'A', date: '2026-10-05', montant: centimes(1), annulee: false };
 		const pieces: PieceVue[] = [
-			{ ...stockee({ id: 1, creeLe: '2026-10-09T10:00:00.000Z' }), operations: [lien] },
-			{ ...stockee({ id: 2, creeLe: '2026-10-01T10:00:00.000Z' }), operations: [] },
-			{ ...stockee({ id: 3, creeLe: '2026-10-02T10:00:00.000Z' }), operations: [] }
+			{ ...stockee({ id: 1, creeLe: '2026-10-09T10:00:00.000Z' }), operations: [lien], sommes: [] },
+			{ ...stockee({ id: 2, creeLe: '2026-10-01T10:00:00.000Z' }), operations: [], sommes: [] },
+			{ ...stockee({ id: 3, creeLe: '2026-10-02T10:00:00.000Z' }), operations: [], sommes: [] }
 		];
 		expect(trierPieces(pieces).map((p) => p.id)).toEqual([3, 2, 1]);
 	});

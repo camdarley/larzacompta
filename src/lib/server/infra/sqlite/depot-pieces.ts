@@ -20,7 +20,7 @@ const versPiece = (p: PieceBrute): PieceStockee => ({
 	creeLe: p.cree_le
 });
 
-/** Seul chemin vers `piece` et `piece_operation` (AD-7). */
+/** Seul chemin vers `piece`, `piece_operation` et `piece_creance_dette` (AD-7). */
 export function creerDepotPieces(base: Base): DepotPieces {
 	const r = {
 		lister: base.prepare('SELECT * FROM piece ORDER BY id'),
@@ -35,6 +35,13 @@ export function creerDepotPieces(base: Base): DepotPieces {
 			'INSERT OR IGNORE INTO piece_operation (piece_id, operation_id) VALUES (?, ?)'
 		),
 		detacher: base.prepare('DELETE FROM piece_operation WHERE piece_id = ? AND operation_id = ?'),
+		liensSommes: base.prepare('SELECT piece_id, creance_dette_id FROM piece_creance_dette'),
+		rattacherSomme: base.prepare(
+			'INSERT OR IGNORE INTO piece_creance_dette (piece_id, creance_dette_id) VALUES (?, ?)'
+		),
+		detacherSomme: base.prepare(
+			'DELETE FROM piece_creance_dette WHERE piece_id = ? AND creance_dette_id = ?'
+		),
 		supprimer: base.prepare('DELETE FROM piece WHERE id = ?')
 	};
 
@@ -52,6 +59,13 @@ export function creerDepotPieces(base: Base): DepotPieces {
 		creer: (p) => Number(r.creer.run(p).lastInsertRowid),
 		rattacher: (pieceId, operationId) => r.rattacher.run(pieceId, operationId).changes > 0,
 		detacher: (pieceId, operationId) => r.detacher.run(pieceId, operationId).changes > 0,
+		liensSommes: () =>
+			(r.liensSommes.all() as { piece_id: number; creance_dette_id: number }[]).map((l) => ({
+				pieceId: l.piece_id,
+				creanceId: l.creance_dette_id
+			})),
+		rattacherSomme: (pieceId, creanceId) => r.rattacherSomme.run(pieceId, creanceId).changes > 0,
+		detacherSomme: (pieceId, creanceId) => r.detacherSomme.run(pieceId, creanceId).changes > 0,
 		supprimer: (id) => void r.supprimer.run(id)
 	};
 }

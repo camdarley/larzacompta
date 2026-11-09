@@ -5,5 +5,8 @@ export async function load({ locals, parent }) {
 	await parent();
 	const app = application();
 	const ctx = app.ctx(accesRequis(locals.acces));
-	return { recentes: exiger(app.pieces.depensesRecentes(ctx)) };
+	return {
+		recentes: exiger(app.pieces.depensesRecentes(ctx)),
+		dettes: exiger(app.pieces.dettesSansPiece(ctx))
+	};
 }

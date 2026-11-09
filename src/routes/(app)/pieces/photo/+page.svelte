@@ -72,17 +72,21 @@
 	}
 
 	async function ranger(d: DepenseSansPiece) {
+		await rangerAvec({ operationId: d.id }, d.libelle);
+	}
+
+	async function rangerAvec(cible: { operationId: number } | { creanceId: number }, nom: string) {
 		if (piece === null || occupe) return;
 		const pieceId = piece.id;
 		occupe = true;
-		const r = await envoyer(`/api/pieces/${pieceId}/rattacher`, { operationId: d.id });
+		const r = await envoyer(`/api/pieces/${pieceId}/rattacher`, cible);
 		occupe = false;
 		if (r.type === 'ok') {
 			piece = null;
-			afficherToast(`Rangée avec « ${d.libelle} ».`, {
+			afficherToast(`Rangée avec « ${nom} ».`, {
 				libelle: 'Annuler',
 				faire: async () => {
-					await envoyer(`/api/pieces/${pieceId}/detacher`, { operationId: d.id });
+					await envoyer(`/api/pieces/${pieceId}/detacher`, cible);
 					await refreshAll();
 				}
 			});
@@ -154,6 +158,24 @@
 			</ul>
 		{:else}
 			<p class="t-muted">Aucune dépense récente n’attend de Pièce.</p>
+		{/if}
+		{#if data.dettes.length > 0}
+			<h2 class="t-heading">Ou une facture à payer</h2>
+			<ul class="depenses" aria-label="Dettes sans Pièce">
+				{#each data.dettes as d (d.id)}
+					<li>
+						<button
+							type="button"
+							disabled={occupe}
+							onclick={() => rangerAvec({ creanceId: d.id }, `${d.tiers}, ${d.motif}`)}
+						>
+							<span class="libelle">{d.tiers}, {d.motif}</span>
+							<span class="t-caption t-muted date">{formaterDateCourte(d.date)}</span>
+							<span class="montant">{formaterMontant(d.reste)}</span>
+						</button>
+					</li>
+				{/each}
+			</ul>
 		{/if}
 		<Bouton variante="secondaire" pleineLargeur onclick={plusTard}>Rattacher plus tard</Bouton>
 	{:else}

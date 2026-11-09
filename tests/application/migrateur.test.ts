@@ -36,7 +36,8 @@ describe('migrateur', () => {
 			'0001_jalon_1.sql',
 			'0002_corrections_jalon_1.sql',
 			'0003_jalon_2.sql',
-			'0004_jalon_3.sql'
+			'0004_jalon_3.sql',
+			'0005_pieces_des_sommes.sql'
 		]);
 		const compter = (type: string) =>
 			base.prepare(`SELECT count(*) FROM sqlite_master WHERE type = ?`).pluck().get(type);
@@ -46,7 +47,8 @@ describe('migrateur', () => {
 			'0001_jalon_1.sql',
 			'0002_corrections_jalon_1.sql',
 			'0003_jalon_2.sql',
-			'0004_jalon_3.sql'
+			'0004_jalon_3.sql',
+			'0005_pieces_des_sommes.sql'
 		]);
 		// Une base neuve n'a rien à protéger.
 		expect(existsSync(copies())).toBe(false);

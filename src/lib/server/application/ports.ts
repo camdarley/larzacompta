@@ -318,7 +318,7 @@ export type Fichiers = {
 	supprimer(sha256: string): void;
 };
 
-/** Seul chemin vers `piece` et `piece_operation` (AD-7). */
+/** Seul chemin vers `piece`, `piece_operation` et `piece_creance_dette` (AD-7). */
 export type DepotPieces = {
 	lister(): PieceStockee[];
 	parId(id: number): PieceStockee | null;
@@ -328,6 +328,10 @@ export type DepotPieces = {
 	/** `false` si le lien existait déjà : rien n'a changé, rien à noter. */
 	rattacher(pieceId: number, operationId: number): boolean;
 	detacher(pieceId: number, operationId: number): boolean;
+	/** Pièces jointes à une Créance ou une Dette. */
+	liensSommes(): { pieceId: number; creanceId: number }[];
+	rattacherSomme(pieceId: number, creanceId: number): boolean;
+	detacherSomme(pieceId: number, creanceId: number): boolean;
 	supprimer(id: number): void;
 };
 

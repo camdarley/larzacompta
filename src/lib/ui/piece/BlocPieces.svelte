@@ -27,6 +27,8 @@
 		/** Saisie nouvelle : les Pièces partent avec l'Opération. */
 		enSaisie?: PieceEnSaisie[];
 		sansPiece?: boolean;
+		/** Pièces des sommes soldées : elles se joindront avec l'Opération. */
+		heritees?: { id: number; sha256: string; nomOriginal: string; mime: string }[];
 		/** La case ne concerne qu'une dépense (FR-27). */
 		estDepense: boolean;
 		surChangement?: () => void;
@@ -37,6 +39,7 @@
 		peutSaisir,
 		enSaisie = $bindable([]),
 		sansPiece = $bindable(false),
+		heritees = [],
 		estDepense,
 		surChangement
 	}: Props = $props();
@@ -133,8 +136,17 @@
 	<h3 class="t-heading"><AideTerme ancre="piece">Pièce</AideTerme></h3>
 	{#if erreur}<Bandeau ton="erreur" alerte>{erreur}</Bandeau>{/if}
 
-	{#if pieces.length > 0 || enSaisie.length > 0}
+	{#if pieces.length > 0 || enSaisie.length > 0 || heritees.length > 0}
 		<ul class="pieces">
+			{#each heritees.filter((h) => !enSaisie.some((p) => p.id === h.id)) as p (p.id)}
+				<li>
+					<ApercuPiece piece={p} ouvrir={() => (ouverte = p)} />
+					<div class="texte">
+						<p class="nom">{p.nomOriginal}</p>
+						<p class="t-caption t-muted">Pièce de la somme soldée, jointe avec l’Opération</p>
+					</div>
+				</li>
+			{/each}
 			{#each pieces as p (p.id)}
 				{@render rangee(
 					p,
@@ -154,7 +166,7 @@
 		{#if !(detail ? coche : sansPiece)}
 			<DepotPiece {operationId} {surDepose} collage />
 		{/if}
-		{#if estDepense && pieces.length === 0 && enSaisie.length === 0}
+		{#if estDepense && pieces.length === 0 && enSaisie.length === 0 && heritees.length === 0}
 			{#if detail}
 				<CaseACocher
 					name="sans-piece"

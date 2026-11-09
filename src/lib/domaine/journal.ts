@@ -180,6 +180,8 @@ export type CreanceDetteJ = {
 	/** Née d'une Facture ou d'un Avoir (AD-12). Elle n'entre pas dans l'empreinte de clôture. */
 	factureId?: number | null;
 	factureNumero?: string | null;
+	/** La facture reçue, la notification : elles se joignent aussi à chaque règlement. */
+	pieces?: PieceJ[];
 };
 
 /** `numero` : suite propre aux bordereaux. Compte et total se lisent sur l'Opération interne. */

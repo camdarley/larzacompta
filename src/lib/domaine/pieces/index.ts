@@ -123,19 +123,49 @@ export type OperationDePiece = {
 
 export type PieceStockee = PieceJ & { tailleOctets: number; creeLe: Instant };
 
-/** Une Pièce sans Opération attend son rattachement. */
-export type PieceVue = PieceStockee & { operations: OperationDePiece[] };
+/** Créance ou Dette que la Pièce justifie, la facture reçue par exemple. */
+export type SommeDePiece = {
+	id: number;
+	sens: 'creance' | 'dette';
+	tiers: string;
+	motif: string;
+	annulee: boolean;
+};
+
+/** Une Pièce sans Opération ni somme attend son rattachement. */
+export type PieceVue = PieceStockee & { operations: OperationDePiece[]; sommes: SommeDePiece[] };
+
+export const estRattachee = (p: Pick<PieceVue, 'operations' | 'sommes'>) =>
+	p.operations.length > 0 || p.sommes.length > 0;
 
 export function vuesPieces(
 	pieces: readonly PieceStockee[],
 	liens: readonly { pieceId: number; operationId: number }[],
-	j: Pick<GrandJournal, 'operations' | 'operationsAnnulees'>
+	j: Pick<GrandJournal, 'operations' | 'operationsAnnulees'> &
+		Partial<Pick<GrandJournal, 'creancesDettes'>>,
+	liensSommes: readonly { pieceId: number; creanceId: number }[] = []
 ): PieceVue[] {
 	const operations = new Map(
 		[...j.operations, ...j.operationsAnnulees].map((op) => [op.id, op] as const)
 	);
+	const sommes = new Map((j.creancesDettes ?? []).map((c) => [c.id, c] as const));
 	return pieces.map((p) => ({
 		...p,
+		sommes: liensSommes
+			.filter((l) => l.pieceId === p.id)
+			.flatMap((l) => {
+				const c = sommes.get(l.creanceId);
+				if (c === undefined) return [];
+				return [
+					{
+						id: c.id,
+						sens: c.sens,
+						tiers: c.tiers,
+						motif: c.motif,
+						annulee: c.annuleeLe !== null
+					}
+				];
+			}),
 		operations: liens
 			.filter((l) => l.pieceId === p.id)
 			.flatMap((l) => {
@@ -180,12 +210,14 @@ export function filtrerPieces(pieces: readonly PieceVue[], f: FiltresPieces): Pi
 	return pieces.filter((p) => {
 		if (f.type === 'pdf' && p.mime !== 'application/pdf') return false;
 		if (f.type === 'image' && p.mime === 'application/pdf') return false;
-		if (f.etat === 'en_attente' && p.operations.length > 0) return false;
-		if (f.etat === 'rattachee' && p.operations.length === 0) return false;
+		if (f.etat === 'en_attente' && estRattachee(p)) return false;
+		if (f.etat === 'rattachee' && !estRattachee(p)) return false;
 		if (texte === '') return true;
-		return [p.nomOriginal, ...p.operations.map((o) => o.libelle)].some((t) =>
-			plier(t).includes(texte)
-		);
+		return [
+			p.nomOriginal,
+			...p.operations.map((o) => o.libelle),
+			...p.sommes.flatMap((c) => [c.tiers, c.motif])
+		].some((t) => plier(t).includes(texte));
 	});
 }
 
@@ -193,7 +225,7 @@ export function filtrerPieces(pieces: readonly PieceVue[], f: FiltresPieces): Pi
 export function trierPieces(pieces: readonly PieceVue[]): PieceVue[] {
 	return [...pieces].sort(
 		(a, b) =>
-			Number(a.operations.length > 0) - Number(b.operations.length > 0) ||
+			Number(estRattachee(a)) - Number(estRattachee(b)) ||
 			b.creeLe.localeCompare(a.creeLe) ||
 			b.id - a.id
 	);

@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { CircleCheck, Landmark, Paperclip, ReceiptText, TriangleAlert } from '@lucide/svelte';
+	import {
+		CircleCheck,
+		FileExclamationPoint,
+		Landmark,
+		Paperclip,
+		ReceiptText,
+		TriangleAlert
+	} from '@lucide/svelte';
 	import { formaterHorodatage } from '#lib/domaine/dates.ts';
 	import { centimes, formaterMontant, sommeCentimes } from '#lib/domaine/montant.ts';
 	import Bandeau from '#lib/ui/Bandeau.svelte';
@@ -94,6 +101,14 @@
 					compteur={data.pieces}
 					icone={Paperclip}
 					href="/pieces{q}"
+				/>
+			</li>
+			<li>
+				<TuileAFaire
+					libelle="Dettes sans Pièce"
+					compteur={data.dettes}
+					icone={FileExclamationPoint}
+					href="/creances-dettes{q}"
 				/>
 			</li>
 			<li>

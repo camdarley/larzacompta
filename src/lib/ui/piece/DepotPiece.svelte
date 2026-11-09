@@ -9,6 +9,8 @@
 
 	type Props = {
 		operationId?: number | null;
+		/** Créance ou Dette existante : la Pièce s'y joint aussitôt. */
+		creanceId?: number | null;
 		surDepose: (piece: PieceDeposee) => void;
 		/** Un simple bouton, sur une rangée de liste. */
 		compact?: boolean;
@@ -22,6 +24,7 @@
 
 	let {
 		operationId = null,
+		creanceId = null,
 		surDepose,
 		compact = false,
 		libelleBouton = 'Choisir un fichier',
@@ -50,6 +53,7 @@
 		part = 0;
 		const r = await deposerPiece(fichier, {
 			operationId,
+			creanceId,
 			progres: (p) => (part = p)
 		});
 		part = null;

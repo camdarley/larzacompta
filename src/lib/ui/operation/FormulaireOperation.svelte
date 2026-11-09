@@ -1198,6 +1198,7 @@
 					{peutSaisir}
 					bind:enSaisie={saisie.pieces}
 					bind:sansPiece={saisie.sansPiece}
+					heritees={saisie.sommes.flatMap((p) => p.somme.pieces)}
 					estDepense={saisie.choix === 'depense' || compensee}
 					surChangement={() => (modifie = true)}
 				/>
