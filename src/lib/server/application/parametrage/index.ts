@@ -151,9 +151,7 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 				evenement: avant ? 'association.modifiee' : 'association.creee',
 				entiteType: 'association',
 				entiteId: 1,
-				resume: avant
-					? 'a modifié l’identité de l’association.'
-					: `a décrit ${e.nom}.`,
+				resume: avant ? 'a modifié l’identité de l’association.' : `a décrit ${e.nom}.`,
 				avant: avant ?? undefined,
 				apres: e
 			});
