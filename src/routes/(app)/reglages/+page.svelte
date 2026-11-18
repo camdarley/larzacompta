@@ -23,7 +23,7 @@
 <EnTete
 	titre="Association"
 	contexte="Réglages"
-	sousTitre="L’identité de votre APE, sur l’écran comme sur les documents."
+	sousTitre="L’identité de votre association, sur l’écran comme sur les documents."
 />
 
 {#if form?.erreur && Object.keys(form.erreur.champs).length === 0}
@@ -51,7 +51,7 @@
 
 <form method="post" class="formulaire seulement-ordinateur" use:enhance={envoi.soumettre}>
 	<Champ
-		etiquette="Nom de l’APE"
+		etiquette="Nom de l’association"
 		name="nom"
 		required
 		valeur={saisie.nom ?? a?.nom ?? ''}
@@ -76,7 +76,7 @@
 		name="mentionsFacture"
 		lignes={5}
 		autocomplete="off"
-		aide="Vides par défaut. Elles s’impriment en bas de chaque Facture, telles quelles. À vérifier selon la situation de votre APE : TVA, SIRET, conditions de règlement."
+		aide="Vides par défaut. Elles s’impriment en bas de chaque Facture, telles quelles. À vérifier selon la situation de votre association : TVA, SIRET, conditions de règlement."
 		valeur={saisie.mentionsFacture ?? a?.mentionsFacture ?? ''}
 		erreur={form?.erreur?.champs.mentionsFacture}
 	/>

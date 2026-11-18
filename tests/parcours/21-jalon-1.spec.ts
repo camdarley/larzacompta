@@ -224,7 +224,7 @@ test('FR-40 : reprendre en cours d’année depuis la Balance d’ouverture', as
 	await page.waitForURL(/bienvenue|\/$/);
 	await page.goto(`${ORIGINE_NEUVE}/bienvenue`);
 
-	await page.getByLabel('Nom de l’APE').fill('APE des Tilleuls');
+	await page.getByLabel('Nom de l’association').fill('APE des Tilleuls');
 	await page.getByRole('button', { name: 'Continuer' }).click();
 	await expect(page.getByText('au 1er septembre 2026')).toBeVisible();
 	await page.locator('#solde-0').fill('1000');

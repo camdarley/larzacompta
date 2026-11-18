@@ -124,7 +124,9 @@ test.describe('sur ordinateur', () => {
 		await page.goto('/reglages');
 		const zone = page.getByLabel('Mentions de facture');
 		await expect(zone).toHaveValue('');
-		await expect(page.getByText('À vérifier selon la situation de votre APE')).toBeVisible();
+		await expect(
+			page.getByText('À vérifier selon la situation de votre association')
+		).toBeVisible();
 		await zone.fill('Association loi 1901, mention fictive.\nPaiement à réception.');
 		await page.getByRole('button', { name: 'Enregistrer' }).click();
 		await expect(page.getByText('Enregistré.')).toBeVisible();

@@ -238,7 +238,7 @@ function brouillonDe(op: OperationJ): BrouillonValide {
 }
 
 /**
- * L'Avoir a transformé cet encaissement en Dette : le reprendre laisserait l'APE devoir une somme
+ * L'Avoir a transformé cet encaissement en Dette : le reprendre laisserait l'association devoir une somme
  * qu'elle n'a plus. La Dette s'annule d'abord, à la main.
  */
 function repriseParAvoir(o: Outils, j: GrandJournal, operationId: number): boolean {

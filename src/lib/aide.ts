@@ -6,7 +6,7 @@ export const ARTICLES: readonly Article[] = [
 		id: 'demarrer',
 		titre: 'Préparer son cahier',
 		paragraphes: [
-			'L’assistant de démarrage décrit votre APE, vos Comptes et leurs soldes de départ, vos Natures et vos Actions, puis les sommes encore dues de l’année passée. Vous pouvez le quitter et le reprendre : il repart où vous en étiez.',
+			'L’assistant de démarrage décrit votre association, vos Comptes et leurs soldes de départ, vos Natures et vos Actions, puis les sommes encore dues de l’année passée. Vous pouvez le quitter et le reprendre : il repart où vous en étiez.',
 			'Les soldes de départ se lisent sur le relevé de la fin de l’Exercice précédent. Une caisse se compte à la main.'
 		]
 	},
@@ -119,7 +119,7 @@ export const ARTICLES: readonly Article[] = [
 		id: 'creances-dettes',
 		titre: 'Créances et Dettes',
 		paragraphes: [
-			'Une Créance est une somme que l’on doit à l’APE, une Dette une somme que l’APE doit. Un remboursement de bénévole en attente se saisit comme une Dette.',
+			'Une Créance est une somme que l’on doit à l’association, une Dette une somme que l’association doit. Un remboursement de bénévole en attente se saisit comme une Dette.',
 			'Une somme en attente ne compte ni en recette, ni en dépense : seule l’Opération qui la solde touche le résultat et la trésorerie.',
 			'« Solder » ouvre une Opération préremplie. Un paiement partiel laisse le reste dû visible, et une même Opération peut solder plusieurs sommes.',
 			'Si l’Opération qui solde une somme est annulée, le reste dû remonte.',
@@ -223,8 +223,8 @@ export const ARTICLES: readonly Article[] = [
 			'Une facture se prépare en brouillon : le formulaire à gauche, le PDF à droite. Un brouillon ne porte aucun numéro, ne compte nulle part et se supprime librement.',
 			'Valider donne le numéro suivant, chronologique et sans trou, puis fige la facture et son PDF. La Créance apparaît dans Créances et Dettes. La recette, elle, ne compte qu’à l’encaissement.',
 			'Quand le relevé montre le paiement, le Pointage signale la Créance. « Créer et solder » écrit l’Opération et la solde d’un seul geste.',
-			'Une facture validée ne se modifie plus. Pour l’annuler, créez un Avoir : il prend le numéro suivant, éteint ce qui reste dû, et ouvre une Dette si l’APE a déjà encaissé quelque chose.',
-			'Les mentions imprimées en bas se règlent dans Réglages, Association. Vérifiez-les selon la situation de votre APE.'
+			'Une facture validée ne se modifie plus. Pour l’annuler, créez un Avoir : il prend le numéro suivant, éteint ce qui reste dû, et ouvre une Dette si l’association a déjà encaissé quelque chose.',
+			'Les mentions imprimées en bas se règlent dans Réglages, Association. Vérifiez-les selon la situation de votre association.'
 		]
 	},
 	{
@@ -415,7 +415,7 @@ export const GLOSSAIRE: readonly Terme[] = [
 		terme: 'Chèque reçu',
 		ancre: 'cheque-recu',
 		definition:
-			'Chèque reçu en paiement par l’APE, enregistré comme recette à sa réception. États : en attente, remis, pointé, rejeté.'
+			'Chèque reçu en paiement par l’association, enregistré comme recette à sa réception. États : en attente, remis, pointé, rejeté.'
 	},
 	{
 		terme: 'Remise',
@@ -426,7 +426,7 @@ export const GLOSSAIRE: readonly Terme[] = [
 	{
 		terme: 'Chèque émis',
 		ancre: 'cheque-emis',
-		definition: 'Chèque payé par l’APE. États : émis, annulé, pointé.'
+		definition: 'Chèque payé par l’association. États : émis, annulé, pointé.'
 	},
 	{
 		terme: 'Bordereau',
@@ -446,7 +446,7 @@ export const GLOSSAIRE: readonly Terme[] = [
 	{
 		terme: 'Facture émise',
 		ancre: 'facture-emise',
-		definition: 'Facture produite par l’APE pour un tiers.'
+		definition: 'Facture produite par l’association pour un tiers.'
 	},
 	{ terme: 'Avoir', ancre: 'avoir', definition: 'Document qui annule une Facture émise.' },
 	{

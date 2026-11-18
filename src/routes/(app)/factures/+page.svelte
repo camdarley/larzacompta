@@ -15,7 +15,7 @@
 
 <EnTete
 	titre="Factures"
-	sousTitre="Ce que l’APE facture à un tiers, numéroté sans trou."
+	sousTitre="Ce que l’association facture à un tiers, numéroté sans trou."
 	aide={{ ancre: 'facture-emise', texte: 'Qu’est-ce qu’une Facture émise ?' }}
 >
 	{#snippet actions()}

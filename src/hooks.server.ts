@@ -117,7 +117,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		transformPageChunk: ({ html }) => html.replace('%ape.theme%', theme)
 	});
 
-	// Le HTML porte les chiffres et les noms de l'APE : rien n'en reste après la déconnexion.
+	// Le HTML porte les chiffres et les noms de l'association : rien n'en reste après la déconnexion.
 	if (acces !== null && !reponse.headers.has('Cache-Control')) {
 		reponse.headers.set('Cache-Control', 'private, no-store');
 	}

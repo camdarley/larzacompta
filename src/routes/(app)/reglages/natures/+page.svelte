@@ -57,7 +57,7 @@
 	<EtatVide
 		icone={Tags}
 		titre="Pas encore de Nature"
-		phrase="Décrivez d’abord votre APE : les Natures de l’outil s’ajoutent alors d’elles-mêmes."
+		phrase="Décrivez d’abord votre association : les Natures de l’outil s’ajoutent alors d’elles-mêmes."
 	/>
 {:else}
 	<Tableau legende="Natures">

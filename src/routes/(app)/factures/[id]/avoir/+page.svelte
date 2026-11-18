@@ -71,7 +71,8 @@
 		</div>
 		{#if plan.detteOuverte > 0}
 			<Bandeau ton="regarder">
-				L’APE a déjà encaissé {formaterMontant(plan.detteOuverte)} : une Dette de ce montant s’ouvre envers
+				L’association a déjà encaissé {formaterMontant(plan.detteOuverte)} : une Dette de ce montant s’ouvre
+				envers
 				{f.tiersNom}, à rembourser.
 			</Bandeau>
 		{:else}

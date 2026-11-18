@@ -1,6 +1,6 @@
 /** Étapes de l'assistant de démarrage, écrites dans `association.etape_assistant`. */
 export const ETAPES_ASSISTANT = [
-	'Votre APE',
+	'Votre association',
 	'Vos Comptes',
 	'Natures et Actions',
 	'Vos sommes en cours'

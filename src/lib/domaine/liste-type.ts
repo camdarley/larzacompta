@@ -1,5 +1,5 @@
 /**
- * Liste type proposée à l'installation (FR-1, AD-24). Générique : aucune donnée propre à une APE.
+ * Liste type proposée à l'installation (FR-1, AD-24). Générique : aucune donnée propre à une association.
  * Les Groupes par défaut sont ceux de FR-31.
  */
 import type { CodeSysteme } from './parametrage.ts';

@@ -169,7 +169,7 @@ test.describe('Comptage sur téléphone', () => {
 		await context.setOffline(false);
 	});
 
-	test('le titre porte le nom de l’APE, et les pièces 2 et 1 la taille heading', async ({
+	test('le titre porte le nom de l’association, et les pièces 2 et 1 la taille heading', async ({
 		page
 	}) => {
 		await connecte(page, 'compteur');

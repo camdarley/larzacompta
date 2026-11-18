@@ -88,7 +88,7 @@
 		{/snippet}
 	</EtatVide>
 {:else}
-	<Tableau legende="Comptes de l’APE">
+	<Tableau legende="Comptes de l’association">
 		<thead>
 			<tr>
 				<th scope="col">Compte</th>

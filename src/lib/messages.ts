@@ -196,7 +196,7 @@ const MESSAGES = {
 	budget_cloture: 'Cet Exercice est clôturé : son Budget ne change plus.',
 	budget_deja_prepare: 'Cet Exercice a déjà un Budget. Ajustez-le directement.',
 	budget_sans_realise: 'Il n’y a aucun réalisé à reprendre : partez de zéro.',
-	association_absente: 'Décrivez d’abord votre APE.'
+	association_absente: 'Décrivez d’abord votre association.'
 } as const;
 
 export type CodeMessage = keyof typeof MESSAGES;

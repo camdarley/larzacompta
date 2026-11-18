@@ -157,7 +157,7 @@ test('l’assistant et les états vides d’une instance neuve disent le texte p
 	await page.goto(`${ORIGINE_NEUVE}/bienvenue`);
 	await photographier(page, 'assistant-1', '/bienvenue?etape=1', ORIGINE_NEUVE);
 	await page.goto(`${ORIGINE_NEUVE}/bienvenue`);
-	await page.getByLabel('Nom de l’APE').fill('APE des Tilleuls');
+	await page.getByLabel('Nom de l’association').fill('APE des Tilleuls');
 	await page.getByRole('button', { name: 'Continuer' }).click();
 	await expect(page.getByText('au 1er septembre 2026')).toBeVisible();
 	await photographier(page, 'assistant-2', '/bienvenue?etape=2', ORIGINE_NEUVE);
@@ -193,7 +193,7 @@ test('l’assistant et les états vides d’une instance neuve disent le texte p
 			'vide-creances',
 			'/creances-dettes',
 			'Rien en attente',
-			'Personne ne doit rien à l’APE, et l’APE ne doit rien à personne.'
+			'Personne ne doit rien à l’association, et l’association ne doit rien à personne.'
 		],
 		['vide-pieces', '/pieces', 'Aucune Pièce ne manque', 'Chaque dépense a sa Pièce.']
 	];

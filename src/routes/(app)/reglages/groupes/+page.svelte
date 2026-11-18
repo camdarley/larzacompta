@@ -52,7 +52,7 @@
 	<EtatVide
 		icone={Layers}
 		titre="Pas encore de Groupe"
-		phrase="Décrivez d’abord votre APE : les Groupes par défaut s’ajoutent alors d’eux-mêmes."
+		phrase="Décrivez d’abord votre association : les Groupes par défaut s’ajoutent alors d’eux-mêmes."
 	/>
 {:else}
 	<Tableau legende="Groupes, dans l’ordre des états">

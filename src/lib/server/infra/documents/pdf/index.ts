@@ -16,7 +16,7 @@ import { formaterMontant, formaterMontantSigne } from '#lib/domaine/montant.ts';
 
 const MM = 72 / 25.4;
 const MARGE = 20 * MM;
-/** Réservé en bas de page au pied : nom de l'APE, Exercice, pagination. */
+/** Réservé en bas de page au pied : nom de l'association, Exercice, pagination. */
 const PIED = 18;
 const CORPS = 11;
 const INTERLIGNE = 15;

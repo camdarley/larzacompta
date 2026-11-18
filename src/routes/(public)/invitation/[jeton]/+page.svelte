@@ -35,7 +35,7 @@
 		{#if data.invitation?.nomAffiche}
 			<p class="texte">Bonjour {data.invitation.nomAffiche}.</p>
 		{:else}
-			<p class="texte">Cet Accès tiendra la trésorerie de votre APE.</p>
+			<p class="texte">Cet Accès tiendra la trésorerie de votre association.</p>
 		{/if}
 		<form
 			method="post"

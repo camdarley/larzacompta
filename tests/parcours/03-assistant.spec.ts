@@ -11,7 +11,7 @@ test('l’assistant prépare le cahier, étape par étape', async ({ page }) => 
 
 	const etapes = page.getByRole('list', { name: 'Étapes de l’assistant' });
 	await expect(etapes.getByRole('listitem')).toHaveText([
-		/Votre APE/,
+		/Votre association/,
 		/Vos Comptes/,
 		/Natures et Actions/,
 		/Vos sommes en cours/
@@ -21,11 +21,11 @@ test('l’assistant prépare le cahier, étape par étape', async ({ page }) => 
 	// Étape 1, avec une erreur corrigée sans perdre la saisie.
 	await page.getByLabel('Adresse').fill('1 rue des Tilleuls');
 	await page.getByRole('button', { name: 'Continuer' }).click();
-	await expect(page.getByLabel('Nom de l’APE'))
+	await expect(page.getByLabel('Nom de l’association'))
 		.toBeFocused({ timeout: 1000 })
 		.catch(() => {});
 	await expect(page).toHaveURL(/bienvenue/);
-	await page.getByLabel('Nom de l’APE').fill('APE des Tilleuls');
+	await page.getByLabel('Nom de l’association').fill('APE des Tilleuls');
 	await page.getByRole('button', { name: 'Continuer' }).click();
 
 	// Quitter puis revenir reprend à l'étape atteinte.
@@ -37,7 +37,7 @@ test('l’assistant prépare le cahier, étape par étape', async ({ page }) => 
 
 	// Retour sans perte.
 	await page.getByRole('link', { name: 'Retour' }).click();
-	await expect(page.getByLabel('Nom de l’APE')).toHaveValue('APE des Tilleuls');
+	await expect(page.getByLabel('Nom de l’association')).toHaveValue('APE des Tilleuls');
 	await page.getByRole('button', { name: 'Continuer' }).click();
 
 	await expect(page.getByLabel('Premier Exercice tenu dans l’outil')).toHaveValue('2026');

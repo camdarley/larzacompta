@@ -341,7 +341,7 @@ test('5.4 : Compte de résultat, État de trésorerie, explication', async ({ pa
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('État de trésorerie');
 	const principal = page.getByRole('main');
 	await expect(principal.getByRole('table')).toContainText('CCP imaginaire');
-	await expect(principal).toContainText('Ce que l’APE attend');
+	await expect(principal).toContainText('Ce que l’association attend');
 	await expect(principal).toContainText(/500,00/);
 	await expect(principal).toContainText(/75,00/);
 	for (const terme of [

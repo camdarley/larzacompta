@@ -51,7 +51,7 @@ export type EntreeNature = { libelle: string; groupeId: number; neutre: boolean 
 export type EntreeAction = { libelle: string; groupeId: number; avecCaisse: boolean };
 export type SelectionListeType = { natures: string[]; actions: string[] };
 
-/** Groupes par défaut et Natures système : présents dès que l'APE existe, quoi qu'on coche ensuite. */
+/** Groupes par défaut et Natures système : présents dès que l'association existe, quoi qu'on coche ensuite. */
 function assurerSocle(o: Outils) {
 	const depot = o.depots.parametrage;
 	const groupes = depot.groupes();
@@ -74,7 +74,7 @@ function assurerSocle(o: Outils) {
 	}
 }
 
-/** Après les Comptes de l'APE : une instance qui démarre reçoit aussi celui des chèques. */
+/** Après les Comptes de l'association : une instance qui démarre reçoit aussi celui des chèques. */
 export function assurerCompteCheques(o: Outils) {
 	const depot = o.depots.parametrage;
 	if (!depot.comptes().some((c) => c.type === COMPTE_CHEQUES.type)) {
@@ -151,7 +151,9 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 				evenement: avant ? 'association.modifiee' : 'association.creee',
 				entiteType: 'association',
 				entiteId: 1,
-				resume: avant ? 'a modifié l’identité de l’APE.' : `a décrit l’APE ${e.nom}.`,
+				resume: avant
+					? 'a modifié l’identité de l’association.'
+					: `a décrit ${e.nom}.`,
 				avant: avant ?? undefined,
 				apres: e
 			});
@@ -582,7 +584,7 @@ export function creerParametrage(socle: Socle, executer: Executer, lire: Lire) {
 	}
 
 	return {
-		/** Identité publique : le nom de l'APE figure sur la page de connexion. */
+		/** Identité publique : le nom de l'association figure sur la page de connexion. */
 		association: () => depot.association(),
 
 		/** Fiche complète de Réglages : gardée, le masque d'invalidation de Kit saute le layout (AD-15). */

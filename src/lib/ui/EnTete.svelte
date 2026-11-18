@@ -35,7 +35,7 @@
 	const section = getContext<OngletsDePage | undefined>(CLE_ONGLETS);
 
 	const titreOnglet = $derived(
-		// Sans doublon : sur Connexion, le titre de la page est déjà le nom de l'APE.
+		// Sans doublon : sur Connexion, le titre de la page est déjà le nom de l'association.
 		[...new Set([onglet, titre, contexte, page.data.nomApe as string | undefined])]
 			.filter(Boolean)
 			.join(', ')

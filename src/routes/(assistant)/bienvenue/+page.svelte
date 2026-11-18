@@ -184,9 +184,9 @@
 				<p class="intro t-muted">
 					Ces informations figureront sur vos documents. Tout se modifie ensuite.
 				</p>
-				<form method="post" action="?/ape" class="pile" use:enhance={soumettre}>
+				<form method="post" action="?/association" class="pile" use:enhance={soumettre}>
 					<Champ
-						etiquette="Nom de l’APE"
+						etiquette="Nom de l’association"
 						name="nom"
 						required
 						valeur={saisie.nom ?? data.association?.nom ?? ''}
@@ -335,8 +335,8 @@
 						name="sens"
 						valeur={saisie.sens ?? 'dette'}
 						options={[
-							{ valeur: 'dette', libelle: 'À payer : l’APE doit cette somme' },
-							{ valeur: 'creance', libelle: 'À recevoir : on doit cette somme à l’APE' }
+							{ valeur: 'dette', libelle: 'À payer : l’association doit cette somme' },
+							{ valeur: 'creance', libelle: 'À recevoir : on doit cette somme à l’association' }
 						]}
 					/>
 					<div class="deux">

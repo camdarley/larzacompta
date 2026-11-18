@@ -1,7 +1,7 @@
 /** Trou de dates entre les imports d'un Compte : seul indice d'un relevé oublié. */
 import { ajouterJours, formaterJourMois, type DateCivile } from '../dates.ts';
 
-/** Au-delà de trois semaines sans ligne, un relevé manque peut-être. Une APE a des creux plus courts. */
+/** Au-delà de trois semaines sans ligne, un relevé manque peut-être. Une association a des creux plus courts. */
 export const SEUIL_TROU_JOURS = 21;
 
 export type Periode = { dateMin: DateCivile; dateMax: DateCivile };

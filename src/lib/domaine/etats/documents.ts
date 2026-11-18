@@ -53,7 +53,7 @@ export type ModeleDocument = {
 	provisoire: boolean;
 	nomFichier: string;
 	sections: SectionDocument[];
-	/** Remplace la ligne « APE, Exercice » sous le titre. `null` : aucune ligne. */
+	/** Remplace la ligne « association, Exercice » sous le titre. `null` : aucune ligne. */
 	sousTitre?: string | null;
 	/** Blocs côte à côte sous le titre : émetteur et destinataire d'une Facture. */
 	parties?: { titre: string; lignes: string[] }[];
@@ -145,7 +145,7 @@ function sectionsTresorerie(t: EtatTresorerie): SectionDocument[] {
 		{
 			titre: 'État de trésorerie',
 			phrases: [
-				'Ce que l’APE possédait au début et à la fin de l’Exercice, Compte par Compte.',
+				'Ce que l’association possédait au début et à la fin de l’Exercice, Compte par Compte.',
 				...phrasesAnomalies(t.anomalies)
 			],
 			tableau: {
@@ -187,8 +187,8 @@ function sectionsTresorerie(t: EtatTresorerie): SectionDocument[] {
 				legende: 'Créances et Dettes',
 				colonnes: [colonne('Reste dû', false), colonne('Montant')],
 				rangees: [
-					ligne('Ce que l’APE attend', t.creances),
-					ligne('Ce que l’APE doit', t.dettes),
+					ligne('Ce que l’association attend', t.creances),
+					ligne('Ce que l’association doit', t.dettes),
 					ligne('Chèques à remettre, déjà comptés dans la trésorerie', t.chequesARemettre)
 				]
 			}

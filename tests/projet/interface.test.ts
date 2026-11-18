@@ -76,3 +76,16 @@ describe('nom du produit', () => {
 		expect(fautifs).toEqual([]);
 	});
 });
+
+describe('vocabulaire', () => {
+	it('parle d’« association », jamais d’« APE », hors du nom du produit', () => {
+		const fautifs = sources('src', ['.ts', '.svelte', '.css', '.html']).flatMap((f) =>
+			f.contenu
+				.replaceAll(NOM_PRODUIT, '')
+				.split('\n')
+				.map((ligne, i) => (/\bAPE\b/.test(ligne) ? `${f.chemin}:${i + 1}` : null))
+				.filter((x) => x !== null)
+		);
+		expect(fautifs).toEqual([]);
+	});
+});

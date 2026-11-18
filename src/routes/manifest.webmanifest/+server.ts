@@ -1,7 +1,7 @@
 import { NOM_PRODUIT } from '#lib/produit.ts';
 import { application } from '#lib/server/composition.ts';
 
-/** Porte le nom de l'APE. `display: browser` : pas d'application installable en v1. */
+/** Porte le nom de l'association. `display: browser` : pas d'application installable en v1. */
 export function GET() {
 	const nom = application().parametrage.association()?.nom ?? NOM_PRODUIT;
 	const corps = {

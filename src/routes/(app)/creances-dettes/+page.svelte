@@ -219,7 +219,7 @@
 	<EtatVide
 		icone={Handshake}
 		titre="Rien en attente"
-		phrase="Personne ne doit rien à l’APE, et l’APE ne doit rien à personne."
+		phrase="Personne ne doit rien à l’association, et l’association ne doit rien à personne."
 	>
 		{#snippet action()}
 			{#if actif}
@@ -231,8 +231,8 @@
 	</EtatVide>
 {:else}
 	<div class="blocs">
-		{@render bloc('À recevoir', data.suivi.aRecevoir, 'Personne ne doit rien à l’APE.')}
-		{@render bloc('À payer', data.suivi.aPayer, 'L’APE ne doit rien à personne.')}
+		{@render bloc('À recevoir', data.suivi.aRecevoir, 'Personne ne doit rien à l’association.')}
+		{@render bloc('À payer', data.suivi.aPayer, 'L’association ne doit rien à personne.')}
 	</div>
 {/if}
 
@@ -251,8 +251,8 @@
 				name="sens"
 				valeur={sensInitial}
 				options={[
-					{ valeur: 'creance', libelle: 'À recevoir : on doit cette somme à l’APE' },
-					{ valeur: 'dette', libelle: 'À payer : l’APE doit cette somme' }
+					{ valeur: 'creance', libelle: 'À recevoir : on doit cette somme à l’association' },
+					{ valeur: 'dette', libelle: 'À payer : l’association doit cette somme' }
 				]}
 				aide="Un remboursement de bénévole en attente est une somme à payer."
 			/>

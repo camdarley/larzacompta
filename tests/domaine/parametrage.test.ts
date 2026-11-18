@@ -91,7 +91,7 @@ describe('liste type', () => {
 		expect(NATURES_SYSTEME.filter((n) => n.neutre).map((n) => n.code)).toEqual(['somme_a_rendre']);
 	});
 
-	it('ne contient aucune donnée propre à une APE', () => {
+	it('ne contient aucune donnée propre à une association', () => {
 		const mots = [...NATURES_TYPE, ...ACTIONS_TYPE, ...NATURES_SYSTEME].flatMap((e) =>
 			e.libelle.toLowerCase().split(/[\s’']+/)
 		);

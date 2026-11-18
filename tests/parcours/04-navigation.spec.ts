@@ -277,7 +277,7 @@ test('une page inconnue reste calme', async ({ page }) => {
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Cette page n’existe pas');
 });
 
-test('le manifeste porte le nom de l’APE, sans installation', async ({ request }) => {
+test('le manifeste porte le nom de l’association, sans installation', async ({ request }) => {
 	const m = await (await request.get('/manifest.webmanifest')).json();
 	expect(m.name).toBe('APE des Tilleuls');
 	expect(m.display).toBe('browser');

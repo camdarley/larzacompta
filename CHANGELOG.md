@@ -2,6 +2,10 @@
 
 Ce fichier résume ce que chaque version apporte. Les choix faits en route sont dans [`DECISIONS.md`](DECISIONS.md).
 
+## À venir
+
+- Les écrans et les documents parlent d'« association » et non plus d'« APE » : l'outil convient à toute petite association de même profil. Les entrées déjà écrites au Journal gardent leur texte.
+
 ## 1.0.0
 
 Première version complète. Elle réunit les trois jalons du projet.

@@ -206,7 +206,7 @@ describe('démarrage par l’assistant', () => {
 		expect(p.association()?.etapeAssistant).toBe(ETAPE_ASSISTANT_TERMINE);
 	});
 
-	it('exige une APE décrite', () => {
+	it('exige une association décrite', () => {
 		const vide = banc();
 		const r = vide.app.exercices.demarrer(vide.ctx(), { anneeDebut: 2026, comptes });
 		expect(!r.ok && r.erreur.code).toBe('association_absente');

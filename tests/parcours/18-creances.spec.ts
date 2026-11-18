@@ -79,7 +79,9 @@ test('4.4 : rien en attente, l’état vide le dit, et propose Ajouter', async (
 	await page.goto('/creances-dettes', { waitUntil: 'networkidle' });
 	await expect(page.getByText('Rien en attente')).toBeVisible();
 	await expect(
-		page.getByText('Personne ne doit rien à l’APE, et l’APE ne doit rien à personne.')
+		page.getByText(
+			'Personne ne doit rien à l’association, et l’association ne doit rien à personne.'
+		)
 	).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Ajouter' })).toBeVisible();
 	await axeSansViolation(page);

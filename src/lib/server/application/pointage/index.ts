@@ -106,7 +106,7 @@ export type PagePointage = VuePointage & {
 const acteur = (o: Pick<Outils, 'ctx'>) => (o.ctx.acces as NonNullable<Ctx['acces']>).id;
 const nouvellesLignes = (n: number) => (n > 1 ? `${n} lignes nouvelles` : `${n} ligne nouvelle`);
 
-/** Dix ans de relevé d'une APE, et davantage : au-delà, ce n'est pas le bon fichier. */
+/** Dix ans de relevé d'une association, et davantage : au-delà, ce n'est pas le bon fichier. */
 export const MAX_LIGNES_IMPORT = 10_000;
 
 const formaterEntier = (n: number) => n.toLocaleString('fr-FR');

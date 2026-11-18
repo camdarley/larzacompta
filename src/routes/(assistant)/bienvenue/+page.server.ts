@@ -87,7 +87,7 @@ function lireComptes(champs: Record<string, string>): Resultat<CompteDeDepart[]>
 }
 
 export const actions = {
-	ape: async ({ request, locals }) => {
+	association: async ({ request, locals }) => {
 		const champs = champsDe(await request.formData());
 		const entree = valider(schemaAssociation, champs);
 		if (!entree.ok) return refus(entree.erreur, champs);

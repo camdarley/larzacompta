@@ -2,7 +2,7 @@ import type { SourceVersions } from '../../application/ports.ts';
 
 type Reponse = { tag_name?: unknown; version?: unknown };
 
-/** Lecture anonyme : ni identifiant, ni nom d'APE, ni version en en-tête (AD-21, NFR-8). */
+/** Lecture anonyme : ni identifiant, ni nom d'association, ni version en en-tête (AD-21, NFR-8). */
 export function creerSourceVersions(url: string, lire: typeof fetch = fetch): SourceVersions {
 	return {
 		async derniere() {

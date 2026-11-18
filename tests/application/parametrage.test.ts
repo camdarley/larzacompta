@@ -38,7 +38,8 @@ describe('association', () => {
 			'association.creee',
 			'association.modifiee'
 		]);
-		expect(b.journal().at(-1)?.resume).toBe('a modifié l’identité de l’APE.');
+		expect(b.journal().at(0)?.resume).toBe('a décrit APE des Tilleuls.');
+		expect(b.journal().at(-1)?.resume).toBe('a modifié l’identité de l’association.');
 	});
 
 	it('pose les Groupes par défaut et les Natures système dès la création', () => {
@@ -306,7 +307,7 @@ describe('liste type', () => {
 		expect(r.natures).toBe(0);
 	});
 
-	it('exige une APE décrite', () => {
+	it('exige une association décrite', () => {
 		const vide = banc();
 		const r = vide.app.parametrage.appliquerListeType(vide.ctx(), { natures: [], actions: [] });
 		expect(!r.ok && r.erreur.code).toBe('association_absente');

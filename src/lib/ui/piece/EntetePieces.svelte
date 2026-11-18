@@ -5,7 +5,7 @@
 
 	let { manquantes, toutes }: { manquantes: number; toutes: number } = $props();
 
-	/** Deux onglets, deux titres de page : « Toutes, Pièces, APE des Tilleuls ». */
+	/** Deux onglets, deux titres de page : « Toutes, Pièces, Association des Tilleuls ». */
 	const onglet = $derived(page.url.pathname.endsWith('/toutes') ? 'Toutes' : 'Manquantes');
 
 	const lien = (href: string) => {

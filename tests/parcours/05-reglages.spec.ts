@@ -18,13 +18,13 @@ function dernierJournal() {
 
 test('l’identité s’enregistre et se lit dans la barre et le titre', async ({ page }) => {
 	await page.goto('/reglages');
-	await page.getByLabel('Nom de l’APE').fill('APE des Marronniers');
+	await page.getByLabel('Nom de l’association').fill('APE des Marronniers');
 	await page.getByRole('button', { name: 'Enregistrer' }).click();
 	await expect(page.getByRole('status').getByText('Enregistré.')).toBeVisible();
 	await expect(page.locator('aside').getByText('APE des Marronniers')).toBeVisible();
 	await expect(page).toHaveTitle(/APE des Marronniers/);
 	expect(dernierJournal().evenement).toBe('association.modifiee');
-	await page.getByLabel('Nom de l’APE').fill('APE des Tilleuls');
+	await page.getByLabel('Nom de l’association').fill('APE des Tilleuls');
 	await page.getByRole('button', { name: 'Enregistrer' }).click();
 	await expect(page.locator('aside').getByText('APE des Tilleuls')).toBeVisible();
 });

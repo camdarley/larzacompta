@@ -36,7 +36,7 @@
 <EnTete
 	titre="État de trésorerie"
 	contexte="États"
-	sousTitre="Ce que l’APE possédait au début et à la fin de l’Exercice, Compte par Compte."
+	sousTitre="Ce que l’association possédait au début et à la fin de l’Exercice, Compte par Compte."
 >
 	{#snippet actions()}
 		{#if t}<Exporter etat="tresorerie" />{/if}
@@ -93,11 +93,11 @@
 			<p class="t-muted">Restes dus à la fin de l’Exercice, hors trésorerie.</p>
 			<dl>
 				<div>
-					<dt>Ce que l’APE attend</dt>
+					<dt>Ce que l’association attend</dt>
 					<dd class="montant">{formaterMontant(t.creances)}</dd>
 				</div>
 				<div>
-					<dt>Ce que l’APE doit</dt>
+					<dt>Ce que l’association doit</dt>
 					<dd class="montant">{formaterMontant(t.dettes)}</dd>
 				</div>
 			</dl>

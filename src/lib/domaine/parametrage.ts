@@ -1,4 +1,4 @@
-/** Identité de l'APE, Comptes, Natures, Actions, Groupes (FR-1). */
+/** Identité de l'association, Comptes, Natures, Actions, Groupes (FR-1). */
 import { centimes, type Centimes } from './montant.ts';
 import { echec, succes, type Resultat } from './resultat.ts';
 
@@ -36,7 +36,7 @@ export const COMPTE_CHEQUES = {
 	ordre: 1_000_000
 } as const;
 
-/** Comptes que l'APE tient elle-même : ceux qu'on crée, range et choisit à la saisie. */
+/** Comptes que l'association tient elle-même : ceux qu'on crée, range et choisit à la saisie. */
 export const comptesTenus = <C extends Pick<Compte, 'type'>>(comptes: readonly C[]) =>
 	comptes.filter((c) => c.type !== COMPTE_CHEQUES.type);
 
